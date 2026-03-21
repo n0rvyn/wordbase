@@ -1,0 +1,119 @@
+---
+interface Props {
+  title: string;
+  url: string;
+}
+
+const { title, url } = Astro.props;
+const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`;
+---
+
+<div class="share">
+  <span class="share-label">分享</span>
+  <div class="share-buttons">
+    <a href={twitterUrl} target="_blank" rel="noopener noreferrer" class="share-btn" title="Twitter">
+      <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+      </svg>
+    </a>
+    <button id="wechat-share" class="share-btn" title="WeChat" data-url={url}>
+      <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178A1.17 1.17 0 0 1 4.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178 1.17 1.17 0 0 1-1.162-1.178c0-.651.52-1.18 1.162-1.18z"/>
+        <path d="M23.02 14.658c0-3.408-3.347-6.17-7.477-6.17-4.13 0-7.477 2.762-7.477 6.17s3.347 6.17 7.477 6.17c.86 0 1.69-.125 2.468-.354a.73.73 0 0 1 .606.083l1.607.94a.275.275 0 0 0 .14.046.25.25 0 0 0 .245-.25c0-.06-.024-.12-.04-.178l-.33-1.25a.502.502 0 0 1 .178-.557C22.12 18.39 23.02 16.618 23.02 14.658z"/>
+      </svg>
+    </button>
+    <button id="copy-link" class="share-btn" title="Copy Link" data-url={url}>
+      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+      </svg>
+      <span id="copy-text">复制链接</span>
+    </button>
+  </div>
+</div>
+
+<style>
+  .share {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .share-label {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    color: var(--color-ink-ghost);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .share-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .share-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.75rem;
+    font-family: var(--font-sans);
+    font-size: 0.78rem;
+    color: var(--color-ink-faint);
+    background: var(--color-paper-white);
+    border: 1px solid var(--color-rule);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .share-btn:hover {
+    color: var(--color-ink);
+    border-color: var(--color-ink-faint);
+    background: var(--color-paper-warm);
+  }
+</style>
+
+<script>
+  document.getElementById('copy-link')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget as HTMLButtonElement;
+    const url = btn.dataset.url || window.location.href;
+    try {
+      await navigator.clipboard.writeText(url);
+      const textEl = document.getElementById('copy-text');
+      if (textEl) {
+        textEl.textContent = '已复制';
+        setTimeout(() => { textEl.textContent = '复制链接'; }, 2000);
+      }
+    } catch {
+      const input = document.createElement('input');
+      input.value = url;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+    }
+  });
+
+  document.getElementById('wechat-share')?.addEventListener('click', (e) => {
+    const btn = e.currentTarget as HTMLButtonElement;
+    const url = btn.dataset.url || window.location.href;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(26,26,26,0.6);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:10000;animation:fadeIn 0.2s ease;';
+    overlay.innerHTML = `
+      <div style="background:var(--color-paper-white);border-radius:16px;padding:2rem;text-align:center;max-width:280px;box-shadow:0 20px 60px rgba(0,0,0,0.15);">
+        <p style="margin-bottom:1rem;font-family:var(--font-sans);font-size:0.85rem;font-weight:500;color:var(--color-ink);">微信扫码分享</p>
+        <img src="${qrUrl}" alt="QR Code" style="width:180px;height:180px;margin:0 auto 1rem;border-radius:8px;" />
+        <button id="close-qr" style="font-family:var(--font-sans);padding:0.5rem 1.5rem;background:var(--color-paper-warm);border:1px solid var(--color-rule);border-radius:8px;cursor:pointer;font-size:0.8rem;color:var(--color-ink-faint);">关闭</button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', (ev) => {
+      if (ev.target === overlay || (ev.target as HTMLElement).id === 'close-qr') {
+        overlay.remove();
+      }
+    });
+  });
+</script>

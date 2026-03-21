@@ -1,0 +1,163 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ShareButtons from '../../components/ShareButtons.astro';
+import CommentSection from '../../components/CommentSection.astro';
+import { getPosts, formatDate, estimateReadTime, stripMarkdown, type Post } from '../../lib/api';
+import { marked } from 'marked';
+
+export async function getStaticPaths() {
+  const { data: posts } = await getPosts({ status: 'published', limit: 10000 });
+  return posts.map((post: Post) => ({
+    params: { slug: post.slug },
+    props: { post },
+  }));
+}
+
+interface Props {
+  post: Post;
+}
+
+const { post } = Astro.props;
+const htmlContent = marked.parse(post.content);
+const meta = post.meta ? JSON.parse(post.meta) : {};
+const description = meta.description || stripMarkdown(post.content, 160);
+const readTime = estimateReadTime(post.content);
+---
+
+<BaseLayout title={post.title} description={description} ogImage={post.coverImage || undefined}>
+  <article class="article">
+    {/* Back link */}
+    <a href="/" class="back-link">&larr; 返回</a>
+
+    {/* Header */}
+    <header class="article-header">
+      <div class="article-meta">
+        {post.publishedAt && (
+          <time datetime={new Date(post.publishedAt * 1000).toISOString()}>
+            {formatDate(post.publishedAt)}
+          </time>
+        )}
+        <span class="meta-dot" aria-hidden="true"></span>
+        <span>{readTime} 分钟阅读</span>
+      </div>
+
+      <h1 class="article-title">{post.title}</h1>
+
+      {post.excerpt && (
+        <p class="article-lead">{post.excerpt}</p>
+      )}
+    </header>
+
+    {/* Cover */}
+    {post.coverImage && (
+      <figure class="article-cover">
+        <img src={post.coverImage} alt={post.title} loading="lazy" />
+      </figure>
+    )}
+
+    {/* Content */}
+    <div class="prose" set:html={htmlContent} />
+
+    {/* Share */}
+    <footer class="article-footer">
+      <ShareButtons title={post.title} url={`https://blog.norvyn.com/posts/${post.slug}`} />
+    </footer>
+  </article>
+
+  {/* Comments */}
+  <section class="comments-section">
+    <CommentSection postId={post.id} />
+  </section>
+</BaseLayout>
+
+<style>
+  .article {
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-sans);
+    font-size: 0.8rem;
+    color: var(--color-ink-ghost);
+    margin-bottom: 2.5rem;
+    letter-spacing: 0.02em;
+    transition: color 0.2s ease;
+  }
+
+  .back-link:hover {
+    color: var(--color-ink);
+  }
+
+  .article-header {
+    margin-bottom: 2.5rem;
+  }
+
+  .article-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-family: var(--font-sans);
+    font-size: 0.8rem;
+    color: var(--color-ink-faint);
+    margin-bottom: 1.25rem;
+    letter-spacing: 0.02em;
+  }
+
+  .meta-dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--color-ink-ghost);
+  }
+
+  .article-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+    margin-bottom: 1rem;
+    color: var(--color-ink);
+  }
+
+  .article-lead {
+    font-size: 1.1rem;
+    line-height: 1.7;
+    color: var(--color-ink-faint);
+    max-width: 560px;
+  }
+
+  .article-cover {
+    margin: 0 calc(var(--content-padding) * -1) 3rem;
+    overflow: hidden;
+    border-radius: 16px;
+  }
+
+  .article-cover img {
+    width: 100%;
+    display: block;
+  }
+
+  .article-footer {
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .comments-section {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--color-rule);
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 640px) {
+    .article-title { font-size: 1.8rem; }
+    .article-cover { margin: 0 -1rem 2rem; border-radius: 0; }
+  }
+</style>

@@ -1,0 +1,8 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import DashboardStats from '../../components/admin/DashboardStats.tsx';
+---
+
+<AdminLayout title="Dashboard">
+  <DashboardStats client:load />
+</AdminLayout>

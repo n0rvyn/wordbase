@@ -1,0 +1,54 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="404">
+  <div class="not-found">
+    <span class="not-found-code">404</span>
+    <h1 class="not-found-title">页面不存在</h1>
+    <p class="not-found-text">你访问的页面已被移除或从未存在过。</p>
+    <a href="/" class="not-found-link">&larr; 返回首页</a>
+  </div>
+</BaseLayout>
+
+<style>
+  .not-found {
+    text-align: center;
+    padding: 6rem 0;
+  }
+
+  .not-found-code {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 8rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--color-rule);
+    margin-bottom: 1rem;
+  }
+
+  .not-found-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+  }
+
+  .not-found-text {
+    color: var(--color-ink-faint);
+    margin-bottom: 2rem;
+  }
+
+  .not-found-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    color: var(--color-vermillion);
+    font-weight: 500;
+  }
+
+  .not-found-link:hover {
+    text-decoration: underline;
+  }
+</style>

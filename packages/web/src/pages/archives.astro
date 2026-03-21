@@ -1,0 +1,131 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getPosts, formatDate, type Post } from '../lib/api';
+
+const { data: posts } = await getPosts({ status: 'published', limit: 10000 });
+
+const archiveMap = new Map<string, Post[]>();
+posts.forEach((post: Post) => {
+  if (!post.publishedAt) return;
+  const year = new Date(post.publishedAt * 1000).getFullYear().toString();
+  if (!archiveMap.has(year)) archiveMap.set(year, []);
+  archiveMap.get(year)!.push(post);
+});
+
+// Sort posts within each year
+archiveMap.forEach((yearPosts) => {
+  yearPosts.sort((a, b) => (b.publishedAt || 0) - (a.publishedAt || 0));
+});
+
+const sortedYears = [...archiveMap.keys()].sort().reverse();
+const totalPosts = posts.length;
+---
+
+<BaseLayout title="归档">
+  <header class="page-header">
+    <h1 class="page-title">归档</h1>
+    <p class="page-subtitle">{totalPosts} 篇文章</p>
+  </header>
+
+  <div class="archive-timeline">
+    {sortedYears.map(year => {
+      const yearPosts = archiveMap.get(year) || [];
+      return (
+        <section class="archive-year">
+          <div class="year-marker">
+            <span class="year-label">{year}</span>
+            <span class="year-count">{yearPosts.length}</span>
+          </div>
+          <ul class="year-posts">
+            {yearPosts.map((post: Post) => (
+              <li class="archive-item">
+                <time class="archive-date">
+                  {post.publishedAt && new Date(post.publishedAt * 1000).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })}
+                </time>
+                <a href={`/posts/${post.slug}`} class="archive-link">{post.title}</a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      );
+    })}
+  </div>
+</BaseLayout>
+
+<style>
+  .page-header {
+    margin-bottom: 3rem;
+  }
+
+  .page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+
+  .page-subtitle {
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    color: var(--color-ink-faint);
+  }
+
+  .archive-year {
+    margin-bottom: 2.5rem;
+  }
+
+  .year-marker {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--color-ink);
+  }
+
+  .year-label {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-ink);
+  }
+
+  .year-count {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--color-ink-ghost);
+    background: var(--color-paper-warm);
+    padding: 0.15rem 0.5rem;
+    border-radius: 100px;
+  }
+
+  .year-posts {
+    list-style: none;
+  }
+
+  .archive-item {
+    display: flex;
+    align-items: baseline;
+    gap: 1.25rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .archive-date {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-ink-ghost);
+    flex-shrink: 0;
+    width: 48px;
+  }
+
+  .archive-link {
+    font-size: 0.95rem;
+    line-height: 1.4;
+    color: var(--color-ink-light);
+    transition: color 0.2s ease;
+  }
+
+  .archive-link:hover {
+    color: var(--color-vermillion);
+  }
+</style>

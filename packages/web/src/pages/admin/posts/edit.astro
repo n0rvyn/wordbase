@@ -1,0 +1,12 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import PostEditor from '../../../components/admin/PostEditor.tsx';
+---
+
+<AdminLayout title="Edit Post">
+  <PostEditor client:load />
+</AdminLayout>
+
+<script>
+  // PostEditor reads postId from URL query param: /admin/posts/edit?id=xxx
+</script>

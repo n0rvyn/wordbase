@@ -1,0 +1,8 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import CommentModeration from '../../components/admin/CommentModeration.tsx';
+---
+
+<AdminLayout title="Comments">
+  <CommentModeration client:load />
+</AdminLayout>

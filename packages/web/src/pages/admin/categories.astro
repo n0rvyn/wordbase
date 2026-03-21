@@ -1,0 +1,8 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import CategoryManager from '../../components/admin/CategoryManager.tsx';
+---
+
+<AdminLayout title="Categories">
+  <CategoryManager client:load />
+</AdminLayout>

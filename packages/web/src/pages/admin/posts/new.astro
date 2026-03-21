@@ -1,0 +1,8 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import PostEditor from '../../../components/admin/PostEditor.tsx';
+---
+
+<AdminLayout title="New Post">
+  <PostEditor client:load />
+</AdminLayout>

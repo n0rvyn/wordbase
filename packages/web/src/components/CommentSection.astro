@@ -1,0 +1,156 @@
+---
+interface Props {
+  postId: string;
+}
+
+const { postId } = Astro.props;
+const apiUrl = import.meta.env.API_URL || 'http://localhost:4100';
+---
+
+<section id="comments" class="mt-8" data-post-id={postId} data-api-url={apiUrl}>
+  <h2 class="text-2xl font-bold mb-6">Comments</h2>
+
+  <div id="comments-list" class="space-y-4 mb-8">
+    <p class="text-gray-500">Loading comments...</p>
+  </div>
+
+  <div class="bg-white rounded-lg border p-6">
+    <h3 class="text-lg font-semibold mb-4">Leave a comment</h3>
+    <form id="comment-form" class="space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label for="author_name" class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+          <input type="text" id="author_name" name="author_name" required
+            class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div>
+          <label for="author_email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <input type="email" id="author_email" name="author_email"
+            class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+      </div>
+      <div>
+        <label for="author_url" class="block text-sm font-medium text-gray-700 mb-1">Website</label>
+        <input type="url" id="author_url" name="author_url" placeholder="https://"
+          class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+      <div>
+        <label for="content" class="block text-sm font-medium text-gray-700 mb-1">Comment *</label>
+        <textarea id="content" name="content" rows="4" required
+          class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+      </div>
+      <button type="submit"
+        class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+      >
+        Submit
+      </button>
+      <p id="form-message" class="text-sm hidden"></p>
+    </form>
+  </div>
+</section>
+
+<script>
+  const section = document.getElementById('comments')!;
+  const postId = section.dataset.postId!;
+  const apiUrl = section.dataset.apiUrl!;
+  const listEl = document.getElementById('comments-list')!;
+
+  function formatDate(ts: number): string {
+    return new Date(ts * 1000).toLocaleDateString('zh-CN', {
+      year: 'numeric', month: 'long', day: 'numeric',
+    });
+  }
+
+  function renderComment(c: any, depth = 0): string {
+    const ml = depth > 0 ? `margin-left: ${depth * 1.5}rem;` : '';
+    return `
+      <div class="bg-white border rounded-lg p-4" style="${ml}">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="font-medium text-gray-900">${c.authorName}</span>
+          <span class="text-sm text-gray-500">${formatDate(c.createdAt)}</span>
+        </div>
+        <p class="text-gray-700">${c.content}</p>
+      </div>
+    `;
+  }
+
+  async function loadComments() {
+    try {
+      const res = await fetch(`${apiUrl}/api/posts/${postId}/comments?status=approved`);
+      const { data } = await res.json();
+
+      if (data.length === 0) {
+        listEl.innerHTML = '<p class="text-gray-500">No comments yet. Be the first!</p>';
+        return;
+      }
+
+      // Build tree: separate root and replies
+      const roots = data.filter((c: any) => !c.parentId);
+      const replies = data.filter((c: any) => c.parentId);
+      const replyMap = new Map<string, any[]>();
+      replies.forEach((r: any) => {
+        if (!replyMap.has(r.parentId)) replyMap.set(r.parentId, []);
+        replyMap.get(r.parentId)!.push(r);
+      });
+
+      let html = '';
+      roots.forEach((c: any) => {
+        html += renderComment(c, 0);
+        const childReplies = replyMap.get(c.id) || [];
+        childReplies.forEach((r: any) => {
+          html += renderComment(r, 1);
+        });
+      });
+
+      listEl.innerHTML = html;
+    } catch {
+      listEl.innerHTML = '<p class="text-red-500">Failed to load comments.</p>';
+    }
+  }
+
+  loadComments();
+
+  // Handle form submission
+  const form = document.getElementById('comment-form') as HTMLFormElement;
+  const msgEl = document.getElementById('form-message')!;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+    btn.disabled = true;
+
+    const formData = new FormData(form);
+    const body = {
+      author_name: formData.get('author_name'),
+      author_email: formData.get('author_email') || undefined,
+      author_url: formData.get('author_url') || undefined,
+      content: formData.get('content'),
+    };
+
+    try {
+      const res = await fetch(`${apiUrl}/api/posts/${postId}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (res.ok) {
+        msgEl.textContent = 'Comment submitted! It will appear after moderation.';
+        msgEl.className = 'text-sm text-green-600';
+        msgEl.classList.remove('hidden');
+        form.reset();
+      } else {
+        const err = await res.json();
+        msgEl.textContent = err.error?.message || 'Failed to submit comment.';
+        msgEl.className = 'text-sm text-red-600';
+        msgEl.classList.remove('hidden');
+      }
+    } catch {
+      msgEl.textContent = 'Network error. Please try again.';
+      msgEl.className = 'text-sm text-red-600';
+      msgEl.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+</script>

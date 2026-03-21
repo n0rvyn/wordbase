@@ -1,0 +1,44 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getTags, getPosts, formatDate, type Tag, type Post } from '../../lib/api';
+
+export async function getStaticPaths() {
+  const tags = await getTags();
+  return tags.map((tag: Tag) => ({
+    params: { slug: tag.slug },
+    props: { tag },
+  }));
+}
+
+interface Props {
+  tag: Tag;
+}
+
+const { tag } = Astro.props;
+const { data: posts } = await getPosts({ status: 'published', tag: tag.slug, limit: 10000 });
+---
+
+<BaseLayout title={`Tag: ${tag.name}`}>
+  <div class="mb-8">
+    <a href="/tags" class="text-blue-600 hover:underline mb-4 inline-block">&larr; All Tags</a>
+    <h1 class="text-3xl font-bold">Tag: {tag.name}</h1>
+  </div>
+
+  {posts.length === 0 ? (
+    <p class="text-gray-500">No posts with this tag.</p>
+  ) : (
+    <div class="space-y-6">
+      {posts.map((post: Post) => (
+        <article class="bg-white rounded-lg shadow-sm border p-6">
+          <h2 class="text-xl font-semibold mb-2">
+            <a href={`/posts/${post.slug}`} class="text-gray-900 hover:text-blue-600">{post.title}</a>
+          </h2>
+          <p class="text-gray-600 mb-3">{post.excerpt || post.content.substring(0, 150) + '...'}</p>
+          <div class="text-sm text-gray-500">
+            {post.publishedAt && <time>{formatDate(post.publishedAt)}</time>}
+          </div>
+        </article>
+      ))}
+    </div>
+  )}
+</BaseLayout>

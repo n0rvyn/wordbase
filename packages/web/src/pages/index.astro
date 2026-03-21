@@ -1,0 +1,271 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getPosts, formatDate, stripMarkdown, estimateReadTime, type Post } from '../lib/api';
+
+const { data: posts } = await getPosts({ status: 'published', limit: 10000 });
+const sorted = posts.sort((a, b) => (b.publishedAt || 0) - (a.publishedAt || 0));
+const featured = sorted[0];
+const rest = sorted.slice(1, 10);
+const hasMore = sorted.length > 10;
+---
+
+<BaseLayout title="Wordbase">
+  {/* Featured article */}
+  {featured && (
+    <article class="featured">
+      <div class="featured-meta">
+        <span class="featured-label">Latest</span>
+        {featured.publishedAt && (
+          <time datetime={new Date(featured.publishedAt * 1000).toISOString()}>
+            {formatDate(featured.publishedAt)}
+          </time>
+        )}
+      </div>
+      <h1 class="featured-title">
+        <a href={`/posts/${featured.slug}`}>{featured.title}</a>
+      </h1>
+      <p class="featured-excerpt">
+        {featured.excerpt || stripMarkdown(featured.content, 240)}
+      </p>
+      <a href={`/posts/${featured.slug}`} class="read-link">
+        阅读全文 <span class="read-arrow">&rarr;</span>
+      </a>
+    </article>
+  )}
+
+  {/* Post list */}
+  {rest.length > 0 && (
+    <section class="post-list">
+      {rest.map((post: Post, i: number) => (
+        <article class="post-item" style={`animation-delay: ${i * 60}ms`}>
+          <div class="post-date">
+            {post.publishedAt && (
+              <time datetime={new Date(post.publishedAt * 1000).toISOString()}>
+                {new Date(post.publishedAt * 1000).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
+              </time>
+            )}
+          </div>
+          <div class="post-body">
+            <h2 class="post-title">
+              <a href={`/posts/${post.slug}`}>{post.title}</a>
+            </h2>
+            <p class="post-excerpt">
+              {post.excerpt || stripMarkdown(post.content, 120)}
+            </p>
+          </div>
+          <span class="post-readtime">{estimateReadTime(post.content)} min</span>
+        </article>
+      ))}
+    </section>
+  )}
+
+  {/* Pagination */}
+  {hasMore && (
+    <div class="pagination">
+      <a href="/page/2" class="pagination-link">
+        更多文章 <span>&rarr;</span>
+      </a>
+    </div>
+  )}
+</BaseLayout>
+
+<style>
+  /* Featured */
+  .featured {
+    margin-bottom: 4rem;
+    padding-bottom: 3.5rem;
+    border-bottom: 1px solid var(--color-rule);
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .featured-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    font-family: var(--font-sans);
+    font-size: 0.8rem;
+    color: var(--color-ink-faint);
+    letter-spacing: 0.03em;
+  }
+
+  .featured-label {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    background: var(--color-vermillion);
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-radius: 3px;
+  }
+
+  .featured-title {
+    font-size: 2.4rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 1rem;
+    letter-spacing: -0.02em;
+  }
+
+  .featured-title a {
+    background-image: linear-gradient(var(--color-vermillion), var(--color-vermillion));
+    background-size: 0% 2px;
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    transition: background-size 0.4s ease;
+  }
+
+  .featured-title a:hover {
+    background-size: 100% 2px;
+  }
+
+  .featured-excerpt {
+    font-size: 1.05rem;
+    line-height: 1.8;
+    color: var(--color-ink-light);
+    margin-bottom: 1.5rem;
+    max-width: 580px;
+  }
+
+  .read-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--color-vermillion);
+    letter-spacing: 0.02em;
+  }
+
+  .read-arrow {
+    transition: transform 0.2s ease;
+  }
+
+  .read-link:hover .read-arrow {
+    transform: translateX(4px);
+  }
+
+  /* Post list */
+  .post-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .post-item {
+    display: grid;
+    grid-template-columns: 70px 1fr auto;
+    gap: 1.25rem;
+    align-items: baseline;
+    padding: 1.25rem 0;
+    border-bottom: 1px solid var(--color-rule);
+    animation: fadeUp 0.5s ease both;
+    transition: background 0.2s ease;
+  }
+
+  .post-item:first-child {
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .post-item:hover {
+    background: var(--color-paper-warm);
+    margin: 0 -1rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    border-radius: 8px;
+    border-color: transparent;
+  }
+
+  .post-item:hover + .post-item {
+    border-top-color: transparent;
+  }
+
+  .post-date {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-ink-ghost);
+    white-space: nowrap;
+    padding-top: 0.15rem;
+  }
+
+  .post-body {
+    min-width: 0;
+  }
+
+  .post-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    line-height: 1.4;
+    margin-bottom: 0.35rem;
+  }
+
+  .post-title a:hover {
+    color: var(--color-vermillion);
+  }
+
+  .post-excerpt {
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: var(--color-ink-faint);
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .post-readtime {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--color-ink-ghost);
+    white-space: nowrap;
+    padding-top: 0.15rem;
+  }
+
+  /* Pagination */
+  .pagination {
+    margin-top: 3rem;
+    text-align: center;
+  }
+
+  .pagination-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--color-ink-faint);
+    padding: 0.75rem 2rem;
+    border: 1px solid var(--color-rule);
+    border-radius: 100px;
+    transition: all 0.2s ease;
+    letter-spacing: 0.02em;
+  }
+
+  .pagination-link:hover {
+    color: var(--color-ink);
+    border-color: var(--color-ink-faint);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+
+  /* Animations */
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .featured-title { font-size: 1.8rem; }
+    .post-item { grid-template-columns: 1fr; gap: 0.25rem; }
+    .post-date { display: none; }
+    .post-readtime { display: none; }
+  }
+</style>

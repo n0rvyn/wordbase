@@ -1,0 +1,6 @@
+data/uploads/*
+!data/uploads/.gitkeep
+data/blog.db
+data/blog.db-wal
+data/blog.db-shm
+dist/

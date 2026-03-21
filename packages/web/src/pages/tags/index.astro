@@ -1,0 +1,57 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getTags, type Tag } from '../../lib/api';
+
+const tags = await getTags();
+---
+
+<BaseLayout title="标签">
+  <header class="page-header">
+    <h1 class="page-title">标签</h1>
+    <p class="page-subtitle">{tags.length} 个标签</p>
+  </header>
+
+  {tags.length === 0 ? (
+    <p class="empty">暂无标签</p>
+  ) : (
+    <div class="tag-cloud">
+      {tags.map((tag: Tag) => (
+        <a href={`/tags/${tag.slug}`} class="tag-pill">
+          {tag.name}
+        </a>
+      ))}
+    </div>
+  )}
+</BaseLayout>
+
+<style>
+  .page-header { margin-bottom: 3rem; }
+  .page-title { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .page-subtitle { font-family: var(--font-sans); font-size: 0.85rem; color: var(--color-ink-faint); }
+  .empty { color: var(--color-ink-faint); }
+
+  .tag-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .tag-pill {
+    display: inline-block;
+    font-family: var(--font-sans);
+    font-size: 0.82rem;
+    padding: 0.4rem 1rem;
+    background: var(--color-paper-white);
+    border: 1px solid var(--color-rule);
+    border-radius: 100px;
+    color: var(--color-ink-light);
+    transition: all 0.2s ease;
+    letter-spacing: 0.01em;
+  }
+
+  .tag-pill:hover {
+    background: var(--color-ink);
+    color: var(--color-paper);
+    border-color: var(--color-ink);
+  }
+</style>

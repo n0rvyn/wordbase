@@ -1,0 +1,8 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import PostList from '../../../components/admin/PostList.tsx';
+---
+
+<AdminLayout title="Posts">
+  <PostList client:load />
+</AdminLayout>
