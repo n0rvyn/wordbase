@@ -13,7 +13,7 @@ if [ -d /var/www/wordbase ]; then
     git pull origin main
 else
     echo "[1/10] Fresh installation..."
-    git clone https://github.com/n0rvyn/wordbase.git /var/www/wordbase
+    git clone git@github.com:n0rvyn/wordbase.git /var/www/wordbase
     cd /var/www/wordbase
 fi
 
