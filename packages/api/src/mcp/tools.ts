@@ -3,6 +3,7 @@ import * as mediaService from '../services/media.service.js';
 import * as commentService from '../services/comment.service.js';
 import * as analyticsService from '../services/analytics.service.js';
 import * as buildService from '../services/build.service.js';
+import * as redirectService from '../services/redirect.service.js';
 
 export function registerTools(server: any) {
   server.tool(
@@ -273,6 +274,63 @@ export function registerTools(server: any) {
     async () => {
       const status = buildService.getBuildStatus();
       return { content: [{ type: 'text' as const, text: JSON.stringify(status, null, 2) }] };
+    }
+  );
+
+  // Redirect tools
+  server.tool(
+    'blog_manage_redirects',
+    'List, create, or delete URL redirects',
+    {
+      action: { type: 'string', description: 'Action: list, create, or delete' },
+      fromPath: { type: 'string', description: 'Source path (for create)' },
+      toPath: { type: 'string', description: 'Target path (for create)' },
+      id: { type: 'string', description: 'Redirect ID (for delete)' },
+    },
+    async (args: Record<string, unknown>) => {
+      const action = args.action as string;
+      if (action === 'list') {
+        const list = await redirectService.listRedirects();
+        return { content: [{ type: 'text' as const, text: JSON.stringify(list, null, 2) }] };
+      }
+      if (action === 'create') {
+        const record = await redirectService.createRedirect({
+          fromPath: args.fromPath as string,
+          toPath: args.toPath as string,
+        });
+        return { content: [{ type: 'text' as const, text: JSON.stringify(record, null, 2) }] };
+      }
+      if (action === 'delete') {
+        const deleted = await redirectService.deleteRedirect(args.id as string);
+        if (!deleted) return { content: [{ type: 'text' as const, text: 'Redirect not found' }], isError: true };
+        return { content: [{ type: 'text' as const, text: JSON.stringify({ success: true }, null, 2) }] };
+      }
+      return { content: [{ type: 'text' as const, text: 'Invalid action. Use: list, create, or delete' }], isError: true };
+    }
+  );
+
+  // Post meta tool
+  server.tool(
+    'blog_update_post_meta',
+    'Update SEO metadata for a post (og:title, og:description, og:image)',
+    {
+      id: { type: 'string', description: 'Post ID' },
+      description: { type: 'string', description: 'Meta description / og:description' },
+      ogTitle: { type: 'string', description: 'og:title (defaults to post title)' },
+      ogImage: { type: 'string', description: 'og:image URL' },
+    },
+    async (args: Record<string, unknown>) => {
+      const post = await postService.getPost(args.id as string);
+      if (!post) return { content: [{ type: 'text' as const, text: 'Post not found' }], isError: true };
+
+      const existingMeta = post.meta ? JSON.parse(post.meta) : {};
+      const newMeta = { ...existingMeta };
+      if (args.description) newMeta.description = args.description;
+      if (args.ogTitle) newMeta.og_title = args.ogTitle;
+      if (args.ogImage) newMeta.og_image = args.ogImage;
+
+      const updated = await postService.updatePost(args.id as string, { meta: JSON.stringify(newMeta) });
+      return { content: [{ type: 'text' as const, text: JSON.stringify(updated, null, 2) }] };
     }
   );
 }

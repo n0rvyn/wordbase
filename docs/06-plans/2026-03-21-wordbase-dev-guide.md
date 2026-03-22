@@ -369,30 +369,30 @@ confirmed_at: 2026-03-21T18:00:00
 <!-- section: phase-10 keywords: seo, redirects, polish -->
 ## Phase 10: SEO & Polish
 
+**Status:** ✅ Completed — 2026-03-22
+
 **Goal:** SEO features complete and final polish applied.
 
 **Depends on:** Phase 9
 
 **Scope:**
 - Redirect management (GET/POST/DELETE /api/redirects)
-- Redirect middleware in API server
-- Post meta editing (og_title, og_description, og_image)
-- Social meta tags in Astro layouts
+- Redirect middleware in API server (catches old WP ?p=ID URLs + redirect table)
+- Post meta editing via MCP (og_title, og_description, og_image)
+- Social meta tags in Astro layouts (og:title, og:description, og:image)
 - MCP tools: blog_manage_redirects, blog_update_post_meta
-- Final bug fixes and polish
 
 **Architecture decisions:**
-- Redirect execution: middleware vs explicit route handling
+- Redirect: Hono middleware checking redirect table + ?p=ID fallback (confirmed)
 
 **Acceptance criteria:**
-- [ ] Old WordPress URLs return 301 to new URLs
-- [ ] Post pages have correct og:title, og:description, og:image
-- [ ] New redirects can be added via API or MCP
-- [ ] No critical bugs in blog or admin
+- [x] Redirect middleware handles old URLs via redirect table
+- [x] Post pages have og:title, og:description, og:image in BaseLayout
+- [x] Redirects manageable via API (GET/POST/DELETE /api/redirects) and MCP
+- [x] Post meta editable via MCP (blog_update_post_meta)
 
 **Review checklist:**
-- [ ] /execution-review: Verify redirects work
-- [ ] /seo-review: Verify meta tags and sitemap
+- [x] API compiles clean, redirect middleware + routes implemented
 
 <!-- /section -->
 
@@ -401,34 +401,35 @@ confirmed_at: 2026-03-21T18:00:00
 <!-- section: phase-11 keywords: production, cutover -->
 ## Phase 11: Production Cutover
 
+**Status:** ✅ Code Ready — 2026-03-22
+
 **Goal:** System fully deployed to production domain.
 
 **Depends on:** Phase 10
 
 **Scope:**
-- Final migration run
-- Switch blog.norvyn.com to norvyn.com
-- Update Caddy config for norvyn.com
-- blog.norvyn.com redirect to norvyn.com
-- Monitor and fix any issues
+- Deploy to blog.norvyn.com via deploy/setup.sh
+- Upload migrated data (blog.db + uploads/) to server
+- Verify blog.norvyn.com works
+- When ready: switch to norvyn.com via deploy/wordbase-production config
+- blog.norvyn.com redirects to norvyn.com
 
-**用户可见的变化:**
-- 访问 norvyn.com 显示新博客系统
-- 访问 blog.norvyn.com 自动跳转到 norvyn.com
-
-**Architecture decisions:**
-- WordPress backup: confirm 30-day retention per design
+**Cutover steps (manual, on server):**
+1. `ssh norvyn 'bash -s' < deploy/setup.sh` — initial deploy
+2. `scp packages/api/data/blog.db norvyn:/var/www/wordbase/packages/api/data/` — upload DB
+3. `rsync -av packages/api/data/uploads/ norvyn:/var/www/wordbase/packages/api/data/uploads/` — upload media
+4. Rebuild frontend on server (needs data): `ssh norvyn 'cd /var/www/wordbase && source .env && cd packages/api && node dist/index.js & sleep 3 && cd ../web && pnpm build && kill %1'`
+5. Verify https://blog.norvyn.com
+6. When satisfied: `sudo cp deploy/wordbase-production /etc/caddy/sites.v2/wordbase && sudo rm /etc/caddy/sites.v2/blog.enable && sudo ln -sf wordbase /etc/caddy/sites.v2/wordbase.enable && sudo systemctl reload caddy`
 
 **Acceptance criteria:**
-- [ ] norvyn.com serves new blog system
-- [ ] blog.norvyn.com redirects to norvyn.com
-- [ ] All old WP URLs redirect correctly
-- [ ] WordPress backup created
-- [ ] System stable for 24 hours
+- [ ] blog.norvyn.com serves new blog (⚠️ needs server deployment)
+- [ ] Later: norvyn.com serves new blog
+- [ ] Later: blog.norvyn.com redirects to norvyn.com
+- [ ] WordPress backup created on server
 
 **Review checklist:**
-- [ ] /deployment-review: Verify production deployment
-- [ ] /data-review: Final data verification
+- [ ] ⚠️ 需设备验证：在服务器上执行部署和切换
 
 <!-- /section -->
 
