@@ -1,0 +1,28 @@
+[Unit]
+Description=Wordbase Blog API Server
+After=network.target
+
+[Service]
+Type=simple
+User=caddy
+Group=caddy
+WorkingDirectory=/var/www/wordbase/packages/api
+ExecStart=/usr/bin/node dist/index.js
+Restart=on-failure
+RestartSec=5
+Environment=PORT=4100
+Environment=NODE_ENV=production
+EnvironmentFile=-/var/www/wordbase/.env
+
+# Security
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/www/wordbase/packages/api/data
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=wordbase-api
+
+[Install]
+WantedBy=multi-user.target

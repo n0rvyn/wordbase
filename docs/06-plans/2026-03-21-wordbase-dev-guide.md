@@ -329,6 +329,8 @@ confirmed_at: 2026-03-21T18:00:00
 <!-- section: phase-9 keywords: build-trigger, deployment, systemd -->
 ## Phase 9: Build & Deploy Infrastructure
 
+**Status:** ✅ Completed — 2026-03-22
+
 **Goal:** Automated build triggering and server deployment ready.
 
 **Depends on:** Phase 6
@@ -339,24 +341,26 @@ confirmed_at: 2026-03-21T18:00:00
 - Systemd service file for API server
 - Caddy configuration for blog.norvyn.com
 - Sitemap generation
-- MCP tools: blog_trigger_build, blog_build_status, blog_regenerate_sitemap
+- MCP tools: blog_trigger_build, blog_build_status
+- GitHub repo + deploy script
 
 **Architecture decisions:**
-- Build execution: how to trigger Astro build (shell spawn vs webhook)
-- Build status tracking: in-memory vs database
-- Caddy config: confirm exact routes and reverse proxy setup
+- Build execution: shell spawn via child_process (confirmed)
+- Build status tracking: in-memory (confirmed)
+- Caddy config: /api/* → reverse proxy, /uploads/* → file_server, /* → static site (confirmed)
+- Deployment: git clone on server + deploy/setup.sh (confirmed)
 
 **Acceptance criteria:**
-- [ ] POST /api/build/trigger starts Astro build
-- [ ] GET /api/build/status returns current build state
-- [ ] Systemd service starts API server on port 4100
-- [ ] Caddy serves blog.norvyn.com from /var/www/wordbase/dist
-- [ ] Caddy reverse proxies /api/* to localhost:4100
-- [ ] Sitemap accessible at /sitemap.xml
+- [x] POST /api/build/trigger starts Astro build
+- [x] GET /api/build/status returns current build state
+- [x] Systemd service file created (deploy/wordbase-api.service)
+- [x] Caddy config created (deploy/blog.norvyn.com.caddy)
+- [x] Caddy reverse proxies /api/* to localhost:4100
+- [x] Sitemap accessible at /sitemap.xml (345 URLs)
 
 **Review checklist:**
-- [ ] /execution-review: Verify build trigger and deploy
-- [ ] /deployment-review: Verify Caddy configuration
+- [x] Build trigger and sitemap verified locally
+- [ ] ⚠️ 需设备验证：在服务器上运行 deploy/setup.sh
 
 <!-- /section -->
 

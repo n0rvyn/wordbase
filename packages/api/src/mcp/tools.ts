@@ -2,6 +2,7 @@ import * as postService from '../services/post.service.js';
 import * as mediaService from '../services/media.service.js';
 import * as commentService from '../services/comment.service.js';
 import * as analyticsService from '../services/analytics.service.js';
+import * as buildService from '../services/build.service.js';
 
 export function registerTools(server: any) {
   server.tool(
@@ -251,6 +252,27 @@ export function registerTools(server: any) {
     async () => {
       const stats = await analyticsService.getContentStats();
       return { content: [{ type: 'text' as const, text: JSON.stringify(stats, null, 2) }] };
+    }
+  );
+
+  // Build tools
+  server.tool(
+    'blog_trigger_build',
+    'Trigger an Astro site rebuild',
+    {},
+    async () => {
+      const status = await buildService.triggerBuild();
+      return { content: [{ type: 'text' as const, text: JSON.stringify(status, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'blog_build_status',
+    'Check current build status',
+    {},
+    async () => {
+      const status = buildService.getBuildStatus();
+      return { content: [{ type: 'text' as const, text: JSON.stringify(status, null, 2) }] };
     }
   );
 }

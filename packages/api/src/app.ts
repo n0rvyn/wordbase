@@ -8,6 +8,7 @@ import { mediaRouter } from './routes/media.js';
 import { commentsRouter } from './routes/comments.js';
 import { analyticsRouter } from './routes/analytics.js';
 import { settingsRouter } from './routes/settings.js';
+import { buildRouter } from './routes/build.js';
 import { errorMiddleware } from './middleware/error.js';
 import type { AppEnv } from './types.js';
 
@@ -29,3 +30,4 @@ app.route('/api/media', mediaRouter);
 app.route('/api', commentsRouter);
 app.route('/api/analytics', analyticsRouter);
 app.route('/api/settings', settingsRouter);
+app.route('/api/build', buildRouter);
