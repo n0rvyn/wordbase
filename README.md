@@ -190,6 +190,111 @@ For development (without compiling):
 | `blog_manage_redirects` | List, create, or delete URL redirects |
 | `blog_update_post_meta` | Update post SEO metadata |
 
+## AI Integration Architecture
+
+This system is designed from the ground up for AI management. Three interfaces provide the same capabilities at different levels:
+
+```
+AI Agent (Claude, GPT, etc.)
+    │
+    ├── MCP (stdio) ──→ packages/api/src/mcp/server.ts
+    │                     └── tools.ts (18 tools)
+    │                           └── imports from services/*
+    │
+    ├── REST API ─────→ packages/api/src/routes/*
+    │                     └── also imports from services/*
+    │
+    └── Admin UI ─────→ packages/web/src/pages/admin/*
+                          └── calls REST API via fetch
+```
+
+**The core principle:** MCP tools and REST API routes are thin wrappers around the same service layer (`packages/api/src/services/`). All business logic lives in services; routes and tools are just input/output adapters.
+
+### Key Files for AI Development
+
+| What | Where | When to touch |
+|------|-------|---------------|
+| MCP tool definitions | `packages/api/src/mcp/tools.ts` | Adding/modifying AI capabilities |
+| MCP server entry | `packages/api/src/mcp/server.ts` | Auth, transport, startup |
+| Service layer | `packages/api/src/services/*.service.ts` | Business logic changes |
+| REST routes | `packages/api/src/routes/*.ts` | HTTP API changes |
+| DB schema | `packages/api/src/db/schema.ts` | Data model changes |
+| Auth middleware | `packages/api/src/middleware/auth.ts` | `authMiddleware` (Hono middleware) + `validateBearerToken` (reusable function) |
+| Type definitions | `packages/api/src/types.ts` | `AppEnv`, `AuthContext` |
+
+### Adding a New MCP Tool
+
+1. Add the business logic in the appropriate service file (`packages/api/src/services/`)
+2. Register the tool in `packages/api/src/mcp/tools.ts`:
+
+```typescript
+server.tool(
+  'blog_your_tool_name',        // Prefix with blog_ for namespace
+  'Description for AI agents',   // This is what the AI sees
+  {                               // Input schema (JSON Schema-like)
+    param1: { type: 'string', description: 'What this param does' },
+  },
+  async (args: Record<string, unknown>) => {
+    const result = await yourService.doSomething(args.param1 as string);
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+  }
+);
+```
+
+3. If the tool needs a REST counterpart, add a route in `packages/api/src/routes/`
+4. Both tool and route import from the same service function
+
+### Adding a New REST Endpoint
+
+1. Create or update service in `packages/api/src/services/`
+2. Create route file in `packages/api/src/routes/`:
+
+```typescript
+import { Hono } from 'hono';
+import { authMiddleware } from '../middleware/index.js';
+import type { AppEnv } from '../types.js';
+
+export const myRouter = new Hono<AppEnv>();
+
+myRouter.get('/', authMiddleware, async (c) => { /* ... */ });
+```
+
+3. Mount in `packages/api/src/app.ts`: `app.route('/api/my-route', myRouter)`
+4. All Hono instances must use `new Hono<AppEnv>()` for auth typing
+
+### Content Lifecycle (AI Workflow)
+
+```
+AI creates post via MCP          User writes in admin UI
+  blog_create_post ──┐              POST /api/posts ──┐
+                     ▼                                ▼
+              postService.createPost()
+                     │
+                     ▼
+              SQLite (blog.db)
+                     │
+              blog_publish_post / POST /api/posts/:id/publish
+                     │
+                     ▼
+              blog_trigger_build / POST /api/build/trigger
+                     │
+                     ▼
+              Astro rebuild (shell spawn)
+                     │
+                     ▼
+              Static HTML in dist/ → served by Caddy
+```
+
+### Conventions
+
+- **IDs**: nanoid (not auto-increment, not UUID)
+- **Timestamps**: Unix seconds (not milliseconds)
+- **Content format**: Markdown (stored raw, rendered at build/display time)
+- **Error responses**: `{ error: { code: string, message: string } }`
+- **Auth**: Bearer token in `Authorization` header; public endpoints (pageview, comment submit, published post reads) need no auth
+- **MCP auth**: `WORDBASE_API_KEY` environment variable, validated against DB on startup
+- **Static site**: Astro SSG; data fetched from API at build time; comments load client-side at runtime
+
 ## Admin Panel
 
 Web-based admin at `/admin`. Login with API key.
