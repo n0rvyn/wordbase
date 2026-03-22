@@ -1,4 +1,5 @@
 blog.norvyn.com {
+    tls norvyn@norvyn.com
     encode gzip
 
     # API requests → Node.js
