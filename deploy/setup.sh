@@ -87,7 +87,9 @@ sudo systemctl restart wordbase-api
 echo "[10/10] Installing Caddy configuration..."
 sudo cp /var/www/wordbase/deploy/wordbase /etc/caddy/sites.v2/wordbase
 sudo ln -sf wordbase /etc/caddy/sites.v2/wordbase.enable
-sudo systemctl reload caddy
+# NOTE: global `admin off` in /etc/caddy/Caddyfile disables the :2019 admin API,
+# so `caddy reload` fails ("connection refused"). Must restart to apply config.
+sudo systemctl restart caddy
 
 # Verify
 echo ""
@@ -106,4 +108,4 @@ ls -Z /var/www/wordbase/packages/web/dist/index.html 2>/dev/null | awk '{print "
 ls -Z /var/www/wordbase/packages/api/data/blog.db 2>/dev/null | awk '{print "  data:    "$1}'
 echo ""
 echo "=== Deployment complete ==="
-echo "Visit: https://blog.norvyn.com"
+echo "Visit: https://norvyn.com"

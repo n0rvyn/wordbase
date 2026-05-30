@@ -1,4 +1,7 @@
-blog.norvyn.com {
+# Production Caddy config: WordBase serves the apex norvyn.com
+# (WordPress decommissioned 2026-05-30). blog.norvyn.com 301-redirects to apex.
+# Deployed to /etc/caddy/sites.v2/wordbase by deploy/setup.sh.
+norvyn.com {
     tls norvyn@norvyn.com
     encode gzip
 
@@ -27,4 +30,10 @@ blog.norvyn.com {
         X-Frame-Options "SAMEORIGIN"
         Referrer-Policy "strict-origin-when-cross-origin"
     }
+}
+
+# Old blog subdomain → apex (keep existing links working)
+blog.norvyn.com {
+    tls norvyn@norvyn.com
+    redir https://norvyn.com{uri} permanent
 }
