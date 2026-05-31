@@ -44,13 +44,22 @@ else
     echo "[5/10] .env exists, skipping key creation."
 fi
 
-# 6. Build frontend (needs API running for data fetch)
+# 6. Build frontend (needs the NEW API running for build-time data fetch)
 echo "[6/10] Building frontend..."
 cd /var/www/wordbase/packages/api
 source /var/www/wordbase/.env
+# Stop the systemd service FIRST: otherwise it keeps :4100 bound with the OLD
+# code, the temp build-time API below can't bind, and the frontend build fetches
+# stale data — e.g. a pre-/api/apps build returns 404 for getStaticPaths and the
+# whole deploy aborts (set -e). (Deploy postmortem 2026-05-31.)
+sudo systemctl stop wordbase-api 2>/dev/null || true
 node dist/index.js &
 API_PID=$!
-sleep 3
+# Wait for the temp API to actually be ready (up to ~30s) instead of a fixed sleep.
+for i in $(seq 1 30); do
+  curl -sf http://localhost:4100/health >/dev/null 2>&1 && break
+  sleep 1
+done
 
 cd /var/www/wordbase/packages/web
 pnpm build
