@@ -17,7 +17,16 @@ EnvironmentFile=-/var/www/wordbase/.env
 # Security
 NoNewPrivileges=true
 ProtectSystem=strict
+# data/  — SQLite DB + uploads (always read-write).
+# packages/web — the /api/build/trigger endpoint runs `pnpm build` here, which
+# must write dist/ (the live site root Caddy serves) plus .astro and vite caches.
+# Under ProtectSystem=strict the whole FS is read-only to this process regardless
+# of file ownership, so without this line the build fails silently and published
+# apps never reach the live site.
 ReadWritePaths=/var/www/wordbase/packages/api/data
+ReadWritePaths=/var/www/wordbase/packages/web
+# Private writable /tmp for the build's scratch files (vite/esbuild temp).
+PrivateTmp=true
 
 # Logging
 StandardOutput=journal
