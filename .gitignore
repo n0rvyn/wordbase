@@ -31,3 +31,4 @@ asc_keys/
 # Build artifacts
 packages/web/dist/
 packages/api/dist/
+packages/web/.claude/
