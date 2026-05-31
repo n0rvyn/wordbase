@@ -1,0 +1,163 @@
+/* ============================================================
+   norvyn.com — Design Tokens (colors_and_type.css)
+   The single source of truth for the norvyn.com design system.
+   A near-monochrome editorial system: hairlines (not boxes),
+   a left "index" spine, and exactly ONE accent — color is
+   otherwise reserved for real app art (icons, screenshots).
+
+   Theme is switched at the root via [data-theme="light"|"dark"].
+   The accent is a single CSS var you can re-point per site or
+   per app surface. Everything else is derived.
+   ============================================================ */
+
+:root {
+  /* ---- Type families ---------------------------------------
+     display : large headings, brand, numbers (the "voice")
+     ui      : nav, buttons, labels, dense UI text
+     read    : long-form body & deks (swap to a serif for reading)
+     mono    : eyebrows, meta, code, tabular labels (always UPPER + tracked)
+  */
+  --font-display: "Geist", "Schibsted Grotesk", "Noto Sans SC", system-ui, sans-serif;
+  --font-ui:      "Geist", "Noto Sans SC", system-ui, sans-serif;
+  --font-read:    "Noto Sans SC", "Geist", system-ui, sans-serif;   /* serif option: "Newsreader","Noto Serif SC",Georgia,serif */
+  --font-mono:    "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+
+  /* ---- Type scale (fluid) ----------------------------------
+     Min size is enforced: nothing in UI text drops below ~12px,
+     reading body sits at 17–18px / 1.9–1.95 line-height. */
+  --type-display-xl: clamp(33px, 4.6vw, 60px); /* hero H1            line 1.08, ls -.03em */
+  --type-display:    clamp(30px, 4.4vw, 52px); /* page title / H1   line 1.08, ls -.03em  */
+  --type-title:      clamp(26px, 3.2vw, 38px); /* feature heading   line 1.1,  ls -.03em  */
+  --type-h2:         clamp(22px, 2.6vw, 30px); /* section H2        line 1.2,  ls -.02em  */
+  --type-h3:         20px;                     /* sub-heading                              */
+  --type-lede:       clamp(17px, 1.9vw, 21px); /* dek / intro       line 1.6–1.7          */
+  --type-body:       17px;                     /* default UI body                          */
+  --type-read:       18px;                     /* long-form prose   line 1.95             */
+  --type-small:      14.5px;                   /* secondary UI                             */
+  --type-meta:       11.5px;                   /* mono meta / labels  ls .05–.14em UPPER   */
+
+  /* ---- Shape -----------------------------------------------
+     A restrained radius scale. Pills for actions/chips,
+     soft rectangles for media & containers, sharp for code/inline. */
+  --r-xs:   6px;    /* inline code, tiny chips        */
+  --r-sm:   9px;    /* buttons-as-rect, small icons   */
+  --r-md:   14px;   /* cards, code blocks, list media */
+  --r-lg:   18px;   /* feature media, panels          */
+  --r-xl:   24px;   /* portraits, large media         */
+  --r-icon: 13px;   /* app-icon squircle (≈ iOS feel) */
+  --r-phone:38px;   /* device frame                   */
+  --r-pill: 999px;  /* buttons, chips, toggles        */
+
+  /* ---- Spacing & layout ------------------------------------
+     The layout is a 2-column "spine + content" grid. The spine
+     holds an index number, a mono label, and a one-line note. */
+  --gut:     clamp(20px, 4.5vw, 56px);   /* page gutter / .wrap padding */
+  --spine:   clamp(96px, 15vw, 210px);   /* left index column width     */
+  --col-gap: clamp(28px, 5vw, 72px);     /* spine ↔ content gap         */
+  --maxw:    1180px;                      /* content max width           */
+  --sec-pad: clamp(44px, 6vw, 84px);     /* vertical section padding    */
+  /* base rhythm is a 4/8 grid: 4 8 12 16 20 24 32 40 48 px */
+
+  /* ---- Motion ----------------------------------------------
+     One signature easing (a gentle overshoot-free "settle").
+     Hover = translateY(-1px); press = scale(.95). Quiet, quick. */
+  --ease:        cubic-bezier(.32, .72, 0, 1);
+  --ease-inout:  cubic-bezier(.4, 0, .2, 1);
+  --dur-quick:   150ms;   /* state flips, toggles            */
+  --dur-base:    200ms;   /* hovers, color changes           */
+  --dur-slow:    300ms;   /* row reveal, nav border          */
+  --dur-theme:   400ms;   /* light↔dark cross-fade           */
+
+  /* ---- Accent ----------------------------------------------
+     ONE accent for the whole site. Re-point this var to re-skin.
+     Curated options (no loud red / no loud purple / nothing cute):
+       Indigo  #3457B6  (default)   Cobalt  #2C4EE0
+       Emerald #0E7C66               Graphite #3F3F46
+       Ember   #B4612A
+     App surfaces additionally set --app / --app-2 from the app's
+     own brand color — that is the ONLY place a second hue appears. */
+  --accent: #3457B6;
+}
+
+/* ===========================================================
+   LIGHT  (default)
+   Warm near-white paper, true-ink text, warm-grey hairlines.
+   =========================================================== */
+:root[data-theme="light"] {
+  --paper:     #FBFAF8;   /* page canvas (warm off-white)     */
+  --surface:   #FFFFFF;   /* cards / raised media             */
+  --surface-2: #F4F2EC;   /* subtle fill, code, chips         */
+  --surface-3: #ECE8DF;   /* deeper fill, track, swatch wells */
+
+  --ink:   #15151A;       /* primary text                     */
+  --ink-2: #54545D;       /* secondary text / body-2          */
+  --ink-3: #92929B;       /* muted / meta / placeholder       */
+  --ink-4: #BDBBB3;       /* faintest dividers in-text        */
+
+  --line:   #E7E2D9;      /* hairline divider (the workhorse) */
+  --line-2: #D7D2C7;      /* stronger border / control edge   */
+
+  --on-accent: #FFFFFF;   /* text/icon on accent fill         */
+  --accent-soft: color-mix(in srgb, var(--accent) 10%, #fff);
+
+  /* Elevation is rare: a tight contact shadow + a long soft cast. */
+  --shadow: 0 1px 2px rgba(20,20,26,.04), 0 30px 60px -34px rgba(20,20,26,.28);
+}
+
+/* ===========================================================
+   DARK
+   Near-black paper, soft-white text, low-chroma hairlines.
+   Accent lightens for contrast; on-accent goes dark.
+   =========================================================== */
+:root[data-theme="dark"] {
+  --paper:     #0B0B0D;
+  --surface:   #141417;
+  --surface-2: #191920;
+  --surface-3: #23232B;
+
+  --ink:   #F3F2F0;
+  --ink-2: #A2A2AB;
+  --ink-3: #6A6A74;
+  --ink-4: #45454D;
+
+  --line:   #23232A;
+  --line-2: #30303A;
+
+  --accent: #7088FF;       /* lighter twin of the light accent */
+  --on-accent: #0A0D1F;
+  --accent-soft: color-mix(in srgb, var(--accent) 18%, #141417);
+
+  --shadow: 0 1px 2px rgba(0,0,0,.5), 0 40px 80px -36px rgba(0,0,0,.85);
+}
+
+/* ===========================================================
+   Semantic element styles — the "contract" every page honours.
+   Apply these classes or copy the rules into component CSS.
+   =========================================================== */
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--type-body);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transition: background var(--dur-theme) var(--ease),
+              color var(--dur-theme) var(--ease);
+}
+::selection { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+
+.h1   { font-family: var(--font-display); font-weight: 600; font-size: var(--type-display); line-height: 1.08; letter-spacing: -.03em; }
+.h2   { font-family: var(--font-display); font-weight: 600; font-size: var(--type-h2); line-height: 1.2; letter-spacing: -.02em; }
+.h3   { font-family: var(--font-display); font-weight: 600; font-size: var(--type-h3); letter-spacing: -.01em; }
+.lede { font-family: var(--font-read); font-size: var(--type-lede); line-height: 1.65; color: var(--ink-2); }
+.prose{ font-family: var(--font-read); font-size: var(--type-read); line-height: 1.95; color: var(--ink); }
+.eyebrow, .mono-label {
+  font-family: var(--font-mono); font-size: var(--type-meta);
+  letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3);
+}
+code { font-family: var(--font-mono); font-size: .84em; background: var(--surface-2); padding: 2px 7px; border-radius: var(--r-xs); }
+
+/* The hairline rule — the single most-used divider in the system. */
+.hairline { border-top: 1px solid var(--line); }
