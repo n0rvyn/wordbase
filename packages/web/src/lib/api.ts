@@ -192,6 +192,136 @@ export function formatRelativeDate(timestamp: number): string {
   return formatDate(timestamp);
 }
 
+// ---- Apps ----
+
+export interface App {
+  id: string;
+  slug: string;
+  name: string;
+  tagline: string | null;
+  icon: string | null;
+  description: string | null;
+  appStoreUrl: string | null;
+  appStoreId: string | null;
+  bundleId: string | null;
+  platform: string;
+  price: string | null;
+  rating: number | null;
+  ratingCount: number | null;
+  accentColor: string | null;
+  features: string | null;       // JSON string — parse in consumer
+  screenshots: string | null;    // JSON string — parse in consumer
+  links: string | null;          // JSON string — parse in consumer
+  status: string;
+  sortOrder: number | null;
+  publishedAt: number | null;
+  createdAt: number;
+  updatedAt: number;
+  meta: string | null;
+  category: string | null;
+  version: string | null;
+  releaseDate: number | null;
+  currentVersionReleaseDate: number | null;
+  minimumOsVersion: string | null;
+  subtitle: string | null;
+  whatsNew: string | null;
+  featured: number;
+  lastSyncedAt: number | null;
+}
+
+export async function getApps(params: {
+  status?: string;
+  page?: number;
+  limit?: number;
+} = {}): Promise<PaginatedResponse<App>> {
+  const searchParams = new URLSearchParams();
+  if (params.status) searchParams.set('status', params.status);
+  if (params.page) searchParams.set('page', String(params.page));
+  if (params.limit) searchParams.set('limit', String(params.limit));
+  const query = searchParams.toString();
+  return fetchApi(`/api/apps${query ? `?${query}` : ''}`);
+}
+
+export async function getApp(idOrSlug: string): Promise<App | null> {
+  try {
+    return await fetchApi(`/api/apps/${idOrSlug}`);
+  } catch {
+    return null;
+  }
+}
+
+// ---- Podcasts ----
+
+export interface Podcast {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  coverImage: string | null;
+  author: string | null;
+  ownerName: string | null;
+  ownerEmail: string | null;
+  language: string;
+  category: string | null;
+  explicit: number;
+  link: string | null;
+  copyright: string | null;
+  status: string;
+  sortOrder: number | null;
+  createdAt: number;
+  updatedAt: number;
+  meta: string | null;
+}
+
+export interface Episode {
+  id: string;
+  podcastId: string;
+  slug: string;
+  guid: string;
+  title: string;
+  summary: string | null;
+  showNotes: string | null;
+  transcript: string | null;
+  audioUrl: string;
+  audioType: string;
+  audioSize: number;
+  duration: number | null;
+  coverImage: string | null;
+  episodeNumber: number | null;
+  seasonNumber: number | null;
+  episodeType: string;
+  explicit: number | null;
+  status: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export async function getPodcasts(params: {
+  status?: string;
+  page?: number;
+  limit?: number;
+} = {}): Promise<PaginatedResponse<Podcast>> {
+  const searchParams = new URLSearchParams();
+  if (params.status) searchParams.set('status', params.status);
+  if (params.page) searchParams.set('page', String(params.page));
+  if (params.limit) searchParams.set('limit', String(params.limit));
+  const query = searchParams.toString();
+  return fetchApi(`/api/podcasts${query ? `?${query}` : ''}`);
+}
+
+export async function getEpisodes(slug: string, params: {
+  status?: string;
+  page?: number;
+  limit?: number;
+} = {}): Promise<PaginatedResponse<Episode>> {
+  const searchParams = new URLSearchParams();
+  if (params.status) searchParams.set('status', params.status);
+  if (params.page) searchParams.set('page', String(params.page));
+  if (params.limit) searchParams.set('limit', String(params.limit));
+  const query = searchParams.toString();
+  return fetchApi(`/api/podcasts/${slug}/episodes${query ? `?${query}` : ''}`);
+}
+
 export function estimateReadTime(content: string): number {
   const words = content.split(/\s+/).length;
   const cjkChars = (content.match(/[\u4e00-\u9fff]/g) || []).length;
