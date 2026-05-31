@@ -51,7 +51,7 @@ confirmed_at: 2026-05-30T19:45:00
 
 **Review checklist:**
 - [x] run-phase review step — main-context verified (DP-002=B nav 0 dead links; TRANSITION aliases 防旧页掉色; 旧 props 兼容 10 importer)
-- [ ] design-reviewer (new layout shell) — deferred: 真机/浏览器视觉确认留待累积评审
+- [x] design-reviewer (new layout shell) — N/A: apple-dev design-reviewer 仅 SwiftUI,不适用 Astro(与 P2–P8 一致)。⚠️ 真机/浏览器视觉确认留累积评审。
 
 <!-- /section -->
 

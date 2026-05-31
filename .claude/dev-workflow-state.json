@@ -2,7 +2,7 @@
   "project": "norvyn.com Frontend Redesign",
   "current_phase": 8,
   "phase_name": "Reverse integration — app content MCP",
-  "phase_step": "done",
+  "phase_step": "finalized",
   "dev_guide": "docs/06-plans/2026-05-30-frontend-redesign-dev-guide.md",
   "plan_file": "docs/06-plans/2026-05-31-phase8-mcp-plan.md",
   "verification_report": "MUST-REVISE×2 resolved (Task 4 handler harness; DP-001=A app_update sync-safe fields only). Full/Opus.",
