@@ -1,0 +1,326 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { ACCENTS } from '../lib/theme';
+---
+
+<BaseLayout title="关于" description="独立开发者 norvyn — 关于这个人、这个站点与这些事。">
+  <header class="sec wrap" style="border-top:none;padding-top:clamp(44px,6vw,80px)">
+    <div class="row2">
+      <div class="spine">
+        <span class="no">00</span>
+        <span class="lab">About</span>
+        <span class="note">一个人，几件事。</span>
+      </div>
+      <div class="ab-hero">
+        <div>
+          <div class="eyebrow">Independent developer · 自 2023</div>
+          <h1>关于 norvyn</h1>
+          <p class="lede">我做小而克制的 iOS 应用，写关于设计与工程的随笔，也在筹备一档慢节奏的播客。这个站点，是这几件事共同的家。</p>
+        </div>
+        <div class="portrait">N</div>
+      </div>
+    </div>
+  </header>
+
+  <section class="sec wrap">
+    <div class="row2">
+      <div class="spine">
+        <span class="no">01</span>
+        <span class="lab">Story</span>
+        <span class="note">我是谁，在做什么。</span>
+      </div>
+      <div class="prose-a">
+        <p>你好，我是 <strong>norvyn</strong>。一个独立开发者。</p>
+        <p>2023 年，我开始认真地做自己的东西。没有团队、没有融资，只有一台笔记本和一些想法。</p>
+        <p>目前上架了 <strong>Delphi</strong> — 一款基于牌阵的 iOS 应用，用于反思与思维整理。博客里已有 128+ 篇文章，记录设计与工程路上的思考。播客还在筹备中。</p>
+        <p>我对「软件」的信念很简单：<strong>小一点，慢一点，诚实一点</strong>。喜欢只做一件事、但把它做到刚好的应用；喜欢加载很快、读起来安静的网页；喜欢在上线前，把一半花哨的功能删掉的那种克制。</p>
+        <p>这个站点本身也是一次实践 — 它正在重新设计中，你现在看到的是进行时。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec wrap">
+    <div class="row2">
+      <div class="spine">
+        <span class="no">02</span>
+        <span class="lab">Now</span>
+        <span class="note">最近在忙的事。</span>
+      </div>
+      <div class="now-list">
+        <div class="now-item">
+          <span class="nk">在做</span>
+          <span class="nv"><b>Delphi</b> — 迭代牌阵交互与截图展示，持续打磨细节。</span>
+        </div>
+        <div class="now-item">
+          <span class="nk">在建</span>
+          <span class="nv">这个站点的前端重设计 (Phase 6/8)，正在进行中。</span>
+        </div>
+        <div class="now-item">
+          <span class="nk">在准备</span>
+          <span class="nv">播客还未上线，节目形式还在构思阶段。</span>
+        </div>
+        <div class="now-item">
+          <span class="nk">在写</span>
+          <span class="nv">断断续续更新博客，128+ 篇文章，主题围绕设计、工程与独立创作。</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec wrap">
+    <div class="row2">
+      <div class="spine">
+        <span class="no">03</span>
+        <span class="lab">Colophon</span>
+        <span class="note">这个站点怎么做的。</span>
+      </div>
+      <div class="colophon">
+        <div class="cl">
+          <span class="ck">设计</span>
+          <span class="cv">一套语义令牌驱动的系统，hairline 而非卡片，颜色只来自作品。</span>
+        </div>
+        <div class="cl">
+          <span class="ck">字体</span>
+          <span class="cv">Geist（界面/标题）、Noto Sans SC（中文）、Geist Mono（标签与代码）。</span>
+        </div>
+        <div class="cl">
+          <span class="ck">主题</span>
+          <span class="cv">浅色 / 深色双主题，一个可切换的强调色，全站同步。</span>
+        </div>
+        <div class="cl">
+          <span class="ck">强调色</span>
+          <span class="cv">
+            <div class="sw-row" id="accentPicker">
+              {ACCENTS.map(a => (
+                <button
+                  class="sw"
+                  data-value={a.value}
+                  title={a.name}
+                  aria-label={a.name}
+                  style={`background:${a.value}`}
+                ></button>
+              ))}
+            </div>
+          </span>
+        </div>
+        <div class="cl">
+          <span class="ck">构建</span>
+          <span class="cv">Wordbase — 一个 AI 原生、支持 MCP 的内容系统。</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec wrap">
+    <div class="row2">
+      <div class="spine">
+        <span class="no">04</span>
+        <span class="lab">Say hi</span>
+        <span class="note">随时来信。</span>
+      </div>
+      <div>
+        <p class="prose-a" style="margin-bottom:24px">最好的联系方式是邮件。我读每一封，也尽量回每一封。</p>
+        <div class="contact-row">
+          <a class="cbtn pri" href="mailto:norvyn@norvyn.com">
+            写封邮件
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+          </a>
+          <a class="cbtn" href="https://github.com/n0rvyn" target="_blank" rel="noopener noreferrer">GitHub</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .sec {
+    padding: clamp(44px, 6vw, 84px) 0;
+    border-top: 1px solid var(--line);
+  }
+
+  /* ── Hero layout ── */
+  .ab-hero {
+    display: grid;
+    grid-template-columns: 1fr clamp(150px, 18vw, 200px);
+    gap: clamp(30px, 5vw, 60px);
+    align-items: center;
+  }
+  .ab-hero .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 20px;
+  }
+  .ab-hero h1 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(38px, 5.6vw, 72px);
+    line-height: 1.02;
+    letter-spacing: -.035em;
+    margin: 0 0 22px;
+  }
+  .ab-hero .lede {
+    font-family: var(--font-read);
+    font-size: clamp(17px, 1.8vw, 20px);
+    line-height: 1.7;
+    color: var(--ink-2);
+    max-width: 46ch;
+    margin: 0;
+  }
+  .portrait {
+    width: 100%;
+    max-width: 200px;
+    aspect-ratio: 1;
+    border-radius: 24px;
+    justify-self: center;
+    background: radial-gradient(120% 120% at 30% 0%, color-mix(in srgb, var(--accent) 18%, var(--surface-2)), var(--surface-2));
+    border: 1px solid var(--line);
+    display: grid;
+    place-items: center;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 64px;
+    color: var(--ink-3);
+  }
+
+  /* ── Prose ── */
+  .prose-a {
+    font-family: var(--font-read);
+    font-size: 17px;
+    line-height: 1.9;
+    color: var(--ink-2);
+    max-width: 60ch;
+  }
+  .prose-a p { margin: 0 0 1.3em; }
+  .prose-a strong { color: var(--ink); font-weight: 600; }
+
+  /* ── Now list ── */
+  .now-list { display: flex; flex-direction: column; }
+  .now-item {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 24px;
+    padding: 18px 4px;
+    border-top: 1px solid var(--line);
+    align-items: baseline;
+  }
+  .now-item:first-child { border-top: none; }
+  .now-item .nk {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .now-item .nv {
+    font-family: var(--font-read);
+    font-size: 15.5px;
+    color: var(--ink);
+    line-height: 1.6;
+  }
+  .now-item .nv b { font-weight: 600; }
+
+  /* ── Colophon ── */
+  .colophon { display: flex; flex-direction: column; gap: 14px; }
+  .colophon .cl {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 24px;
+    font-size: 14.5px;
+  }
+  .colophon .ck {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .colophon .cv { color: var(--ink-2); }
+
+  /* ── Accent swatches ── */
+  .sw-row { display: flex; gap: 9px; }
+  .sw {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform .15s;
+    position: relative;
+  }
+  .sw:hover { transform: scale(1.1); }
+  .sw.sel { border-color: var(--ink-3); }
+  .sw.sel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.15);
+  }
+
+  /* ── Contact ── */
+  .contact-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .cbtn {
+    font-family: var(--font-ui);
+    font-size: 15px;
+    font-weight: 600;
+    padding: 12px 20px;
+    border-radius: 99px;
+    border: 1px solid var(--line-2);
+    color: var(--ink);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform .18s var(--ease), border-color .2s, background .2s;
+  }
+  .cbtn:hover { transform: translateY(-1px); border-color: var(--ink-3); background: var(--surface-2); }
+  .cbtn.pri { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+  .cbtn svg { width: 14px; height: 14px; }
+
+  /* ── Responsive ── */
+  @media (max-width: 880px) {
+    .ab-hero { grid-template-columns: 1fr; gap: 30px; }
+    .ab-hero .portrait { order: -1; justify-self: start; }
+  }
+  @media (max-width: 560px) {
+    .now-item,
+    .colophon .cl { grid-template-columns: 1fr; gap: 5px; }
+  }
+</style>
+
+<script>
+  import {
+    persistAccent,
+    readPrefs,
+    resolveAccent,
+    isValidAccent,
+    THEME_LS_KEY,
+  } from '../lib/theme';
+
+  const picker = document.getElementById('accentPicker');
+  if (picker) {
+    // Mark the currently active swatch as selected
+    const current = resolveAccent(readPrefs(localStorage.getItem(THEME_LS_KEY)));
+    picker.querySelectorAll<HTMLButtonElement>('.sw').forEach(btn => {
+      btn.classList.toggle('sel', btn.dataset.value === current);
+    });
+
+    // On swatch click: persist + apply + update selection
+    picker.addEventListener('click', (e) => {
+      const btn = (e.target as Element).closest<HTMLButtonElement>('.sw');
+      if (!btn) return;
+      const value = btn.dataset.value;
+      if (!value || !isValidAccent(value)) return;
+      localStorage.setItem(THEME_LS_KEY, persistAccent(localStorage.getItem(THEME_LS_KEY), value));
+      document.documentElement.style.setProperty('--accent', value);
+      picker.querySelectorAll('.sw').forEach(s => s.classList.remove('sel'));
+      btn.classList.add('sel');
+    });
+  }
+</script>
