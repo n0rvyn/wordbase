@@ -26,6 +26,7 @@ asc_keys/
 # Claude
 .claude/dev-workflow-state.yml
 .claude/reviews/
+.claude
 
 # Build artifacts
 packages/web/dist/
