@@ -1,20 +1,120 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { registerTools } from '../mcp/tools.js';
 
-describe('registerTools — tool name registration', () => {
-  function buildFakeServer() {
-    const names: string[] = [];
-    const server = {
-      tool(name: string, _desc: string, _schema: unknown, _handler: unknown) {
-        names.push(name);
-      },
-      getNames() {
-        return names;
-      },
-    };
-    return server;
-  }
+// ── Existing harness (names only, handlers discarded) ──────────────────────
+function buildFakeServer() {
+  const names: string[] = [];
+  const server = {
+    tool(name: string, _desc: string, _schema: unknown, _handler: unknown) {
+      names.push(name);
+    },
+    getNames() {
+      return names;
+    },
+  };
+  return server;
+}
 
+// ── New harness (captures name → handler for behavior tests) ───────────────
+type Handler = (args: Record<string, unknown>) => Promise<unknown>;
+
+function buildCapturingServer() {
+  const handlers = new Map<string, Handler>();
+  const names: string[] = [];
+  return {
+    tool(name: string, _desc: string, _schema: unknown, handler: Handler) {
+      names.push(name);
+      handlers.set(name, handler);
+    },
+    getHandler(name: string) {
+      return handlers.get(name);
+    },
+    getNames() {
+      return names;
+    },
+  };
+}
+
+// ── Mock services ──────────────────────────────────────────────────────────
+vi.mock('../services/app.service.js', () => ({
+  listApps: vi.fn(async () => ({ data: [], total: 0, page: 1, limit: 20 })),
+  getApp: vi.fn(async () => null),
+  createApp: vi.fn(async (data: Record<string, unknown>) => ({ id: 'app1', ...data })),
+  updateApp: vi.fn(async (_id: string, data: Record<string, unknown>) => ({ id: _id, ...data })),
+  deleteApp: vi.fn(async () => null),
+  publishApp: vi.fn(async () => null),
+  discoverApps: vi.fn(async () => ({ created: [], existing: [] })),
+}));
+
+vi.mock('../services/page.service.js', () => ({
+  listPages: vi.fn(async () => []),
+  getPage: vi.fn(async () => null),
+  createPage: vi.fn(async (data: Record<string, unknown>) => ({ id: 'page1', ...data })),
+  updatePage: vi.fn(async () => null),
+  deletePage: vi.fn(async () => null),
+  publishPage: vi.fn(async () => null),
+}));
+
+vi.mock('../services/post.service.js', () => ({
+  listPosts: vi.fn(async () => ({ data: [], total: 0 })),
+  getPost: vi.fn(async () => null),
+  createPost: vi.fn(async (data: Record<string, unknown>) => ({ id: 'post1', ...data })),
+  updatePost: vi.fn(async () => null),
+}));
+
+vi.mock('../services/media.service.js', () => ({
+  listMedia: vi.fn(async () => ({ data: [], total: 0 })),
+  uploadMedia: vi.fn(async () => ({ id: 'media1' })),
+  deleteMedia: vi.fn(async () => null),
+}));
+
+vi.mock('../services/comment.service.js', () => ({
+  listComments: vi.fn(async () => ({ data: [], total: 0 })),
+  updateCommentStatus: vi.fn(async () => null),
+  createComment: vi.fn(async () => ({ id: 'comment1' })),
+  deleteComment: vi.fn(async () => null),
+}));
+
+vi.mock('../services/analytics.service.js', () => ({
+  getOverview: vi.fn(async () => ({})),
+  getTopPosts: vi.fn(async () => []),
+  getTrends: vi.fn(async () => []),
+  getContentStats: vi.fn(async () => ({})),
+}));
+
+vi.mock('../services/build.service.js', () => ({
+  triggerBuild: vi.fn(async () => ({ status: 'ok' })),
+  getBuildStatus: vi.fn(() => ({ status: 'idle' })),
+}));
+
+vi.mock('../services/redirect.service.js', () => ({
+  listRedirects: vi.fn(async () => []),
+  createRedirect: vi.fn(async (data: Record<string, unknown>) => ({ id: 'r1', ...data })),
+  deleteRedirect: vi.fn(async () => null),
+}));
+
+vi.mock('../services/podcast.service.js', () => ({
+  listPodcasts: vi.fn(async () => ({ data: [], total: 0 })),
+  createPodcast: vi.fn(async (data: Record<string, unknown>) => ({ id: 'pod1', ...data })),
+  publishPodcast: vi.fn(async () => null),
+}));
+
+vi.mock('../services/episode.service.js', () => ({
+  listEpisodes: vi.fn(async () => ({ data: [], total: 0 })),
+  createEpisode: vi.fn(async (data: Record<string, unknown>) => ({ id: 'ep1', ...data })),
+  upsertEpisodeByExternal: vi.fn(async (data: Record<string, unknown>) => ({ id: 'ep1', ...data })),
+  publishEpisode: vi.fn(async () => null),
+  uploadEpisodeAudio: vi.fn(async () => ({ url: 'http://example.com/audio.mp3' })),
+}));
+
+vi.mock('../services/app-sync.service.js', () => ({
+  syncApp: vi.fn(async () => undefined),
+  syncAllApps: vi.fn(async () => ({ synced: 0, failed: 0 })),
+}));
+
+// ── Tests ──────────────────────────────────────────────────────────────────
+
+describe('registerTools — tool name registration', () => {
   it('registers all existing blog_* tools', () => {
     const server = buildFakeServer();
     registerTools(server);
@@ -47,5 +147,103 @@ describe('registerTools — tool name registration', () => {
     expect(names).toContain('app_list');
     expect(names).toContain('app_create');
     expect(names).toContain('app_publish');
+  });
+
+  it('registers 8 new Phase 8 tools', () => {
+    const server = buildFakeServer();
+    registerTools(server);
+    const names = server.getNames();
+    expect(names).toContain('page_list');
+    expect(names).toContain('page_get');
+    expect(names).toContain('page_create');
+    expect(names).toContain('page_update');
+    expect(names).toContain('page_delete');
+    expect(names).toContain('page_publish');
+    expect(names).toContain('app_update');
+    expect(names).toContain('app_discover');
+  });
+});
+
+describe('registerTools — handler behavior (Phase 8)', () => {
+  let server: ReturnType<typeof buildCapturingServer>;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    server = buildCapturingServer();
+    registerTools(server);
+  });
+
+  it('app_update drops sync-owned fields (description/screenshots/icon/appStoreId/rating)', async () => {
+    const { updateApp } = await import('../services/app.service.js');
+    const handler = server.getHandler('app_update')!;
+    await handler({
+      id: 'app1',
+      name: 'My App',
+      tagline: 'Cool tagline',
+      // sync-owned fields that must be dropped:
+      description: 'Should be dropped',
+      screenshots: '["url1"]',
+      icon: 'http://icon.png',
+      appStoreId: '12345',
+      rating: 4.5,
+    });
+
+    expect(updateApp).toHaveBeenCalledOnce();
+    const callArgs = (updateApp as ReturnType<typeof vi.fn>).mock.calls[0];
+    const passedData = callArgs[1] as Record<string, unknown>;
+
+    // sync-safe fields pass through
+    expect(passedData.name).toBe('My App');
+    expect(passedData.tagline).toBe('Cool tagline');
+
+    // sync-owned fields must NOT be forwarded
+    expect(passedData).not.toHaveProperty('description');
+    expect(passedData).not.toHaveProperty('screenshots');
+    expect(passedData).not.toHaveProperty('icon');
+    expect(passedData).not.toHaveProperty('appStoreId');
+    expect(passedData).not.toHaveProperty('rating');
+  });
+
+  it('page_create with app arg stamps meta.appId', async () => {
+    const { createPage } = await import('../services/page.service.js');
+    const handler = server.getHandler('page_create')!;
+    await handler({
+      title: 'Delphi Privacy Policy',
+      content: '# Privacy',
+      slug: 'delphi-privacy',
+      app: 'delphi',
+    });
+
+    expect(createPage).toHaveBeenCalledOnce();
+    const callArgs = (createPage as ReturnType<typeof vi.fn>).mock.calls[0];
+    const passedData = callArgs[0] as Record<string, unknown>;
+    const meta = JSON.parse(passedData.meta as string);
+    expect(meta.appId).toBe('delphi');
+  });
+
+  it('page_create with app arg + malformed meta returns isError (no throw, no createPage)', async () => {
+    const { createPage } = await import('../services/page.service.js');
+    (createPage as ReturnType<typeof vi.fn>).mockClear();
+    const handler = server.getHandler('page_create')!;
+    const result = await handler({
+      title: 'Bad Meta Page',
+      content: '# x',
+      app: 'delphi',
+      meta: '{not valid json',
+    }) as { isError?: boolean };
+
+    expect(result.isError).toBe(true);
+    expect(createPage).not.toHaveBeenCalled();
+  });
+
+  it('page_publish calls publishPage (not updatePage) and returns isError on null', async () => {
+    const { publishPage, updatePage } = await import('../services/page.service.js');
+    const handler = server.getHandler('page_publish')!;
+    // publishPage mock returns null by default
+    const result = await handler({ id: 'nonexistent' }) as { isError?: boolean };
+
+    expect(publishPage).toHaveBeenCalledOnce();
+    expect(updatePage).not.toHaveBeenCalled();
+    expect(result.isError).toBe(true);
   });
 });
