@@ -3,7 +3,7 @@ type: dev-guide
 status: active
 tags: [blog, mcp, api, astro, hono, sqlite]
 refs: [docs/06-plans/2026-03-21-wordbase-blog-system-design.md]
-current: true
+current: false
 confirmed_at: 2026-03-21T18:00:00
 ---
 

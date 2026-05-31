@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/index.js';
 import * as postService from '../services/post.service.js';
+import { triggerBuild } from '../services/build.service.js';
 import type { AppEnv } from '../types.js';
 
 export const postsRouter = new Hono<AppEnv>();
@@ -48,6 +49,7 @@ postsRouter.delete('/:id', authMiddleware, async (c) => {
 postsRouter.post('/:id/publish', authMiddleware, async (c) => {
   const post = await postService.publishPost(c.req.param('id'));
   if (!post) return c.json({ error: { code: 'NOT_FOUND', message: 'Post not found' } }, 404);
+  triggerBuild();
   return c.json(post);
 });
 
