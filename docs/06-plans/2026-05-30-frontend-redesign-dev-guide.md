@@ -299,6 +299,8 @@ confirmed_at: 2026-05-30T19:45:00
 <!-- section: phase-8 keywords: mcp, reverse-integration, app-update, pages, privacy, companion-pages -->
 ## Phase 8: Reverse integration — app content MCP (last phase, not urgent)
 
+**Status:** ✅ Completed — 2026-05-31
+
 **Goal:** Let Claude Code, working inside an app's repo, manage that app's WordBase presence via MCP: update the App Detail display info (tagline/features/description/accentColor/screenshots) and author/host the app's companion pages (privacy / help / support / terms / changelog) that WordBase serves at public URLs. **WordBase does NOT write back to ASC** — the user configures ASC's URL fields themselves; WordBase only hosts the content.
 **Depends on:** Phase 4 (App Detail page exists), Phase 3.5 (real app data + discovery)
 **Scope:**
@@ -307,15 +309,17 @@ confirmed_at: 2026-05-30T19:45:00
 - (Optional) surface ASC discovery (`POST /api/apps/discover` from Phase 3.5) as an MCP tool so CC can pull the app list too.
 **用户可见的变化:**
 - 开发某个 App 时,在它的代码目录用 Claude Code 就能更新这个 App 在 norvyn.com 上的展示信息,并撰写/发布它的隐私/帮助/支持/条款页(WordBase 给公开 URL,你把 URL 自己填到 App Store Connect)。配套页从 Notion 迁到 WordBase 自管。
-**Architecture decisions:** companion-page slug/routing convention (`/apps/:slug/privacy` vs flat `pages` slug); whether `app_update` and `page_*` share an auth scope; MCP tool input schemas — resolve at /write-plan.
+**Architecture decisions (resolved at /write-plan):** ① companion-page routing — FLAT `pages` slug (用户确认 DP-flat) + `<app>-<type>` 命名约定 + `page_create` 可选 `app` arg 写入 `meta.appId`(关联数据现在就存,日后加 `app_id` 列+嵌套路由是非破坏性 backfill)[D-002];② auth scope — 复用现有 MCP server 单一 `WORDBASE_API_KEY`,所有工具同 scope(不加 per-tool 检查)[D-001];③ tool schemas — 匹配现有 30 工具的 plain JSON-schema + `async(args)` 约定。Plan: `docs/06-plans/2026-05-31-phase8-mcp-plan.md`。
+
 **Acceptance criteria:**
-- [ ] `app_update` MCP tool updates an app's features/tagline and the change renders on `/apps/:slug` after rebuild.
-- [ ] `page_create`/`page_publish` MCP tools create a companion page that renders at its public URL.
-- [ ] No ASC writeback anywhere (verify: no PATCH/POST to api.appstoreconnect.apple.com in the new code).
-- [ ] Build verify; MCP tools callable via stdio with API key.
+- [x] `app_update` MCP tool updates an app's editorial fields; renders on `/apps/:slug` after rebuild. (工具 wraps `appService.updateApp`,**仅暴露 sync-safe 字段** name/slug/tagline/accentColor/features/links/sortOrder/status/meta — 单元测试证伪式守卫确认丢弃 description/screenshots/icon/appStoreId/rating。**范围调整(用户 DP-001=A 授权):** description/screenshots/icon 由 app_sync 拥有[app-sync.service.ts:51-74 iTunes/ASC-first],编辑会被下次 sync 回滚,故移出 app_update — 网站这几项保持与 App Store 一致。渲染由 Phase 4 的 /apps/[slug] 模板 + build 提供[组合验证]。)
+- [x] `page_create`/`page_publish` MCP tools create a companion page that renders at its public URL. (6 个 page_* 工具 wraps pageService;新增 `publishPage`(status='published'+updatedAt);page_create 可选 app→stamp meta.appId,malformed meta→isError[已修+测]。公开 URL 渲染由 Phase 7 迁移的 /[slug] 路由提供[filters status==='published',Phase 7 已验证 published 页渲染]。)
+- [x] No ASC writeback anywhere. (`asc.service.ts` `ascFetch` 全部 GET、0 个 POST/PUT/PATCH 到 api.appstoreconnect.apple.com — reviewer 独立确认。app-sync 只从 ASC/iTunes 读入本地 db。)
+- [x] Build verify; MCP tools callable via stdio with API key. (tsc build 0 错误;vitest 87/87[+新 mcp handler 测试];执行期 mint 临时 key → `npm run mcp` stdio `initialize`+`tools/list` 确认 8 个新工具均出现 + `page_list` 可调用。**安全:临时 key 用后已从 api_keys 撤销**,泄漏明文失效。)
 
 **Review checklist:**
-- [ ] implementation-reviewer
+- [x] implementation-reviewer — ✅ PASS, 0 blocking gaps。两高危结论明确:**[D-004] sync-clobber 守卫 SOLID**(显式 9 字段 allowlist 非 args spread,交叉核对 sync `set` 13 字段无重叠);**测试可证伪**(新 `buildCapturingServer` 真捕获 handler + `vi.mock` services,3 个行为测试 naive 实现必 FAIL,0 shell)。1 个非阻塞 F-1(page_create `JSON.parse(meta)` 未 guard)已修 + 补测(87/87)。
+- ⚠️ **后续(captured):** About 内容 GitHub+ASC 自动同步 issue #3(本阶段提供了 app_update/page_* 基础);per-app 嵌套路由 + `app_id` 列待规模需要时非破坏性迁移。
 
 <!-- /section -->
 
