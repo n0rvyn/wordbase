@@ -1,3 +1,4 @@
+import '../env.js'; // load repo-root .env first
 import { initializeDatabase } from './index.js';
 
 try {

@@ -1,3 +1,4 @@
+import '../env.js'; // load repo-root .env first
 import { generateKey, regenerateKey } from './keys.js';
 
 const args = process.argv.slice(2);

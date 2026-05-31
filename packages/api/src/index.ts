@@ -1,3 +1,4 @@
+import './env.js'; // load repo-root .env first (before db/index reads process.env)
 import { serve } from '@hono/node-server';
 import { app } from './app.js';
 import { initializeDatabase } from './db/index.js';
