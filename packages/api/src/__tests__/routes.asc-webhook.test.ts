@@ -1,10 +1,11 @@
 /**
  * Tests for POST /api/apps/asc-webhook
  *
- * Signature scheme: HMAC-SHA256 of the raw request body, hex-encoded.
- * Header name: X-ASC-Signature
- * This is internally consistent between test and impl; Apple's exact scheme
- * is confirmed in 6-impl against real notifications.
+ * App Store Connect signs webhooks with HMAC-SHA256 over the raw request body,
+ * delivered in the `X-Apple-SIGNATURE` header (verified against Apple's ASC
+ * webhook docs). verifyAscSignature accepts hex OR base64; the live ASC test
+ * delivery is the final confirmation of the exact encoding.
+ * Payload shape: { eventType, data: { app: { id } } }.
  */
 
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
@@ -45,17 +46,17 @@ function makeSignature(body: string, secret: string): string {
 }
 
 const VERSION_EVENT_BODY = JSON.stringify({
-  notificationType: 'APP_STORE_VERSION_CHANGED',
+  eventType: 'APP_STORE_VERSION_STATE_CHANGED',
   data: {
-    appAppleId: '361304891',
-    appVersionId: 'ver-001',
+    app: { id: '361304891' },
+    appStoreVersion: { id: 'ver-001', versionString: '1.2.3', state: 'READY_FOR_SALE' },
   },
 });
 
 const UNRELATED_EVENT_BODY = JSON.stringify({
-  notificationType: 'APP_METADATA_CREATED',
+  eventType: 'BETA_FEEDBACK_CRASH_SUBMITTED',
   data: {
-    appAppleId: '361304891',
+    app: { id: '361304891' },
   },
 });
 
@@ -81,6 +82,11 @@ describe('verifyAscSignature (pure function)', () => {
   it('returns false for empty signature', () => {
     expect(verifyAscSignature('hello', '', WEBHOOK_SECRET)).toBe(false);
   });
+
+  it('accepts a base64-encoded signature too (encoding-tolerant)', () => {
+    const b64 = createHmac('sha256', WEBHOOK_SECRET).update('hello').digest('base64');
+    expect(verifyAscSignature('hello', b64, WEBHOOK_SECRET)).toBe(true);
+  });
 });
 
 describe('POST /api/apps/asc-webhook', () => {
@@ -99,7 +105,7 @@ describe('POST /api/apps/asc-webhook', () => {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'x-asc-signature': 'badsignature',
+        'x-apple-signature': 'badsignature',
       },
       body: VERSION_EVENT_BODY,
     });
@@ -127,7 +133,7 @@ describe('POST /api/apps/asc-webhook', () => {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'x-asc-signature': sig,
+        'x-apple-signature': sig,
       },
       body: VERSION_EVENT_BODY,
     });
@@ -142,7 +148,7 @@ describe('POST /api/apps/asc-webhook', () => {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'x-asc-signature': sig,
+        'x-apple-signature': sig,
       },
       body: VERSION_EVENT_BODY,
     });
@@ -170,7 +176,7 @@ describe('POST /api/apps/asc-webhook', () => {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'x-asc-signature': sig,
+        'x-apple-signature': sig,
       },
       body: UNRELATED_EVENT_BODY,
     });

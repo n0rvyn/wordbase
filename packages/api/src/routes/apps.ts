@@ -12,18 +12,26 @@ import type { AppEnv } from '../types.js';
 export const appsRouter = new Hono<AppEnv>();
 
 /**
- * Verify an ASC webhook HMAC-SHA256 signature.
- * Header: X-ASC-Signature
- * Algorithm: HMAC-SHA256 of rawBody, hex-encoded.
+ * Verify an App Store Connect webhook signature.
+ * Apple signs with HMAC-SHA256 over the raw request body and delivers it in the
+ * `X-Apple-SIGNATURE` header (per Apple's ASC webhook docs). The header's
+ * encoding (hex vs base64) is accepted either way for resilience; the live ASC
+ * test delivery is the final confirmation of the exact encoding.
  */
-export function verifyAscSignature(rawBody: string, signatureHeader: string, secret: string): boolean {
-  if (!signatureHeader) return false;
-  const expected = createHmac('sha256', secret).update(rawBody).digest('hex');
+function safeStrEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
   try {
-    return timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(signatureHeader, 'hex'));
+    return timingSafeEqual(Buffer.from(a), Buffer.from(b));
   } catch {
     return false;
   }
+}
+
+export function verifyAscSignature(rawBody: string, signatureHeader: string, secret: string): boolean {
+  if (!signatureHeader) return false;
+  const hex = createHmac('sha256', secret).update(rawBody).digest('hex');
+  const b64 = createHmac('sha256', secret).update(rawBody).digest('base64');
+  return safeStrEqual(signatureHeader, hex) || safeStrEqual(signatureHeader, b64);
 }
 
 // ---- Public routes ----
@@ -36,24 +44,31 @@ appsRouter.post('/asc-webhook', async (c) => {
   }
 
   const rawBody = await c.req.text();
-  const sig = c.req.header('x-asc-signature') ?? '';
+  // App Store Connect delivers the HMAC-SHA256 signature in `X-Apple-SIGNATURE`.
+  const sig = c.req.header('x-apple-signature') ?? '';
 
   if (!verifyAscSignature(rawBody, sig, secret)) {
     return c.json({ error: { code: 'UNAUTHORIZED', message: 'bad signature' } }, 401);
   }
 
-  let event: { notificationType?: string; data?: { appAppleId?: string } };
+  // ASC webhook payload shape: { eventType, apiVersion, eventId, eventDate,
+  // data: { app: { id }, appStoreVersion: {...} } }. (data.appAppleId is the
+  // legacy/App-Store-Server-Notifications shape — accepted as a fallback.)
+  let event: { eventType?: string; data?: { app?: { id?: string }; appAppleId?: string } };
   try {
     event = JSON.parse(rawBody);
   } catch {
     return c.json({ ok: true });
   }
 
-  if (event.notificationType !== 'APP_STORE_VERSION_CHANGED') {
+  // Only re-sync on events that change the public App Store listing
+  // (App Version Status / App Store Release Updated). Match VERSION|RELEASE to
+  // stay resilient to Apple's exact eventType enum strings.
+  if (!/VERSION|RELEASE/i.test(event.eventType ?? '')) {
     return c.json({ ok: true });
   }
 
-  const appAppleId = event.data?.appAppleId;
+  const appAppleId = event.data?.app?.id ?? event.data?.appAppleId;
   if (!appAppleId) {
     return c.json({ ok: true });
   }
