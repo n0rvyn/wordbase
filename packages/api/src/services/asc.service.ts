@@ -8,7 +8,9 @@
  */
 
 import { readFileSync } from 'node:fs';
+import { isAbsolute, resolve } from 'node:path';
 import { SignJWT, importPKCS8, decodeProtectedHeader } from 'jose';
+import { REPO_ROOT } from '../paths.js';
 
 export interface AscAppMeta {
   category: string | null;
@@ -33,8 +35,12 @@ function getCredentials(): { keyId: string; issuerId: string; privateKeyPem: str
   if (!pem) {
     const keyPath = process.env.ASC_PRIVATE_KEY_PATH;
     if (!keyPath) return null;
+    // Relative paths are anchored to the repo root (not cwd), so the same
+    // `asc_keys/AuthKey_XXXX.p8` works on any machine/clone. Absolute paths
+    // are used as-is.
+    const resolvedPath = isAbsolute(keyPath) ? keyPath : resolve(REPO_ROOT, keyPath);
     try {
-      pem = readFileSync(keyPath, 'utf-8');
+      pem = readFileSync(resolvedPath, 'utf-8');
     } catch {
       return null;
     }

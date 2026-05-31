@@ -11,12 +11,10 @@
  * (e.g. db/index.ts reads WORDBASE_DB_PATH on import).
  */
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+import { resolve } from 'node:path';
+import { REPO_ROOT } from './paths.js';
 
-const here = dirname(fileURLToPath(import.meta.url));
-// src/env.ts (or dist/env.js) lives one level under packages/api → ../../../ = repo root
-const ENV_PATH = resolve(here, '../../../.env');
+const ENV_PATH = resolve(REPO_ROOT, '.env');
 
 try {
   const text = readFileSync(ENV_PATH, 'utf-8');

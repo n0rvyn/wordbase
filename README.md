@@ -75,6 +75,27 @@ wordbase/
 - Node.js >= 18
 - pnpm
 
+### Configuration (`.env`)
+
+All config lives in **one git-ignored `.env` at the project root** (copy `.env.example`). It's loaded automatically at startup (API / CLI / MCP / migrate) regardless of cwd; on the server, systemd reads the same file via `EnvironmentFile`. Do **not** create a separate `packages/api/.env`.
+
+```bash
+cp .env.example .env
+pnpm --filter api cli key:create admin   # prints a key → paste into .env as WORDBASE_API_KEY
+```
+
+| Variable | Required | What it is / how to get it |
+|---|---|---|
+| `WORDBASE_API_KEY` | **yes** | Auth for the REST API + MCP server. Mint with `pnpm --filter api cli key:create <name>`. |
+| `WORDBASE_DB_PATH` | no | SQLite path (default `./data/blog.db`). |
+| `SITE_URL` | no | Public site origin, e.g. `https://norvyn.com`. |
+| `ASC_KEY_ID` | for app sync | App Store Connect API **Key ID** — ASC → *Users and Access → Integrations → App Store Connect API*. |
+| `ASC_ISSUER_ID` | for app sync | The **Issuer ID** on that same ASC API-keys page. |
+| `ASC_PRIVATE_KEY_PATH` | for app sync | Path to the downloaded `.p8`. **Relative paths anchor to the repo root** — just drop the file in `asc_keys/` and set `asc_keys/AuthKey_XXXX.p8` (works on every machine + the server, no per-env edits). Absolute paths also work. |
+| `ASC_WEBHOOK_SECRET` | optional | Only if wiring the ASC webhook (leave unset otherwise). |
+
+The `ASC_*` vars are only needed for `app_sync` / `app_discover` (pulling App Store metadata); blog/podcast/pages work without them. The `asc_keys/*.p8` file is git-ignored — copy it to the server separately: `scp -r asc_keys <server>:/var/www/wordbase/`.
+
 ### Development
 
 ```bash
