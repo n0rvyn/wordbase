@@ -4,6 +4,10 @@ import * as commentService from '../services/comment.service.js';
 import * as analyticsService from '../services/analytics.service.js';
 import * as buildService from '../services/build.service.js';
 import * as redirectService from '../services/redirect.service.js';
+import * as podcastService from '../services/podcast.service.js';
+import * as episodeService from '../services/episode.service.js';
+import * as appService from '../services/app.service.js';
+import * as appSyncService from '../services/app-sync.service.js';
 
 export function registerTools(server: any) {
   server.tool(
@@ -306,6 +310,268 @@ export function registerTools(server: any) {
         return { content: [{ type: 'text' as const, text: JSON.stringify({ success: true }, null, 2) }] };
       }
       return { content: [{ type: 'text' as const, text: 'Invalid action. Use: list, create, or delete' }], isError: true };
+    }
+  );
+
+  // Podcast tools
+  server.tool(
+    'podcast_list_shows',
+    'List all podcast shows, optionally filtered by status',
+    {
+      status: { type: 'string', description: 'Filter by status: draft or published' },
+      page: { type: 'number', description: 'Page number (default: 1)' },
+      limit: { type: 'number', description: 'Items per page (default: 20)' },
+    },
+    async (args: Record<string, unknown>) => {
+      const result = await podcastService.listPodcasts({
+        status: args.status as string | undefined,
+        page: args.page as number | undefined,
+        limit: args.limit as number | undefined,
+      });
+      return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'podcast_create_show',
+    'Create a new podcast show with title, description, and owner info',
+    {
+      title: { type: 'string', description: 'Show title' },
+      description: { type: 'string', description: 'Show description' },
+      ownerEmail: { type: 'string', description: 'Owner email for iTunes feed' },
+      ownerName: { type: 'string', description: 'Owner name for iTunes feed' },
+      author: { type: 'string', description: 'Author name' },
+      language: { type: 'string', description: 'Language code (default: zh-CN)' },
+      category: { type: 'string', description: 'iTunes category' },
+      explicit: { type: 'number', description: '1 if explicit content, 0 otherwise' },
+      coverImage: { type: 'string', description: 'Cover image URL' },
+      slug: { type: 'string', description: 'URL slug (auto-generated if not provided)' },
+    },
+    async (args: Record<string, unknown>) => {
+      const show = await podcastService.createPodcast({
+        title: args.title as string,
+        description: args.description as string | undefined,
+        ownerEmail: args.ownerEmail as string | undefined,
+        ownerName: args.ownerName as string | undefined,
+        author: args.author as string | undefined,
+        language: args.language as string | undefined,
+        category: args.category as string | undefined,
+        explicit: args.explicit as number | undefined,
+        coverImage: args.coverImage as string | undefined,
+        slug: args.slug as string | undefined,
+      });
+      return { content: [{ type: 'text' as const, text: JSON.stringify(show, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'podcast_publish_show',
+    'Publish a podcast show so it appears on the public site',
+    {
+      id: { type: 'string', description: 'Podcast show ID' },
+    },
+    async (args: { id: string }) => {
+      const show = await podcastService.publishPodcast(args.id);
+      if (!show) return { content: [{ type: 'text' as const, text: 'Podcast not found' }], isError: true };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(show, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'podcast_list_episodes',
+    'List episodes for a podcast show, optionally filtered by status',
+    {
+      podcastId: { type: 'string', description: 'Podcast show ID' },
+      status: { type: 'string', description: 'Filter by status: draft or published' },
+      page: { type: 'number', description: 'Page number (default: 1)' },
+      limit: { type: 'number', description: 'Items per page (default: 20)' },
+    },
+    async (args: Record<string, unknown>) => {
+      const result = await episodeService.listEpisodes(args.podcastId as string, {
+        status: args.status as string | undefined,
+        page: args.page as number | undefined,
+        limit: args.limit as number | undefined,
+      });
+      return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'podcast_create_episode',
+    'Create or update a podcast episode (idempotent when an external id is given — safe for automated re-delivery)',
+    {
+      podcastId: { type: 'string', description: 'Podcast show ID' },
+      title: { type: 'string', description: 'Episode title' },
+      audioUrl: { type: 'string', description: 'URL of the audio file' },
+      audioSize: { type: 'number', description: 'Audio file size in bytes' },
+      duration: { type: 'number', description: 'Duration in seconds' },
+      summary: { type: 'string', description: 'Short summary' },
+      showNotes: { type: 'string', description: 'Full show notes (Markdown)' },
+      episodeNumber: { type: 'number', description: 'Episode number' },
+      seasonNumber: { type: 'number', description: 'Season number' },
+      externalSource: { type: 'string', description: 'External source identifier (e.g. "adam")' },
+      externalId: { type: 'string', description: 'External episode ID for idempotent upsert' },
+      slug: { type: 'string', description: 'URL slug (auto-generated if not provided)' },
+    },
+    async (args: Record<string, unknown>) => {
+      const podcastId = args.podcastId as string;
+      const data = {
+        title: args.title as string,
+        audioUrl: args.audioUrl as string,
+        audioSize: args.audioSize as number | undefined,
+        duration: args.duration as number | undefined,
+        summary: args.summary as string | undefined,
+        showNotes: args.showNotes as string | undefined,
+        episodeNumber: args.episodeNumber as number | undefined,
+        seasonNumber: args.seasonNumber as number | undefined,
+        externalSource: args.externalSource as string | undefined,
+        externalId: args.externalId as string | undefined,
+        slug: args.slug as string | undefined,
+      };
+      if (data.externalSource && data.externalId) {
+        const result = await episodeService.upsertEpisodeByExternal(podcastId, {
+          ...data,
+          externalSource: data.externalSource,
+          externalId: data.externalId,
+        });
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+      }
+      const episode = await episodeService.createEpisode(podcastId, data);
+      return { content: [{ type: 'text' as const, text: JSON.stringify(episode, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'podcast_upload_audio',
+    'Upload an audio file for a podcast episode (base64 encoded)',
+    {
+      filename: { type: 'string', description: 'Original filename (e.g. episode-1.mp3)' },
+      base64: { type: 'string', description: 'Base64 encoded audio file content' },
+      mimeType: { type: 'string', description: 'MIME type (e.g. audio/mpeg)' },
+    },
+    async (args: Record<string, unknown>) => {
+      try {
+        const result = await episodeService.uploadEpisodeAudio({
+          filename: args.filename as string,
+          base64: args.base64 as string,
+          mimeType: args.mimeType as string,
+        });
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Upload failed';
+        return { content: [{ type: 'text' as const, text: `Upload failed: ${message}` }], isError: true };
+      }
+    }
+  );
+
+  server.tool(
+    'podcast_publish_episode',
+    'Publish a podcast episode so it appears in the RSS feed and on the site',
+    {
+      id: { type: 'string', description: 'Episode ID' },
+    },
+    async (args: { id: string }) => {
+      const episode = await episodeService.publishEpisode(args.id);
+      if (!episode) return { content: [{ type: 'text' as const, text: 'Episode not found' }], isError: true };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(episode, null, 2) }] };
+    }
+  );
+
+  // App tools
+  server.tool(
+    'app_list',
+    'List iOS app landing pages, optionally filtered by status',
+    {
+      status: { type: 'string', description: 'Filter by status: draft or published' },
+      page: { type: 'number', description: 'Page number (default: 1)' },
+      limit: { type: 'number', description: 'Items per page (default: 20)' },
+    },
+    async (args: Record<string, unknown>) => {
+      const result = await appService.listApps({
+        status: args.status as string | undefined,
+        page: args.page as number | undefined,
+        limit: args.limit as number | undefined,
+      });
+      return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'app_create',
+    'Create a new iOS app landing page with name, description, features, and App Store info',
+    {
+      name: { type: 'string', description: 'App name' },
+      tagline: { type: 'string', description: 'Short tagline' },
+      description: { type: 'string', description: 'Full description' },
+      appStoreUrl: { type: 'string', description: 'App Store URL' },
+      appStoreId: { type: 'string', description: 'App Store ID' },
+      bundleId: { type: 'string', description: 'Bundle identifier' },
+      platform: { type: 'string', description: 'Platform (default: iOS)' },
+      features: { type: 'string', description: 'JSON array of feature objects [{icon, title, blurb}]' },
+      screenshots: { type: 'string', description: 'JSON array of screenshot URLs' },
+      links: { type: 'string', description: 'JSON object of additional links' },
+      accentColor: { type: 'string', description: 'Accent color hex code' },
+      icon: { type: 'string', description: 'App icon URL' },
+      slug: { type: 'string', description: 'URL slug (auto-generated if not provided)' },
+    },
+    async (args: Record<string, unknown>) => {
+      const app = await appService.createApp({
+        name: args.name as string,
+        tagline: args.tagline as string | undefined,
+        description: args.description as string | undefined,
+        appStoreUrl: args.appStoreUrl as string | undefined,
+        appStoreId: args.appStoreId as string | undefined,
+        bundleId: args.bundleId as string | undefined,
+        platform: args.platform as string | undefined,
+        features: args.features as string | undefined,
+        screenshots: args.screenshots as string | undefined,
+        links: args.links as string | undefined,
+        accentColor: args.accentColor as string | undefined,
+        icon: args.icon as string | undefined,
+        slug: args.slug as string | undefined,
+      });
+      return { content: [{ type: 'text' as const, text: JSON.stringify(app, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'app_publish',
+    'Publish an app landing page so it appears on the public site',
+    {
+      id: { type: 'string', description: 'App ID' },
+    },
+    async (args: { id: string }) => {
+      const app = await appService.publishApp(args.id);
+      if (!app) return { content: [{ type: 'text' as const, text: 'App not found' }], isError: true };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(app, null, 2) }] };
+    }
+  );
+
+  // App sync tools
+  server.tool(
+    'app_sync',
+    "Sync an app's metadata from the App Store (rating/category/version/screenshots) using iTunes Lookup and App Store Connect",
+    {
+      id: { type: 'string', description: 'App ID to sync' },
+    },
+    async (args: { id: string }) => {
+      try {
+        await appSyncService.syncApp(args.id);
+        return { content: [{ type: 'text' as const, text: JSON.stringify({ ok: true, id: args.id }, null, 2) }] };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Sync failed';
+        return { content: [{ type: 'text' as const, text: `Sync failed: ${message}` }], isError: true };
+      }
+    }
+  );
+
+  server.tool(
+    'app_sync_all',
+    'Sync metadata for all apps that have an App Store ID (rating/category/version/screenshots)',
+    {},
+    async () => {
+      const result = await appSyncService.syncAllApps();
+      return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
     }
   );
 
