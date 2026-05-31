@@ -1,7 +1,8 @@
 ---
 import type { GetStaticPaths } from 'astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { getPosts, formatDate, stripMarkdown, estimateReadTime, type Post } from '../../lib/api';
+import { getPosts, estimateReadTime, stripMarkdown, type Post } from '../../lib/api';
+import { formatMonoDate } from '../../lib/home';
 
 export const getStaticPaths = (async ({ paginate }) => {
   const { data: posts } = await getPosts({ status: 'published', limit: 10000 });
@@ -13,145 +14,107 @@ const { page } = Astro.props;
 ---
 
 <BaseLayout title={`第 ${page.currentPage} 页`}>
-  <div class="post-list">
-    {page.data.map((post: Post, i: number) => (
-      <article class="post-item" style={`animation-delay: ${i * 50}ms`}>
-        <div class="post-date">
-          {post.publishedAt && (
-            <time datetime={new Date(post.publishedAt * 1000).toISOString()}>
-              {new Date(post.publishedAt * 1000).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
-            </time>
-          )}
-        </div>
-        <div class="post-body">
-          <h2 class="post-title">
-            <a href={`/posts/${post.slug}`}>{post.title}</a>
-          </h2>
-          <p class="post-excerpt">{post.excerpt || stripMarkdown(post.content, 120)}</p>
-        </div>
-        <span class="post-readtime">{estimateReadTime(post.content)} min</span>
-      </article>
-    ))}
-  </div>
 
-  <nav class="page-nav">
-    {page.url.prev ? (
-      <a href={page.currentPage === 2 ? '/' : page.url.prev} class="nav-btn">
-        <span>&larr;</span> 较新
-      </a>
-    ) : (
-      <a href="/" class="nav-btn"><span>&larr;</span> 首页</a>
-    )}
-    <span class="nav-current">{page.currentPage} / {page.lastPage}</span>
-    {page.url.next ? (
-      <a href={page.url.next} class="nav-btn">较旧 <span>&rarr;</span></a>
-    ) : <span class="nav-btn" style="visibility: hidden">placeholder</span>}
-  </nav>
+<header class="sec wrap" style="border-top:none;padding-top:clamp(44px,6vw,80px)">
+  <div class="row2">
+    <div class="spine">
+      <span class="no">00</span>
+      <span class="lab">Page {page.currentPage}</span>
+      <span class="note">{page.currentPage} / {page.lastPage}</span>
+    </div>
+    <div>
+      <div class="eyebrow">Writing · 第 {page.currentPage} 页</div>
+      <h1>文章</h1>
+    </div>
+  </div>
+</header>
+
+<section class="sec wrap">
+  <div class="row2">
+    <div class="spine">
+      <span class="no">01</span>
+      <span class="lab">Posts</span>
+    </div>
+    <div>
+      <div class="list">
+        {page.data.map((p: Post) => (
+          <a class="item post" href={`/posts/${p.slug}`}>
+            <div>
+              {p.publishedAt && <div class="pdate">{formatMonoDate(p.publishedAt)}</div>}
+              <div class="item-title">{p.title}</div>
+              <div class="item-sub">{p.excerpt || stripMarkdown(p.content, 120)}</div>
+            </div>
+            <div class="item-meta">{estimateReadTime(p.content)} min</div>
+          </a>
+        ))}
+      </div>
+
+      <nav class="pager">
+        {page.url.prev ? (
+          <a class="pager-btn" href={page.currentPage === 2 ? '/' : page.url.prev}>← 较新</a>
+        ) : (
+          <a class="pager-btn" href="/">← 首页</a>
+        )}
+        <span class="pager-cur">{page.currentPage} / {page.lastPage}</span>
+        {page.url.next ? (
+          <a class="pager-btn" href={page.url.next}>较旧 →</a>
+        ) : (
+          <span class="pager-btn pager-ghost">较旧 →</span>
+        )}
+      </nav>
+    </div>
+  </div>
+</section>
+
 </BaseLayout>
 
 <style>
-  .post-list { display: flex; flex-direction: column; }
+  /* ── Sections ─────────────────────────────────────────────────────────────── */
+  .sec { padding: clamp(44px, 6vw, 84px) 0; border-top: 1px solid var(--line); }
 
-  .post-item {
-    display: grid;
-    grid-template-columns: 70px 1fr auto;
-    gap: 1.25rem;
-    align-items: baseline;
-    padding: 1.25rem 0;
-    border-bottom: 1px solid var(--color-rule);
-    animation: fadeUp 0.5s ease both;
-    transition: background 0.2s ease;
+  /* ── Hero ─────────────────────────────────────────────────────────────────── */
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 12.5px;
+    letter-spacing: .16em; text-transform: uppercase;
+    color: var(--ink-3); margin-bottom: 20px;
+  }
+  h1 {
+    font-family: var(--font-display); font-weight: 500;
+    font-size: clamp(40px, 6vw, 76px); line-height: 1.02;
+    letter-spacing: -.035em; margin: 0 0 22px;
   }
 
-  .post-item:first-child { border-top: 1px solid var(--color-rule); }
+  /* ── Full-density post rows ───────────────────────────────────────────────── */
+  .post { grid-template-columns: 1fr auto; gap: 6px 28px; }
+  .post .item-title { font-size: clamp(19px, 2vw, 24px); margin-bottom: 6px; }
+  .pdate {
+    font-family: var(--font-mono); font-size: 12px;
+    color: var(--ink-3); margin-bottom: 9px;
+  }
+  .post .item-sub { font-size: 15px; }
+  .post .item-meta { align-self: start; padding-top: 2px; }
 
-  .post-item:hover {
-    background: var(--color-paper-warm);
-    margin: 0 -1rem;
-    padding-left: 1rem;
-    padding-right: 1rem;
-    border-radius: 8px;
-    border-color: transparent;
+  /* ── Pager ────────────────────────────────────────────────────────────────── */
+  .pager {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--line);
+  }
+  .pager-btn {
+    font-family: var(--font-mono); font-size: 11.5px; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--ink-3);
+    padding: 8px 16px; border: 1px solid var(--line); border-radius: 99px;
+    transition: color .2s, border-color .2s;
+  }
+  .pager-btn:hover { color: var(--ink); border-color: var(--line-2); }
+  .pager-ghost { opacity: 0; pointer-events: none; }
+  .pager-cur {
+    font-family: var(--font-mono); font-size: 11.5px;
+    color: var(--ink-3); letter-spacing: .05em;
   }
 
-  .post-date {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: var(--color-ink-ghost);
-    white-space: nowrap;
-    padding-top: 0.15rem;
-  }
-
-  .post-body { min-width: 0; }
-
-  .post-title {
-    font-size: 1.15rem;
-    font-weight: 600;
-    line-height: 1.4;
-    margin-bottom: 0.35rem;
-  }
-
-  .post-title a:hover { color: var(--color-vermillion); }
-
-  .post-excerpt {
-    font-size: 0.88rem;
-    line-height: 1.6;
-    color: var(--color-ink-faint);
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .post-readtime {
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
-    color: var(--color-ink-ghost);
-    white-space: nowrap;
-    padding-top: 0.15rem;
-  }
-
-  .page-nav {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: 3rem;
-    padding-top: 2rem;
-    border-top: 1px solid var(--color-rule);
-  }
-
-  .nav-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-family: var(--font-sans);
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--color-ink-faint);
-    padding: 0.5rem 1.25rem;
-    border: 1px solid var(--color-rule);
-    border-radius: 100px;
-    transition: all 0.2s ease;
-  }
-
-  .nav-btn:hover {
-    color: var(--color-ink);
-    border-color: var(--color-ink-faint);
-  }
-
-  .nav-current {
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    color: var(--color-ink-ghost);
-  }
-
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  @media (max-width: 640px) {
-    .post-item { grid-template-columns: 1fr; gap: 0.25rem; }
-    .post-date, .post-readtime { display: none; }
+  /* ── Responsive ───────────────────────────────────────────────────────────── */
+  @media (max-width: 560px) {
+    .post { grid-template-columns: 1fr; }
+    .post .item-meta { margin-top: 8px; }
   }
 </style>
