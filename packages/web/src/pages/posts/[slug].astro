@@ -2,162 +2,585 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ShareButtons from '../../components/ShareButtons.astro';
 import CommentSection from '../../components/CommentSection.astro';
-import { getPosts, formatDate, estimateReadTime, stripMarkdown, type Post } from '../../lib/api';
+import { getPosts, getCategories, formatDate, estimateReadTime, stripMarkdown, type Post } from '../../lib/api';
+import { formatMonoDate } from '../../lib/home';
+import { injectHeadingIds, selectAdjacent } from '../../lib/article';
 import { marked } from 'marked';
 
 export async function getStaticPaths() {
   const { data: posts } = await getPosts({ status: 'published', limit: 10000 });
-  return posts.map((post: Post) => ({
+  const sorted = [...posts].sort((a, b) => (b.publishedAt ?? 0) - (a.publishedAt ?? 0));
+  const orderedSlugs = sorted.map((p: Post) => p.slug);
+  const slugTitle: Record<string, string> = {};
+  sorted.forEach((p: Post) => { slugTitle[p.slug] = p.title; });
+
+  // Build per-post first-category map
+  const allCats = await getCategories();
+  const postFirstCat: Record<string, string> = {};
+  for (const cat of allCats) {
+    const { data: catPosts } = await getPosts({ status: 'published', category: cat.slug, limit: 10000 });
+    for (const p of catPosts) {
+      if (!postFirstCat[p.id]) {
+        postFirstCat[p.id] = cat.name;
+      }
+    }
+  }
+
+  return sorted.map((post: Post) => ({
     params: { slug: post.slug },
-    props: { post },
+    props: { post, orderedSlugs, slugTitle, postFirstCat },
   }));
 }
 
-interface Props {
+const { post, orderedSlugs, slugTitle, postFirstCat } = Astro.props as {
   post: Post;
-}
-
-const { post } = Astro.props;
-const htmlContent = marked.parse(post.content);
+  orderedSlugs: string[];
+  slugTitle: Record<string, string>;
+  postFirstCat: Record<string, string>;
+};
 const meta = post.meta ? JSON.parse(post.meta) : {};
-const description = meta.description || stripMarkdown(post.content, 160);
+const description = post.excerpt || meta.description || stripMarkdown(post.content, 160);
 const readTime = estimateReadTime(post.content);
+const { html, toc } = injectHeadingIds(marked.parse(post.content) as string);
+const { newer, older } = selectAdjacent(orderedSlugs, post.slug);
+const firstCat = postFirstCat[post.id] || '';
 ---
 
 <BaseLayout title={post.title} description={description} ogImage={post.coverImage || undefined}>
-  <article class="article">
-    {/* Back link */}
-    <a href="/" class="back-link">&larr; 返回</a>
+  <!-- Progress bar (owned by this page, fixed at top) -->
+  <div class="progress" id="progress"></div>
 
-    {/* Header */}
-    <header class="article-header">
-      <div class="article-meta">
-        {post.publishedAt && (
-          <time datetime={new Date(post.publishedAt * 1000).toISOString()}>
-            {formatDate(post.publishedAt)}
-          </time>
+  <div class="art-wrap">
+    <div class="art-grid">
+      <!-- Left rail -->
+      <aside class="rail">
+        <div class="meta">
+          {post.publishedAt && (
+            <div class="m">
+              <span class="k">发表于</span>
+              <span class="v mono">{formatMonoDate(post.publishedAt)}</span>
+            </div>
+          )}
+          {firstCat && (
+            <div class="m">
+              <span class="k">分类</span>
+              <span class="v">{firstCat}</span>
+            </div>
+          )}
+          <div class="m">
+            <span class="k">阅读时长</span>
+            <span class="v">约 {readTime} 分钟</span>
+          </div>
+        </div>
+
+        {toc.length > 0 && (
+          <>
+            <div class="rail-div"></div>
+            <nav class="toc">
+              <h5>目录</h5>
+              {toc.map((t, i) => (
+                <a
+                  href={`#${t.id}`}
+                  class:list={[{ active: i === 0 }]}
+                  style={t.level === 3 ? 'padding-left:26px' : ''}
+                >{t.text}</a>
+              ))}
+            </nav>
+          </>
         )}
-        <span class="meta-dot" aria-hidden="true"></span>
-        <span>{readTime} 分钟阅读</span>
-      </div>
 
-      <h1 class="article-title">{post.title}</h1>
+        <div class="rail-div"></div>
+        <ShareButtons title={post.title} url={`https://blog.norvyn.com/posts/${post.slug}`} />
+      </aside>
 
-      {post.excerpt && (
-        <p class="article-lead">{post.excerpt}</p>
-      )}
-    </header>
+      <!-- Article body -->
+      <article class="reading">
+        {firstCat && <div class="cat">{firstCat}</div>}
+        <h1>{post.title}</h1>
+        {description && <p class="dek">{description}</p>}
+        <div class="byline">
+          <div class="av">N</div>
+          <div class="bm">
+            <b>norvyn</b> · {post.publishedAt ? formatDate(post.publishedAt) : ''}
+          </div>
+        </div>
 
-    {/* Cover */}
-    {post.coverImage && (
-      <figure class="article-cover">
-        <img src={post.coverImage} alt={post.title} loading="lazy" />
-      </figure>
-    )}
+        <div class="prose" set:html={html} />
+        <div class="endmark">◆</div>
 
-    {/* Content */}
-    <div class="prose" set:html={htmlContent} />
+        <div class="author-card">
+          <div class="av">N</div>
+          <div>
+            <div class="an">norvyn</div>
+            <p>独立 iOS 开发者，写字的人。在一座有海的城市，慢慢地做一些小而确定的东西。</p>
+          </div>
+        </div>
 
-    {/* Share */}
-    <footer class="article-footer">
-      <ShareButtons title={post.title} url={`https://blog.norvyn.com/posts/${post.slug}`} />
-    </footer>
-  </article>
+        {(older || newer) && (
+          <nav class="pn-nav">
+            {older ? (
+              <a class="pn prev" href={`/posts/${older}`}>
+                <div class="pl">← 上一篇</div>
+                <div class="pt">{slugTitle[older] || ''}</div>
+              </a>
+            ) : <div class="pn prev empty"></div>}
+            {newer ? (
+              <a class="pn next" href={`/posts/${newer}`}>
+                <div class="pl">下一篇 →</div>
+                <div class="pt">{slugTitle[newer] || ''}</div>
+              </a>
+            ) : <div class="pn next empty"></div>}
+          </nav>
+        )}
+      </article>
+    </div>
+  </div>
 
-  {/* Comments */}
-  <section class="comments-section">
+  <!-- Comments below the grid -->
+  <div class="comments-wrap">
     <CommentSection postId={post.id} />
-  </section>
+  </div>
 </BaseLayout>
 
+<!-- Scoped styles: layout + rail + reading elements -->
 <style>
-  .article {
-    animation: fadeUp 0.6s ease both;
+  .progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 2px;
+    width: 0;
+    background: var(--accent);
+    z-index: 60;
+    transition: width 0.1s linear;
   }
 
-  .back-link {
-    display: inline-flex;
-    align-items: center;
-    font-family: var(--font-sans);
-    font-size: 0.8rem;
-    color: var(--color-ink-ghost);
-    margin-bottom: 2.5rem;
-    letter-spacing: 0.02em;
-    transition: color 0.2s ease;
+  .art-wrap {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding-inline: clamp(20px, 4.5vw, 56px);
   }
 
-  .back-link:hover {
-    color: var(--color-ink);
+  .art-grid {
+    display: grid;
+    grid-template-columns: clamp(150px, 18vw, 236px) minmax(0, 70ch);
+    gap: clamp(34px, 5vw, 84px);
+    padding: clamp(40px, 6vw, 72px) 0 60px;
   }
 
-  .article-header {
-    margin-bottom: 2.5rem;
+  /* Rail */
+  .rail {
+    position: sticky;
+    top: 96px;
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
   }
 
-  .article-meta {
+  .rail .meta {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+  }
+
+  .rail .m {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .rail .k {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  .rail .v {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .rail .mono {
+    font-family: var(--font-mono);
+    letter-spacing: 0.1em;
+  }
+
+  .rail-div {
+    height: 1px;
+    background: var(--line);
+  }
+
+  /* TOC */
+  .toc h5 {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0 0 12px;
+    font-weight: 500;
+  }
+
+  .toc a {
+    display: block;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--ink-3);
+    padding: 7px 0 7px 13px;
+    border-left: 2px solid var(--line);
+    margin-left: -1px;
+    transition: color 0.2s, border-color 0.2s;
+  }
+
+  .toc a:hover {
+    color: var(--ink-2);
+  }
+
+  .toc a.active {
+    color: var(--ink);
+    border-color: var(--accent);
+  }
+
+  /* Reading area */
+  .reading .cat {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 18px;
+  }
+
+  .reading h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(30px, 4.4vw, 52px);
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+    margin: 0 0 18px;
+    text-wrap: balance;
+  }
+
+  .reading .dek {
+    font-family: var(--font-read);
+    font-size: clamp(17px, 1.9vw, 21px);
+    line-height: 1.6;
+    color: var(--ink-2);
+    margin: 0 0 26px;
+    max-width: 60ch;
+  }
+
+  .byline {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    font-family: var(--font-sans);
-    font-size: 0.8rem;
-    color: var(--color-ink-faint);
-    margin-bottom: 1.25rem;
-    letter-spacing: 0.02em;
+    gap: 12px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 8px;
   }
 
-  .meta-dot {
-    width: 3px;
-    height: 3px;
+  .byline .av {
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    background: var(--color-ink-ghost);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    display: grid;
+    place-items: center;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--ink-3);
   }
 
-  .article-title {
-    font-size: 2.5rem;
-    font-weight: 700;
-    line-height: 1.2;
-    letter-spacing: -0.025em;
-    margin-bottom: 1rem;
-    color: var(--color-ink);
+  .byline .bm {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink-3);
+    letter-spacing: 0.03em;
   }
 
-  .article-lead {
-    font-size: 1.1rem;
-    line-height: 1.7;
-    color: var(--color-ink-faint);
-    max-width: 560px;
+  .byline .bm b {
+    color: var(--ink);
+    font-weight: 600;
   }
 
-  .article-cover {
-    margin: 0 calc(var(--content-padding) * -1) 3rem;
-    overflow: hidden;
+  .endmark {
+    margin: 2.2em 0 0;
+    color: var(--accent);
+    font-size: 22px;
+    line-height: 1;
+  }
+
+  /* Author card */
+  .author-card {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    margin-top: 40px;
+    padding-top: 30px;
+    border-top: 1px solid var(--line);
+  }
+
+  .author-card .av {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    display: grid;
+    place-items: center;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 22px;
+    color: var(--ink-3);
+  }
+
+  .author-card .an {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 17px;
+    letter-spacing: -0.01em;
+  }
+
+  .author-card p {
+    margin: 5px 0 0;
+    font-family: var(--font-read);
+    font-size: 14.5px;
+    color: var(--ink-2);
+    line-height: 1.6;
+    max-width: 48ch;
+  }
+
+  /* Prev/next navigation */
+  .pn-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 48px;
+  }
+
+  .pn {
+    padding: 20px 22px;
+    border: 1px solid var(--line);
     border-radius: 16px;
+    transition: border-color 0.2s, transform 0.2s;
   }
 
-  .article-cover img {
-    width: 100%;
-    display: block;
+  .pn:hover {
+    border-color: var(--line-2);
+    transform: translateY(-2px);
   }
 
-  .article-footer {
-    margin-top: 4rem;
-    padding-top: 2rem;
-    border-top: 1px solid var(--color-rule);
+  .pn.empty {
+    border-color: transparent;
+    pointer-events: none;
   }
 
-  .comments-section {
-    margin-top: 3rem;
-    padding-top: 2rem;
-    border-top: 1px solid var(--color-rule);
+  .pn .pl {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 8px;
   }
 
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(16px); }
-    to { opacity: 1; transform: translateY(0); }
+  .pn .pt {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 16px;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+    transition: color 0.2s;
   }
 
-  @media (max-width: 640px) {
-    .article-title { font-size: 1.8rem; }
-    .article-cover { margin: 0 -1rem 2rem; border-radius: 0; }
+  .pn:hover .pt {
+    color: var(--accent);
+  }
+
+  .pn.next {
+    text-align: right;
+  }
+
+  /* Comments container */
+  .comments-wrap {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding-inline: clamp(20px, 4.5vw, 56px);
+    padding-bottom: 60px;
+  }
+
+  /* Responsive */
+  @media (max-width: 880px) {
+    .art-grid {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .rail {
+      position: static;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 18px 28px;
+      margin-bottom: 18px;
+    }
+
+    .toc,
+    .rail-div {
+      display: none;
+    }
+
+    .pn-nav {
+      grid-template-columns: 1fr;
+    }
+
+    .pn.next {
+      text-align: left;
+    }
   }
 </style>
+
+<!-- Global styles for set:html prose content -->
+<style is:global>
+  .prose {
+    font-family: var(--font-read);
+    font-size: 18px;
+    line-height: 1.95;
+    color: var(--ink);
+    margin-top: 30px;
+  }
+
+  .prose > p {
+    margin: 0 0 1.5em;
+  }
+
+  .prose h2 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(22px, 2.6vw, 30px);
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin: 2.3em 0 0.7em;
+    scroll-margin-top: 96px;
+  }
+
+  .prose h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 20px;
+    margin: 1.9em 0 0.5em;
+    letter-spacing: -0.01em;
+  }
+
+  .prose a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1.5px;
+  }
+
+  .prose strong {
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .prose ul,
+  .prose ol {
+    margin: 0 0 1.5em;
+    padding-left: 1.3em;
+  }
+
+  .prose li {
+    margin: 0.45em 0;
+    padding-left: 0.2em;
+  }
+
+  .prose blockquote {
+    margin: 1.9em 0;
+    padding: 2px 0 2px 24px;
+    border-left: 2px solid var(--accent);
+    color: var(--ink-2);
+  }
+
+  .prose blockquote p {
+    margin: 0;
+  }
+
+  .prose code {
+    font-family: var(--font-mono);
+    font-size: 0.84em;
+    background: var(--surface-2);
+    padding: 2px 7px;
+    border-radius: 6px;
+  }
+
+  .prose pre {
+    margin: 1.9em 0;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 20px 22px;
+    overflow: auto;
+  }
+
+  .prose pre code {
+    background: none;
+    padding: 0;
+    font-size: 13.5px;
+    line-height: 1.75;
+    display: block;
+    color: var(--ink);
+  }
+
+  .prose img {
+    max-width: 100%;
+    border-radius: 8px;
+  }
+
+  .prose hr {
+    border: none;
+    border-top: 1px solid var(--line);
+    margin: 2em 0;
+  }
+</style>
+
+<script>
+  // Progress bar
+  const bar = document.getElementById('progress') as HTMLDivElement | null;
+  function updateProgress() {
+    if (!bar) return;
+    const h = document.documentElement;
+    const sc = h.scrollHeight - h.clientHeight;
+    bar.style.width = (sc > 0 ? (h.scrollTop / sc * 100) : 0) + '%';
+  }
+  addEventListener('scroll', updateProgress, { passive: true });
+  updateProgress();
+
+  // TOC scroll-spy
+  const tocLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('.toc a'));
+  const secs = tocLinks.map(a => document.getElementById(a.getAttribute('href')!.slice(1)));
+  function spy() {
+    const y = scrollY + 120;
+    let idx = 0;
+    for (let i = 0; i < secs.length; i++) {
+      if (secs[i] && (secs[i] as HTMLElement).offsetTop <= y) idx = i;
+    }
+    tocLinks.forEach((a, i) => a.classList.toggle('active', i === idx));
+  }
+  addEventListener('scroll', spy, { passive: true });
+  spy();
+
+  // Smooth-scroll on TOC click
+  tocLinks.forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const t = document.getElementById(a.getAttribute('href')!.slice(1));
+      if (t) window.scrollTo({ top: (t as HTMLElement).offsetTop - 92, behavior: 'smooth' });
+    });
+  });
+</script>

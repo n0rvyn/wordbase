@@ -7,47 +7,174 @@ const { postId } = Astro.props;
 const apiUrl = import.meta.env.API_URL || 'http://localhost:4100';
 ---
 
-<section id="comments" class="mt-8" data-post-id={postId} data-api-url={apiUrl}>
-  <h2 class="text-2xl font-bold mb-6">Comments</h2>
+<section id="comments" class="cs" data-post-id={postId} data-api-url={apiUrl}>
+  <h2 class="cs-title">评论</h2>
 
-  <div id="comments-list" class="space-y-4 mb-8">
-    <p class="text-gray-500">Loading comments...</p>
+  <div id="comments-list" class="cs-list">
+    <p class="cs-status">加载中…</p>
   </div>
 
-  <div class="bg-white rounded-lg border p-6">
-    <h3 class="text-lg font-semibold mb-4">Leave a comment</h3>
-    <form id="comment-form" class="space-y-4">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label for="author_name" class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-          <input type="text" id="author_name" name="author_name" required
-            class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+  <div class="cs-form-wrap">
+    <h3 class="cs-form-title">留下评论</h3>
+    <form id="comment-form" class="cs-form">
+      <div class="cs-row2">
+        <div class="cs-field">
+          <label for="author_name" class="cs-label">名字 *</label>
+          <input type="text" id="author_name" name="author_name" required class="cs-input" />
         </div>
-        <div>
-          <label for="author_email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-          <input type="email" id="author_email" name="author_email"
-            class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <div class="cs-field">
+          <label for="author_email" class="cs-label">邮箱</label>
+          <input type="email" id="author_email" name="author_email" class="cs-input" />
         </div>
       </div>
-      <div>
-        <label for="author_url" class="block text-sm font-medium text-gray-700 mb-1">Website</label>
-        <input type="url" id="author_url" name="author_url" placeholder="https://"
-          class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <div class="cs-field">
+        <label for="author_url" class="cs-label">网站</label>
+        <input type="url" id="author_url" name="author_url" placeholder="https://" class="cs-input" />
       </div>
-      <div>
-        <label for="content" class="block text-sm font-medium text-gray-700 mb-1">Comment *</label>
-        <textarea id="content" name="content" rows="4" required
-          class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+      <div class="cs-field">
+        <label for="content" class="cs-label">评论 *</label>
+        <textarea id="content" name="content" rows="4" required class="cs-input cs-textarea"></textarea>
       </div>
-      <button type="submit"
-        class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
-      >
-        Submit
-      </button>
-      <p id="form-message" class="text-sm hidden"></p>
+      <button type="submit" class="cs-submit">提交</button>
+      <p id="form-message" class="cs-msg msg-hidden"></p>
     </form>
   </div>
 </section>
+
+<style>
+  .cs {
+    border-top: 1px solid var(--line);
+    padding-top: 40px;
+    margin-top: 40px;
+  }
+
+  .cs-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 20px;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    margin: 0 0 28px;
+  }
+
+  .cs-list {
+    margin-bottom: 40px;
+  }
+
+  .cs-status {
+    font-family: var(--font-read);
+    font-size: 14.5px;
+    color: var(--ink-3);
+    margin: 0;
+  }
+
+  .cs-form-wrap {
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 28px;
+  }
+
+  .cs-form-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 16px;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    margin: 0 0 20px;
+  }
+
+  .cs-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .cs-row2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .cs-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .cs-label {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  .cs-input {
+    font-family: var(--font-ui);
+    font-size: 14.5px;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .cs-input:focus {
+    border-color: var(--accent);
+  }
+
+  .cs-textarea {
+    resize: vertical;
+    min-height: 96px;
+  }
+
+  .cs-submit {
+    align-self: flex-start;
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--on-accent);
+    background: var(--accent);
+    border: none;
+    border-radius: 99px;
+    padding: 10px 24px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .cs-submit:hover {
+    opacity: 0.88;
+  }
+
+  .cs-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .cs-msg {
+    font-family: var(--font-read);
+    font-size: 13.5px;
+    margin: 0;
+  }
+
+  .msg-hidden {
+    display: none;
+  }
+
+  @media (max-width: 560px) {
+    .cs-row2 {
+      grid-template-columns: 1fr;
+    }
+
+    .cs-form-wrap {
+      padding: 20px;
+    }
+  }
+</style>
 
 <script>
   const section = document.getElementById('comments')!;
@@ -62,14 +189,14 @@ const apiUrl = import.meta.env.API_URL || 'http://localhost:4100';
   }
 
   function renderComment(c: any, depth = 0): string {
-    const ml = depth > 0 ? `margin-left: ${depth * 1.5}rem;` : '';
+    const ml = depth > 0 ? `margin-left:${depth * 1.5}rem;` : '';
     return `
-      <div class="bg-white border rounded-lg p-4" style="${ml}">
-        <div class="flex items-center gap-2 mb-2">
-          <span class="font-medium text-gray-900">${c.authorName}</span>
-          <span class="text-sm text-gray-500">${formatDate(c.createdAt)}</span>
+      <div style="${ml}border-top:1px solid var(--line);padding:16px 0;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <span style="font-family:var(--font-display);font-weight:600;font-size:14.5px;color:var(--ink);">${c.authorName}</span>
+          <span style="font-family:var(--font-mono);font-size:11.5px;color:var(--ink-3);">${formatDate(c.createdAt)}</span>
         </div>
-        <p class="text-gray-700">${c.content}</p>
+        <p style="font-family:var(--font-read);font-size:15px;color:var(--ink-2);margin:0;">${c.content}</p>
       </div>
     `;
   }
@@ -80,7 +207,7 @@ const apiUrl = import.meta.env.API_URL || 'http://localhost:4100';
       const { data } = await res.json();
 
       if (data.length === 0) {
-        listEl.innerHTML = '<p class="text-gray-500">No comments yet. Be the first!</p>';
+        listEl.innerHTML = '<p style="font-family:var(--font-read);font-size:14.5px;color:var(--ink-3);margin:0;">还没有评论，来说第一句话吧。</p>';
         return;
       }
 
@@ -104,7 +231,7 @@ const apiUrl = import.meta.env.API_URL || 'http://localhost:4100';
 
       listEl.innerHTML = html;
     } catch {
-      listEl.innerHTML = '<p class="text-red-500">Failed to load comments.</p>';
+      listEl.innerHTML = '<p style="font-family:var(--font-read);font-size:14.5px;color:var(--ink-3);margin:0;">加载评论失败，请刷新重试。</p>';
     }
   }
 
@@ -135,20 +262,20 @@ const apiUrl = import.meta.env.API_URL || 'http://localhost:4100';
       });
 
       if (res.ok) {
-        msgEl.textContent = 'Comment submitted! It will appear after moderation.';
-        msgEl.className = 'text-sm text-green-600';
-        msgEl.classList.remove('hidden');
+        msgEl.textContent = '评论已提交，审核后将显示。';
+        msgEl.style.color = 'var(--ink-2)';
+        msgEl.classList.remove('msg-hidden');
         form.reset();
       } else {
         const err = await res.json();
-        msgEl.textContent = err.error?.message || 'Failed to submit comment.';
-        msgEl.className = 'text-sm text-red-600';
-        msgEl.classList.remove('hidden');
+        msgEl.textContent = err.error?.message || '提交失败，请重试。';
+        msgEl.style.color = 'var(--ink-3)';
+        msgEl.classList.remove('msg-hidden');
       }
     } catch {
-      msgEl.textContent = 'Network error. Please try again.';
-      msgEl.className = 'text-sm text-red-600';
-      msgEl.classList.remove('hidden');
+      msgEl.textContent = '网络错误，请重试。';
+      msgEl.style.color = 'var(--ink-3)';
+      msgEl.classList.remove('msg-hidden');
     } finally {
       btn.disabled = false;
     }
