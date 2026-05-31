@@ -157,22 +157,25 @@ const firstCat = postFirstCat[post.id] || '';
   }
 
   .art-wrap {
-    max-width: 1120px;
+    max-width: var(--maxw);
     margin: 0 auto;
-    padding-inline: clamp(20px, 4.5vw, 56px);
+    /* Gut zeroed so the rail bleeds to the band edge, matching the
+       home spine (.hero/.sec also zero the inline gut). main supplies
+       the gut below the band width so mobile prose stays gutter'd. */
+    padding-inline: 0;
   }
 
   .art-grid {
     display: grid;
     grid-template-columns: clamp(150px, 18vw, 236px) minmax(0, 70ch);
-    gap: clamp(34px, 5vw, 84px);
+    gap: var(--col-gap);
     padding: clamp(40px, 6vw, 72px) 0 60px;
   }
 
   /* Rail */
   .rail {
     position: sticky;
-    top: 96px;
+    top: 90px;
     align-self: start;
     display: flex;
     flex-direction: column;
@@ -410,16 +413,20 @@ const firstCat = postFirstCat[post.id] || '';
 
   /* Comments container */
   .comments-wrap {
-    max-width: 1120px;
+    max-width: var(--maxw);
     margin: 0 auto;
-    padding-inline: clamp(20px, 4.5vw, 56px);
+    /* gut supplied by main; keep 0 here so it aligns with the article body */
+    padding-inline: 0;
     padding-bottom: 60px;
   }
 
   /* Responsive */
   @media (max-width: 880px) {
     .art-grid {
-      grid-template-columns: 1fr;
+      /* minmax(0,1fr) (not bare 1fr = minmax(auto,1fr)) so a wide <pre>
+         code block scrolls inside its own box instead of blowing the
+         column past the viewport. */
+      grid-template-columns: minmax(0, 1fr);
       gap: 8px;
     }
 

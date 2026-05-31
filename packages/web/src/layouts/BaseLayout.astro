@@ -157,6 +157,13 @@ const navItems = [
 
   /* ── Layout helpers ── */
   .wrap { max-width: var(--maxw); margin: 0 auto; padding-inline: var(--gut); }
+  /* Page sections zero their own inline gut (.sec/.hero use `padding: V 0`)
+     so the index spine bleeds to the band edge on wide screens. main supplies
+     the gut so that below the band width (mobile + tablet) content keeps a
+     readable gutter instead of touching the screen edge. On wide desktop the
+     centering margin absorbs it (spine stays at the band edge). NOTE: a bare
+     `.wrap` inside main would double-pad — sections must keep zeroing theirs. */
+  main { padding-inline: var(--gut); }
   .row2 { display: grid; grid-template-columns: var(--spine) 1fr; gap: var(--col-gap); }
   .spine {
     position: sticky; top: 90px; align-self: start;
