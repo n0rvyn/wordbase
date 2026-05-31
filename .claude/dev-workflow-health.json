@@ -1,10 +1,10 @@
 {
   "project_root": "/Users/norvyn/Code/Projects/wordbase",
-  "updated_at": "2026-05-30T23:18:25.314693+00:00",
+  "updated_at": "2026-05-31T04:28:06.821802+00:00",
   "last_reason": "plan",
   "last_health": {
     "project_root": "/Users/norvyn/Code/Projects/wordbase",
-    "generated_at": "2026-05-30T23:18:25.314693+00:00",
+    "generated_at": "2026-05-31T04:28:06.821802+00:00",
     "mode": "full",
     "reason": "plan",
     "signals": {
@@ -24,7 +24,7 @@
         "status": "green",
         "evidence": [
           "dev-workflow state present",
-          "20 test-like files"
+          "23 test-like files"
         ]
       },
       "test_pressure": {
@@ -32,19 +32,17 @@
         "evidence": []
       },
       "active_churn": {
-        "status": "red",
+        "status": "yellow",
         "evidence": [
-          "44 dirty files",
-          "changed: docs/06-plans/2026-03-21-wordbase-dev-guide.md, packages/api/package.json, packages/api/src/app.ts, packages/api/src/db/index.ts, packages/api/src/db/schema.ts"
+          "12 dirty files",
+          "changed: .claude/cost-hint-state.json, .claude/dev-workflow-state.json, .claude/edit-history.json"
         ]
       }
     },
     "suggested_gates": [
-      "review-before-commit",
       "code-audit"
     ],
     "warnings": [
-      "stale: state older than 7 days or missing",
       "timeout warning: project health scan exceeded budget"
     ]
   }

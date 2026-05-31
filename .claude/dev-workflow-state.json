@@ -1,14 +1,15 @@
 {
   "project": "norvyn.com Frontend Redesign",
-  "current_phase": 4,
-  "phase_name": "App Detail (/apps/[slug])",
+  "current_phase": 6,
+  "phase_name": "About (/about) + accent picker",
   "phase_step": "done",
   "dev_guide": "docs/06-plans/2026-05-30-frontend-redesign-dev-guide.md",
-  "plan_file": "docs/06-plans/2026-05-31-phase4-app-detail-plan.md",
-  "verification_report": "Approved (--fast). Cycle1 5 must-revise (define:vars hyphen→inline style, formatYear helper, getApps limit:10000, tautological test→literal #0979a5, About overflow-wrap) applied; Cycle2 confirmed 4 + caught nested-<main> invalid (my MR-1 introduced) → <div id=top>. shade('#0CA8E5',-28)=#0979a5 hand-verified.",
-  "task_progress": null,
-  "review_reports": [".claude/reviews/implementation-reviewer-2026-05-31-115105.md (✅ PASS, 0 gaps need remediation: P-1 links-not-rendered=reference doesn't either, P-2 plan said index.html but flat-file is site-wide format; design fidelity 0 mismatch vs App Detail ref, shade byte-faithful, tweaks/EDITMODE stripped grep=0, every img alt, App Store rel=noopener target=_blank, exactly 1 main/h1; spot-verified href construction + alt in dist)"],
-  "test_report": "PASS — vitest 98/98 (71 web + 27 new app.test.ts incl shade #0979a5 literal + null-safe meta), astro check 0 errors (pre-existing admin ts(6133) warnings only). Build 347 pages (+1 /apps/delphi). dist asserts: --app:#0CA8E5/--app-2:#0979a5 inline on <div id=top>, real icon img, 15 screenshots+1 phone preview, 5 features, rating cell absent (count 0), no tweaks/EDITMODE, exactly 1 <main>; empty-safe (8 drafts no page). See execution-report.md.",
+  "plan_file": "docs/06-plans/2026-05-31-phase6-about-plan.md",
+  "verification_report": "MUST-REVISE (2 items: .ab-hero descendant overrides; swatch data-value+inline-bg) → both revised into plan, re-approved inline. --fast/Sonnet.",
+  "task_progress": "4/4 done + 2 review advisories fixed (isValidAccent wired as picker guard; dead client ACCENTS import removed). Code: theme.ts (+ACCENTS/persistAccent/isValidAccent), theme.test.ts (+9), about.astro (new), BaseLayout.astro (footer wiring).",
+  "review_reports": ["packages/web/.claude/reviews/implementation-reviewer-phase6-about.md (✅ PASS, 0 gaps, 0 design mismatch; 9/9 real falsifiable tests; accent persist+FOUC loop traced consistent; honest-copy 0 fictional; footer link-only across 14 pages)", "docs/05-features/about-and-accent-picker.md (feature spec: 13 stories 11✅/2❌=removed Mastodon+RSS; 4 authorized deviations)", "packages/web/.claude/reviews/plan-verifier-phase6-about.md (MUST-REVISE×2 → revised+re-approved)"],
+  "test_report": "PASS — vitest 122/122 (113+9 theme accent-helper tests), astro check 0 err/0 warn/31 hints (pre-existing unused-import style), build 349 pages (+1 /about). dist/about.html: 5 spine 00-04, 5 swatches data-value+inline-bg, mailto+github contacts, 0 tweaks/EDITMODE/fictional. Footer wired across pages. isValidAccent in client bundle.",
   "gaps_remaining": 0,
-  "last_updated": "2026-05-31T11:05:00"
+  "known_issues": ["PE-001 (pre-existing, surfaced by accent picker): bootstrap always sets inline --accent, shadowing tokens.css dark twin --accent:#7088FF; light-tuned swatches (esp. Graphite #3F3F46) low-contrast on dark paper. Predates Phase 6 (Phase 1 bootstrap). Needs user decision: per-theme accent variants vs accept 全站同步. Offered as issue."],
+  "last_updated": "2026-05-31T14:35:00"
 }
