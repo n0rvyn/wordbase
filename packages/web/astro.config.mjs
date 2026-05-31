@@ -3,7 +3,7 @@ import tailwind from '@astrojs/tailwind';
 import preact from '@astrojs/preact';
 
 export default defineConfig({
-  site: 'https://blog.norvyn.com',
+  site: 'https://norvyn.com',
   output: 'static',
   server: { port: 4321 },
   build: {

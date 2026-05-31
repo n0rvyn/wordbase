@@ -11,6 +11,8 @@ const { title, description = 'A personal blog powered by Wordbase', ogImage } = 
 const siteTitle = 'norvyn';
 const fullTitle = title === siteTitle ? title : `${title} — ${siteTitle}`;
 const currentPath = Astro.url.pathname;
+const ogImageUrl = new URL(ogImage ?? '/og-image.png', Astro.site).href;
+const canonicalUrl = new URL(currentPath, Astro.site).href;
 
 const navItems = [
   { href: '/apps',     label: 'Apps',    isActive: currentPath.startsWith('/apps') },
@@ -24,11 +26,20 @@ const navItems = [
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={siteTitle} />
+    <meta property="og:url" content={canonicalUrl} />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
-    {ogImage && <meta property="og:image" content={ogImage} />}
+    <meta property="og:image" content={ogImageUrl} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
     <title>{fullTitle}</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet" />
