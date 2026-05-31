@@ -19,6 +19,10 @@ packages/api/data/uploads/*
 .DS_Store
 Thumbs.db
 
+# Secrets (ASC API keys — never commit .p8 / key info)
+asc_keys/
+*.p8
+
 # Claude
 .claude/dev-workflow-state.yml
 .claude/reviews/
