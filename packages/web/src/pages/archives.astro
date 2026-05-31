@@ -1,131 +1,120 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { getPosts, formatDate, type Post } from '../lib/api';
+import { getPosts, estimateReadTime, type Post } from '../lib/api';
+import { formatMonoDate } from '../lib/home';
+import { groupByYear } from '../lib/writing';
 
-const { data: posts } = await getPosts({ status: 'published', limit: 10000 });
-
-const archiveMap = new Map<string, Post[]>();
-posts.forEach((post: Post) => {
-  if (!post.publishedAt) return;
-  const year = new Date(post.publishedAt * 1000).getFullYear().toString();
-  if (!archiveMap.has(year)) archiveMap.set(year, []);
-  archiveMap.get(year)!.push(post);
-});
-
-// Sort posts within each year
-archiveMap.forEach((yearPosts) => {
-  yearPosts.sort((a, b) => (b.publishedAt || 0) - (a.publishedAt || 0));
-});
-
-const sortedYears = [...archiveMap.keys()].sort().reverse();
+const { data: postsRaw } = await getPosts({ status: 'published', limit: 10000 });
+const posts = [...postsRaw].sort((a, b) => (b.publishedAt ?? 0) - (a.publishedAt ?? 0));
+const groups = groupByYear(posts);
 const totalPosts = posts.length;
 ---
 
-<BaseLayout title="归档">
-  <header class="page-header">
-    <h1 class="page-title">归档</h1>
-    <p class="page-subtitle">{totalPosts} 篇文章</p>
-  </header>
+<BaseLayout title="归档" description="全部文章，按时间倒序。">
 
-  <div class="archive-timeline">
-    {sortedYears.map(year => {
-      const yearPosts = archiveMap.get(year) || [];
-      return (
-        <section class="archive-year">
-          <div class="year-marker">
-            <span class="year-label">{year}</span>
-            <span class="year-count">{yearPosts.length}</span>
-          </div>
-          <ul class="year-posts">
-            {yearPosts.map((post: Post) => (
-              <li class="archive-item">
-                <time class="archive-date">
-                  {post.publishedAt && new Date(post.publishedAt * 1000).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })}
-                </time>
-                <a href={`/posts/${post.slug}`} class="archive-link">{post.title}</a>
-              </li>
-            ))}
-          </ul>
-        </section>
-      );
-    })}
+<header class="sec wrap" style="border-top:none;padding-top:clamp(44px,6vw,80px)">
+  <div class="row2">
+    <div class="spine">
+      <span class="no">00</span>
+      <span class="lab">Archive</span>
+      <span class="note">{totalPosts} 篇文章，按时间倒序。</span>
+    </div>
+    <div>
+      <div class="eyebrow">Essays · Timeline</div>
+      <h1>归档</h1>
+      <p class="lede-w">全部已发布的文章。</p>
+    </div>
   </div>
+</header>
+
+<section class="sec wrap">
+  <div class="row2">
+    <div class="spine">
+      <span class="no">01</span>
+      <span class="lab">All</span>
+    </div>
+    <div id="postList">
+      {groups.map(group => (
+        <div class="year-section">
+          <div class="year-head">
+            <span class="mono">{group.year === 0 ? '未知' : group.year}</span>
+          </div>
+          <div class="list">
+            {group.posts.map((p: Post) => (
+              <a class="item post compact" href={`/posts/${p.slug}`}>
+                <div class="compact-inner">
+                  {p.publishedAt && <span class="pdate compact-date">{formatMonoDate(p.publishedAt)}</span>}
+                  <span class="item-title compact-title">{p.title}</span>
+                  <span class="item-meta compact-cat">{estimateReadTime(p.content)} min</span>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
 </BaseLayout>
 
 <style>
-  .page-header {
-    margin-bottom: 3rem;
+  /* ── Sections ─────────────────────────────────────────────────────────────── */
+  .sec { padding: clamp(44px, 6vw, 84px) 0; border-top: 1px solid var(--line); }
+
+  /* ── Hero ─────────────────────────────────────────────────────────────────── */
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 12.5px;
+    letter-spacing: .16em; text-transform: uppercase;
+    color: var(--ink-3); margin-bottom: 20px;
+  }
+  h1 {
+    font-family: var(--font-display); font-weight: 500;
+    font-size: clamp(40px, 6vw, 76px); line-height: 1.02;
+    letter-spacing: -.035em; margin: 0 0 22px;
+  }
+  .lede-w {
+    font-family: var(--font-read); font-size: clamp(16px, 1.6vw, 19px);
+    line-height: 1.75; color: var(--ink-2); max-width: 46ch; margin: 0;
   }
 
-  .page-title {
-    font-size: 2rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
+  /* ── Year heading ─────────────────────────────────────────────────────────── */
+  .year-head {
+    padding: 28px 4px 8px;
+    border-top: 1px solid var(--line);
   }
-
-  .page-subtitle {
-    font-family: var(--font-sans);
-    font-size: 0.85rem;
-    color: var(--color-ink-faint);
+  .year-head .mono {
+    font-family: var(--font-mono); font-size: 12px;
+    letter-spacing: .13em; text-transform: uppercase;
+    color: var(--ink-3);
   }
+  .year-section:first-child .year-head { border-top: none; }
 
-  .archive-year {
-    margin-bottom: 2.5rem;
-  }
-
-  .year-marker {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid var(--color-ink);
-  }
-
-  .year-label {
-    font-family: var(--font-display);
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--color-ink);
-  }
-
-  .year-count {
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
-    color: var(--color-ink-ghost);
-    background: var(--color-paper-warm);
-    padding: 0.15rem 0.5rem;
-    border-radius: 100px;
-  }
-
-  .year-posts {
-    list-style: none;
-  }
-
-  .archive-item {
-    display: flex;
+  /* ── Compact post rows ────────────────────────────────────────────────────── */
+  .post.compact { grid-template-columns: 1fr; }
+  .compact-inner {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 0 16px;
     align-items: baseline;
-    gap: 1.25rem;
-    padding: 0.55rem 0;
-    border-bottom: 1px solid var(--color-rule);
+  }
+  .compact-date {
+    font-family: var(--font-mono); font-size: 11.5px;
+    color: var(--ink-3); white-space: nowrap;
+  }
+  .compact-title {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: 16px; letter-spacing: -.018em; transition: color .2s;
+  }
+  .item:hover .compact-title { color: var(--accent); }
+  .compact-cat {
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--ink-3); white-space: nowrap; text-align: right;
   }
 
-  .archive-date {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: var(--color-ink-ghost);
-    flex-shrink: 0;
-    width: 48px;
-  }
-
-  .archive-link {
-    font-size: 0.95rem;
-    line-height: 1.4;
-    color: var(--color-ink-light);
-    transition: color 0.2s ease;
-  }
-
-  .archive-link:hover {
-    color: var(--color-vermillion);
+  /* ── Responsive ───────────────────────────────────────────────────────────── */
+  @media (max-width: 560px) {
+    .compact-inner { grid-template-columns: 1fr auto; }
+    .compact-date { display: none; }
   }
 </style>
