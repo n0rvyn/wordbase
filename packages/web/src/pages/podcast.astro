@@ -1,0 +1,206 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import {
+  getPodcasts,
+  getEpisodes,
+  stripMarkdown,
+  type Episode,
+} from '../lib/api';
+import { selectFeaturedEpisode, decodeEntities } from '../lib/home';
+import { selectShow, sortEpisodes, episodeMeta } from '../lib/podcast';
+
+const { data: podcasts } = await getPodcasts({ status: 'published' });
+const podcast = selectShow(podcasts);
+
+let episodes: Episode[] = [];
+if (podcast) {
+  episodes = (await getEpisodes(podcast.slug, { status: 'published', limit: 10000 })).data;
+}
+
+const featuredEp = selectFeaturedEpisode(episodes);
+const archive = sortEpisodes(episodes).filter(e => e.id !== featuredEp?.id);
+
+const showTitle = podcast ? decodeEntities(podcast.title) : '播客';
+const feedHref = podcast ? `/api/podcasts/${podcast.slug}/feed.xml` : null;
+const host = podcast?.author ?? podcast?.ownerName ?? null;
+---
+
+<BaseLayout
+  title={podcast ? `${showTitle} — norvyn` : '播客 — norvyn'}
+  description={podcast?.description ? stripMarkdown(podcast.description, 120) : '一档慢节奏的播客。'}
+>
+
+<!-- 00 HERO -->
+<header class="sec wrap" style="border-top:none;padding-top:clamp(44px,6vw,80px)">
+  <div class="row2">
+    <div class="spine">
+      <span class="no">00</span>
+      <span class="lab">Podcast</span>
+      {podcast?.description && stripMarkdown(podcast.description, 40) && (
+        <span class="note">{stripMarkdown(podcast.description, 40)}</span>
+      )}
+      {!podcast && <span class="note">一档慢节奏的播客。</span>}
+    </div>
+    <div>
+      <div class="eyebrow">
+        Podcast{host ? ` · 主播 ${host}` : ''}
+      </div>
+      <h1>{showTitle}</h1>
+      <p class="lede">
+        {podcast?.description ? stripMarkdown(podcast.description, 160) : '一档慢节奏的播客。'}
+      </p>
+      {feedHref && (
+        <div class="subscribe">
+          <a class="btn btn-1" href={feedHref}>订阅 · RSS ↗</a>
+          {podcast?.link && (
+            <a class="btn btn-2" href={podcast.link} target="_blank" rel="noopener noreferrer">在播客客户端收听</a>
+          )}
+        </div>
+      )}
+    </div>
+  </div>
+</header>
+
+{!podcast && (
+  <!-- Empty path A: no published podcast -->
+  <section class="sec wrap">
+    <div class="empty">播客即将上线，敬请期待。</div>
+  </section>
+)}
+
+{podcast && !featuredEp && (
+  <!-- Empty path B: podcast exists but no episodes -->
+  <section class="sec wrap">
+    <div class="row2">
+      <div class="spine">
+        <span class="no">01</span>
+        <span class="lab">Latest</span>
+        <span class="note">最新一期。</span>
+      </div>
+      <div class="empty">暂无单集。</div>
+    </div>
+  </section>
+)}
+
+{podcast && featuredEp && (
+  <!-- 01 LATEST -->
+  <section class="sec wrap">
+    <div class="row2">
+      <div class="spine">
+        <span class="no">01</span>
+        <span class="lab">Latest</span>
+        <span class="note">最新一期。</span>
+      </div>
+      <div class="feat-ep">
+        <div class="ep-cover">
+          {(podcast.coverImage || featuredEp.coverImage)
+            ? <img src={podcast.coverImage || featuredEp.coverImage || ''} alt={showTitle} width="104" height="104" style="border-radius:18px;width:100%;height:100%;object-fit:cover;" />
+            : <span>{showTitle.charAt(0)}</span>
+          }
+        </div>
+        <div class="eb">
+          <span class="en">
+            {featuredEp.episodeNumber != null ? `EP.${featuredEp.episodeNumber} · 最新一期` : '最新一期'}
+          </span>
+          <h3>{featuredEp.title}</h3>
+          <audio controls preload="metadata" src={featuredEp.audioUrl}></audio>
+        </div>
+      </div>
+    </div>
+  </section>
+)}
+
+{podcast && archive.length > 0 && (
+  <!-- 02 ALL EPISODES -->
+  <section class="sec wrap">
+    <div class="row2">
+      <div class="spine">
+        <span class="no">02</span>
+        <span class="lab">Episodes</span>
+        <span class="note">全部单集，按期号倒序。</span>
+      </div>
+      <div class="list">
+        {archive.map((ep: Episode) => (
+          <div class="item ep-row">
+            <div class="item-title">{ep.title}</div>
+            <div class="item-meta">{episodeMeta(ep)}</div>
+            <audio controls preload="none" src={ep.audioUrl}></audio>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+)}
+
+</BaseLayout>
+
+<style>
+  /* ── Sections ─────────────────────────────────────────────────────────────── */
+  .sec { padding: clamp(44px, 6vw, 84px) 0; border-top: 1px solid var(--line); }
+
+  /* ── Eyebrow ──────────────────────────────────────────────────────────────── */
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 12.5px;
+    letter-spacing: .16em; text-transform: uppercase;
+    color: var(--ink-3); margin-bottom: 22px;
+  }
+
+  /* ── Buttons ──────────────────────────────────────────────────────────────── */
+  .btn {
+    font-family: var(--font-ui); font-size: 15px; font-weight: 600;
+    cursor: pointer; padding: 12px 20px; border-radius: 99px;
+    border: 1px solid transparent;
+    transition: transform .18s var(--ease), background .2s, border-color .2s;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn-1 { background: var(--accent); color: var(--on-accent); }
+  .btn-2 { background: transparent; color: var(--ink); border-color: var(--line-2); }
+  .btn-2:hover { border-color: var(--ink-3); background: var(--surface-2); }
+
+  /* ── Subscribe row ────────────────────────────────────────────────────────── */
+  .subscribe { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 26px; }
+
+  /* ── Featured episode ─────────────────────────────────────────────────────── */
+  .feat-ep {
+    display: grid; grid-template-columns: auto 1fr;
+    gap: 22px; align-items: center;
+    padding: 8px 0 28px; margin-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  .ep-cover {
+    width: 104px; height: 104px; border-radius: 18px; flex-shrink: 0;
+    background: radial-gradient(120% 120% at 20% 0%, color-mix(in srgb, var(--accent) 50%, #15151a), #0e0e14);
+    display: grid; place-items: center; box-shadow: var(--shadow);
+  }
+  .ep-cover span {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: 30px; color: #fff; letter-spacing: -.03em;
+  }
+  .feat-ep .eb .en {
+    font-family: var(--font-mono); font-size: 11.5px;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--accent);
+  }
+  .feat-ep .eb h3 {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: clamp(20px, 2.3vw, 26px); letter-spacing: -.02em; margin: 8px 0 16px;
+  }
+  audio { width: 100%; max-width: 420px; margin-top: 8px; }
+
+  /* ── Episode list rows ────────────────────────────────────────────────────── */
+  .ep-row { grid-template-columns: 1fr; gap: 10px 0; align-items: start; }
+  .ep-row audio { margin-top: 4px; }
+
+  /* ── Empty state ──────────────────────────────────────────────────────────── */
+  .empty {
+    padding: clamp(28px, 5vw, 56px) 4px;
+    color: var(--ink-3);
+    font-family: var(--font-read);
+    font-size: 16px;
+  }
+
+  /* ── Responsive ───────────────────────────────────────────────────────────── */
+  @media (max-width: 880px) {
+    .feat-ep { grid-template-columns: 1fr; }
+  }
+</style>
