@@ -2,8 +2,11 @@
 Description=Watch for WordBase rebuild requests from the API
 
 [Path]
-# The API (sandboxed) touches this marker; fire the rebuild service on change.
-PathChanged=/var/www/wordbase/packages/api/data/.rebuild-request
+# The API (sandboxed) creates this marker to request a rebuild; the rebuild
+# service deletes it on start, so PathExists re-arms for the next request.
+# (PathChanged on a single file proved unreliable on this systemd; PathExists
+# keys on create/delete of the parent dir entry, which fires reliably.)
+PathExists=/var/www/wordbase/packages/api/data/.rebuild-request
 Unit=wordbase-rebuild.service
 
 [Install]

@@ -93,8 +93,6 @@ sudo cp /var/www/wordbase/deploy/wordbase-api.service /etc/systemd/system/
 sudo cp /var/www/wordbase/deploy/wordbase-rebuild.service /etc/systemd/system/
 sudo cp /var/www/wordbase/deploy/wordbase-rebuild.path /etc/systemd/system/
 chmod +x /var/www/wordbase/deploy/rebuild.sh
-# Ensure the watched marker exists (caddy-owned so the API can rewrite it).
-sudo -u caddy touch /var/www/wordbase/packages/api/data/.rebuild-request
 sudo systemctl daemon-reload
 sudo systemctl enable wordbase-api
 sudo systemctl restart wordbase-api

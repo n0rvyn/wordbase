@@ -12,8 +12,13 @@ ROOT=/var/www/wordbase
 WEB="$ROOT/packages/web"
 DATA="$ROOT/packages/api/data"
 STATUS="$DATA/build-status.json"
+REQUEST="$DATA/.rebuild-request"
 
 now_ms() { echo $(( $(date +%s%N) / 1000000 )); }
+
+# Consume the request marker up front so the PathExists watch re-arms. A new
+# request arriving during this build re-creates it and triggers another run.
+rm -f "$REQUEST"
 
 start=$(now_ms)
 printf '{"status":"building","startedAt":%s,"completedAt":null,"error":null,"duration":null}\n' "$start" > "$STATUS"
