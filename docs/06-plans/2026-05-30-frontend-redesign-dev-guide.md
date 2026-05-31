@@ -263,6 +263,8 @@ confirmed_at: 2026-05-30T19:45:00
 <!-- section: phase-7 keywords: legacy, archives, categories, tags, cleanup -->
 ## Phase 7: Legacy aux pages + old-layout cleanup (gated by DP-001)
 
+**Status:** ✅ Completed — 2026-05-31
+
 **Goal:** Bring the remaining blog aux pages (archives / categories / tags / pagination) onto the new design and remove the last old-serif-layout remnants, so no page still uses the retired BaseLayout style. (Scope depends on DP-001.)
 **Depends on:** Phase 3
 **Scope:**
@@ -276,14 +278,19 @@ confirmed_at: 2026-05-30T19:45:00
 **Architecture decisions:** full re-layout vs BaseLayout-only reskin for aux pages (DP-001); which old components/CSS are safe to delete (grep-verified) — resolve at /write-plan.
 
 **Acceptance criteria:**
-- [ ] archives/categories/tags/pagination render on the new design (or deferred per DP-001 decision, documented).
-- [ ] grep shows no page importing the old serif BaseLayout style; no dead CSS referencing `#c23a22`/Cormorant remains unreferenced.
-- [ ] Full site build succeeds; all nav/footer links resolve.
-- [ ] Build verify across all routes.
+- [x] archives/categories/tags/pagination render on the new design (DP-001=A 全迁). 8 页全迁 spine+hairline:5 个别名页(archives/categories-index/tags-index/page-[page]/404)别名 token→直接 token;3 个 Tailwind 页(categories-[slug]/tags-[slug]/[slug] 通用页)裸 Tailwind→spine+.item.post/.prose。复用 /writing 行语言 + home `.item.app`,无新造设计(DP-001=A 授权 spine+hairline)。dist 断言:各页 0 别名 token、0 Tailwind utility。
+- [x] grep shows no page importing the old serif BaseLayout style; no dead CSS referencing `#c23a22`/Cormorant remains. (`grep cormorant|#c23a22 src/pages` = 0;过渡别名 `:root` 块已删,全 src(含 admin)0 个别名消费者 — reviewer 独立核 15 个 token 名各 0。)
+- [x] Full site build succeeds; all nav/footer links resolve. (build 350 页 +1 `/apps`;nav=Apps→/apps·Writing→/writing·Podcast→/podcast(英文 mono,brand→/);footer Navigate 作品/写作/播客/关于 + 新「更多」列 分类/标签/归档 + Elsewhere Email/GitHub;7 个 nav/footer 路由 dist 文件全存在,无悬空。)
+- [x] Build verify across all routes. (vitest 122/122,astro check 0 err/0 warn/29 hints,build 350 页。)
+
+**新增交付(超出 dev-guide 原列范围,用户确认):**
+- **新建 `/apps` 索引页** [D-002]:与 /writing /podcast 对称(首页区块预览 + 独立页全部),`getApps({status:'published'})` 复用 `selectFeaturedApp`/`restApps`(home.ts),空安全,现列 Delphi 1 个。home `#apps` 加「全部作品 →/apps」。
+- **`prose.css` 基础层抽取** [D-006]:`.prose` 元素排版从 `posts/[slug].astro` 内联 `<style is:global>` 抽到 `src/styles/prose.css`,article + `[slug]` 通用页共用单一来源(移动非复制,126 篇文章排版字节级不变 — reviewer 确认无回归)。
 
 **Review checklist:**
-- [ ] implementation-reviewer
-- [ ] design-reviewer (migrated pages)
+- [x] implementation-reviewer — ✅ PASS, 0 gaps。两高危项明确清白:**别名删除 SAFE**(整块删除,全 src 含 admin 0 消费者,15 个 token 名各独立核验);**article 无回归**(prose.css 与原规则字节级一致,移动非复制,126 篇文章仍全样式,CMS [slug] dist 验证)。11 个改动文件 = 计划目标,0 计划外。
+- [x] design-reviewer (migrated pages) — N/A:apple-dev design-reviewer 仅 SwiftUI。辅助页无设计稿,设计按 [D-004] 从现有 spine+hairline 系统推导,保真由 implementation-reviewer 覆盖。⚠️ 真机/浏览器视觉确认(各辅助页排版、/apps 列表、暗色)留累积评审。
+- ⚠️ **PE-P7(既有,非缺陷):** `@tailwindcss/typography` 的 `.prose` 与自定义 `prose.css` 在文章包里共存,自定义按 specificity 胜出、无视觉影响。后续清理可把 Tailwind typography 从公开站点移除(admin 保留)。
 
 <!-- /section -->
 
