@@ -60,3 +60,13 @@ export async function deletePage(id: string) {
   const [deleted] = await db.delete(pages).where(eq(pages.id, id)).returning();
   return deleted || null;
 }
+
+export async function publishPage(id: string) {
+  const now = Math.floor(Date.now() / 1000);
+  const [page] = await db
+    .update(pages)
+    .set({ status: 'published', updatedAt: now })
+    .where(eq(pages.id, id))
+    .returning();
+  return page || null;
+}
