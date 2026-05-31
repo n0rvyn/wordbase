@@ -74,3 +74,13 @@ echo "=== files m
 2026-05-31T06:20:11Z large-read-cluster count=5 latest_file=/Users/norvyn/Code/Projects/wordbase/packages/web/src/pages/about.astro lines=330
 2026-05-31T06:26:14Z same-file-read-2x file=/Users/norvyn/Code/Projects/wordbase/docs/06-plans/2026-05-30-frontend-redesign-dev-guide.md
 2026-05-31T06:32:06Z same-file-read-3x file=/Users/norvyn/Code/Projects/wordbase/packages/web/src/pages/about.astro
+2026-05-31T06:48:16Z large-read-cluster count=9 latest_file=/Users/norvyn/Code/Projects/wordbase/packages/web/src/pages/index.astro lines=418
+2026-05-31T06:48:22Z mechanical-bash-cluster pattern=grep-r count=2 cmd_heads=grep -r "Cormorant" /Users/norvyn/Code/P
+2026-05-31T06:55:54Z same-file-read-2x file=/Users/norvyn/Code/Projects/wordbase/packages/web/src/pages/writing/index.astro
+2026-05-31T06:58:56Z mechanical-bash-cluster pattern=grep-r count=10 cmd_heads=cd packages/web
+echo "=== PLAN GREP-GATE
+2026-05-31T07:07:52Z same-file-read-3x file=/Users/norvyn/Code/Projects/wordbase/packages/web/src/layouts/BaseLayout.astro
+2026-05-31T07:14:06Z same-file-read-4x file=/Users/norvyn/Code/Projects/wordbase/packages/web/src/pages/posts/[slug].astro
+2026-05-31T07:14:41Z mechanical-bash-cluster pattern=grep-r count=10 cmd_heads=grep -rnE '\-\-color-(ink|paper|vermilli
+2026-05-31T07:19:42Z mechanical-bash-cluster pattern=grep-r count=10 cmd_heads=cd /Users/norvyn/Code/Projects/wordbase/
+2026-05-31T07:26:33Z mechanical-bash-cluster pattern=grep-r count=10 cmd_heads=cd /Users/norvyn/Code/Projects/wordbase/
