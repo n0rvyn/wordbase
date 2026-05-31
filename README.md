@@ -131,7 +131,7 @@ All endpoints at `/api/*`. Auth via `Authorization: Bearer <api-key>`.
 
 ## MCP Server
 
-18 tools for AI-powered blog management via stdio protocol.
+38 tools for AI-powered content management (blog · podcast · apps · companion pages) via the MCP stdio protocol. An MCP client discovers the full, authoritative tool list at runtime via `tools/list`; the tables below mirror it for quick reference.
 
 ### Setup (Claude Desktop)
 
@@ -167,7 +167,11 @@ For development (without compiling):
 }
 ```
 
+Mint a key with `pnpm --filter api cli key:create <name>` (printed once). The server validates `WORDBASE_API_KEY` at startup; all tools run under that key's identity.
+
 ### Available Tools
+
+**Blog / media / comments / analytics (18)**
 
 | Tool | Description |
 |------|------------|
@@ -189,6 +193,41 @@ For development (without compiling):
 | `blog_build_status` | Check build status |
 | `blog_manage_redirects` | List, create, or delete URL redirects |
 | `blog_update_post_meta` | Update post SEO metadata |
+
+**Podcast (7)**
+
+| Tool | Description |
+|------|------------|
+| `podcast_list_shows` | List podcast shows |
+| `podcast_create_show` | Create a podcast show |
+| `podcast_publish_show` | Publish a show |
+| `podcast_list_episodes` | List episodes for a show |
+| `podcast_create_episode` | Create an episode |
+| `podcast_upload_audio` | Upload episode audio (base64) |
+| `podcast_publish_episode` | Publish an episode (triggers a rebuild) |
+
+**Apps (7)**
+
+| Tool | Description |
+|------|------------|
+| `app_list` | List app landing pages (filter by status) |
+| `app_create` | Create an app landing page |
+| `app_update` | Update an app's editorial fields (tagline / features / accentColor / links / sortOrder / status / meta). NOTE: description, screenshots, and icon are App-Store-synced and NOT editable here |
+| `app_publish` | Publish an app landing page |
+| `app_discover` | Discover apps from App Store Connect — creates draft rows for new ones (no sync, no publish, no ASC write-back) |
+| `app_sync` | Sync one app's metadata from the App Store (iTunes Lookup + ASC) |
+| `app_sync_all` | Sync metadata for all apps with an App Store ID |
+
+**Companion pages (6)** — privacy / terms / help / support / changelog, served at public `/{slug}` URLs
+
+| Tool | Description |
+|------|------------|
+| `page_list` | List companion pages |
+| `page_get` | Get a page by id or slug |
+| `page_create` | Create a companion page (Markdown). Use a `<app>-<type>` slug; optional `app` arg stamps `meta.appId` for app↔page association |
+| `page_update` | Update a page |
+| `page_delete` | Delete a page |
+| `page_publish` | Publish a page (run a build afterward to render it at its public URL) |
 
 ## AI Integration Architecture
 
