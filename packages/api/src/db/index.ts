@@ -2,7 +2,7 @@ import { drizzle } from 'drizzle-orm/better-sqlite3';
 import Database from 'better-sqlite3';
 import * as schema from './schema.js';
 
-const sqlite = new Database('./data/blog.db');
+const sqlite = new Database(process.env.WORDBASE_DB_PATH || './data/blog.db');
 sqlite.pragma('journal_mode = WAL');
 sqlite.pragma('foreign_keys = ON');
 export const db = drizzle(sqlite, { schema });
@@ -123,5 +123,108 @@ export function initializeDatabase() {
       status_code INTEGER DEFAULT 301,
       created_at INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS podcasts (
+      id TEXT PRIMARY KEY,
+      slug TEXT UNIQUE NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      cover_image TEXT,
+      author TEXT,
+      owner_name TEXT,
+      owner_email TEXT,
+      language TEXT NOT NULL DEFAULT 'zh-CN',
+      category TEXT,
+      explicit INTEGER NOT NULL DEFAULT 0,
+      link TEXT,
+      copyright TEXT,
+      status TEXT NOT NULL DEFAULT 'draft',
+      sort_order INTEGER DEFAULT 0,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      meta TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS podcast_episodes (
+      id TEXT PRIMARY KEY,
+      podcast_id TEXT NOT NULL REFERENCES podcasts(id) ON DELETE CASCADE,
+      slug TEXT UNIQUE NOT NULL,
+      guid TEXT UNIQUE NOT NULL,
+      title TEXT NOT NULL,
+      summary TEXT,
+      show_notes TEXT,
+      transcript TEXT,
+      audio_url TEXT NOT NULL,
+      audio_type TEXT NOT NULL DEFAULT 'audio/mpeg',
+      audio_size INTEGER NOT NULL DEFAULT 0,
+      duration INTEGER,
+      cover_image TEXT,
+      episode_number INTEGER,
+      season_number INTEGER,
+      episode_type TEXT NOT NULL DEFAULT 'full',
+      explicit INTEGER,
+      status TEXT NOT NULL DEFAULT 'draft',
+      published_at INTEGER,
+      external_source TEXT,
+      external_id TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      meta TEXT
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS ux_episode_external ON podcast_episodes(external_source, external_id);
+    CREATE INDEX IF NOT EXISTS ix_episode_podcast ON podcast_episodes(podcast_id);
+
+    CREATE TABLE IF NOT EXISTS apps (
+      id TEXT PRIMARY KEY,
+      slug TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      tagline TEXT,
+      icon TEXT,
+      description TEXT,
+      app_store_url TEXT,
+      app_store_id TEXT,
+      bundle_id TEXT,
+      platform TEXT NOT NULL DEFAULT 'iOS',
+      price TEXT,
+      rating REAL,
+      rating_count INTEGER,
+      accent_color TEXT,
+      features TEXT,
+      screenshots TEXT,
+      links TEXT,
+      status TEXT NOT NULL DEFAULT 'draft',
+      sort_order INTEGER DEFAULT 0,
+      published_at INTEGER,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      meta TEXT,
+      category TEXT,
+      version TEXT,
+      release_date INTEGER,
+      current_version_release_date INTEGER,
+      minimum_os_version TEXT,
+      subtitle TEXT,
+      whats_new TEXT,
+      featured INTEGER NOT NULL DEFAULT 0,
+      last_synced_at INTEGER
+    );
   `);
+
+  // Idempotent ALTER for apps table (handles existing production tables without new columns)
+  const appCols = new Set(
+    (sqlite.prepare("PRAGMA table_info(apps)").all() as { name: string }[]).map(c => c.name)
+  );
+  const addCol = (name: string, ddl: string) => {
+    if (!appCols.has(name)) sqlite.exec(`ALTER TABLE apps ADD COLUMN ${ddl};`);
+  };
+  addCol('category', 'category TEXT');
+  addCol('version', 'version TEXT');
+  addCol('release_date', 'release_date INTEGER');
+  addCol('current_version_release_date', 'current_version_release_date INTEGER');
+  addCol('minimum_os_version', 'minimum_os_version TEXT');
+  addCol('subtitle', 'subtitle TEXT');
+  addCol('whats_new', 'whats_new TEXT');
+  addCol('featured', 'featured INTEGER NOT NULL DEFAULT 0');
+  addCol('last_synced_at', 'last_synced_at INTEGER');
 }

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, real, primaryKey, uniqueIndex, index } from 'drizzle-orm/sqlite-core';
 
 // posts table
 export const posts = sqliteTable('posts', {
@@ -126,6 +126,96 @@ export const redirects = sqliteTable('redirects', {
   createdAt: integer('created_at').notNull(),
 });
 
+// podcasts table
+export const podcasts = sqliteTable('podcasts', {
+  id: text('id').primaryKey(),
+  slug: text('slug').unique().notNull(),
+  title: text('title').notNull(),
+  description: text('description'),
+  coverImage: text('cover_image'),
+  author: text('author'),
+  ownerName: text('owner_name'),
+  ownerEmail: text('owner_email'),
+  language: text('language').notNull().default('zh-CN'),
+  category: text('category'),
+  explicit: integer('explicit').notNull().default(0),
+  link: text('link'),
+  copyright: text('copyright'),
+  status: text('status').notNull().default('draft'),
+  sortOrder: integer('sort_order').default(0),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+  meta: text('meta'),
+});
+
+// podcast_episodes table
+export const podcastEpisodes = sqliteTable('podcast_episodes', {
+  id: text('id').primaryKey(),
+  podcastId: text('podcast_id').notNull(),
+  slug: text('slug').unique().notNull(),
+  guid: text('guid').unique().notNull(),
+  title: text('title').notNull(),
+  summary: text('summary'),
+  showNotes: text('show_notes'),
+  transcript: text('transcript'),
+  audioUrl: text('audio_url').notNull(),
+  audioType: text('audio_type').notNull().default('audio/mpeg'),
+  audioSize: integer('audio_size').notNull().default(0),
+  duration: integer('duration'),
+  coverImage: text('cover_image'),
+  episodeNumber: integer('episode_number'),
+  seasonNumber: integer('season_number'),
+  episodeType: text('episode_type').notNull().default('full'),
+  explicit: integer('explicit'),
+  status: text('status').notNull().default('draft'),
+  publishedAt: integer('published_at'),
+  externalSource: text('external_source'),
+  externalId: text('external_id'),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+  meta: text('meta'),
+}, (t) => ({
+  extUnique: uniqueIndex('ux_episode_external').on(t.externalSource, t.externalId),
+  podcastIdx: index('ix_episode_podcast').on(t.podcastId),
+}));
+
+// apps table
+export const apps = sqliteTable('apps', {
+  id: text('id').primaryKey(),
+  slug: text('slug').unique().notNull(),
+  name: text('name').notNull(),
+  tagline: text('tagline'),
+  icon: text('icon'),
+  description: text('description'),
+  appStoreUrl: text('app_store_url'),
+  appStoreId: text('app_store_id'),
+  bundleId: text('bundle_id'),
+  platform: text('platform').notNull().default('iOS'),
+  price: text('price'),
+  rating: real('rating'),
+  ratingCount: integer('rating_count'),
+  accentColor: text('accent_color'),
+  features: text('features'),
+  screenshots: text('screenshots'),
+  links: text('links'),
+  status: text('status').notNull().default('draft'),
+  sortOrder: integer('sort_order').default(0),
+  publishedAt: integer('published_at'),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+  meta: text('meta'),
+  // App Store sync columns
+  category: text('category'),
+  version: text('version'),
+  releaseDate: integer('release_date'),
+  currentVersionReleaseDate: integer('current_version_release_date'),
+  minimumOsVersion: text('minimum_os_version'),
+  subtitle: text('subtitle'),
+  whatsNew: text('whats_new'),
+  featured: integer('featured').notNull().default(0),
+  lastSyncedAt: integer('last_synced_at'),
+});
+
 // Type exports for queries
 export type Post = typeof posts.$inferSelect;
 export type NewPost = typeof posts.$inferInsert;
@@ -138,3 +228,9 @@ export type Setting = typeof settings.$inferSelect;
 export type PageView = typeof pageViews.$inferSelect;
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type Redirect = typeof redirects.$inferSelect;
+export type Podcast = typeof podcasts.$inferSelect;
+export type NewPodcast = typeof podcasts.$inferInsert;
+export type PodcastEpisode = typeof podcastEpisodes.$inferSelect;
+export type NewPodcastEpisode = typeof podcastEpisodes.$inferInsert;
+export type App = typeof apps.$inferSelect;
+export type NewApp = typeof apps.$inferInsert;
