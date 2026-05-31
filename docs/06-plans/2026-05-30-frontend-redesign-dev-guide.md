@@ -196,6 +196,8 @@ confirmed_at: 2026-05-30T19:45:00
 <!-- section: phase-5 keywords: podcast, archive, episodes, audio-player, rss -->
 ## Phase 5: Podcast archive (/podcast)
 
+**Status:** ✅ Completed — 2026-05-31
+
 **Goal:** A podcast archive page (absent from the bundle) built from Home's `.feat-ep`/`.ep` patterns — featured episode + episode list + real audio + RSS link.
 **Depends on:** Phase 1
 **Scope:**
@@ -209,14 +211,16 @@ confirmed_at: 2026-05-30T19:45:00
 **Architecture decisions:** single show vs multi-show handling (current data model allows multiple podcasts — pick latest/first or list shows); audio player shared with Home's — resolve at /write-plan.
 
 **Acceptance criteria:**
-- [ ] /podcast builds; empty state shows when no episodes (no fake 《边角》 data).
-- [ ] Seed a published podcast + episode → featured plays via real `<audio>`, list renders, RSS link resolves to feed.xml.
-- [ ] UT for episode mapping/duration formatting; build verify empty + seeded.
+- [x] /podcast builds; empty state shows when no episodes (no fake 《边角》 data). (build 348 pages, +1 `/podcast` → `dist/podcast.html`. **Two-tier empty-safe, both dist-confirmed:** no published podcast → 「播客即将上线，敬请期待。」+ generic `h1 播客`, 0 `<audio>`, 0 subscribe link; published podcast + 0 episodes → real show title + subscribe RSS + 「暂无单集。」. Host data-sourced `author ?? ownerName`, never hardcoded — no fake 《边角》.)
+- [x] Seed a published podcast + episode → featured plays via real `<audio>`, list renders, RSS link resolves to feed.xml. (Seeded 1 show + 2 eps via SQLite [API key tokens unrecoverable]; dist: featured = EP.2 [highest episodeNumber] `<audio controls preload="metadata">`, archive EP.1 `<audio controls preload="none">` + meta `EP.1 · 2024 · 05 · 18 · 48 min`. Subscribe href **relative** `/api/podcasts/:slug/feed.xml` [DP-5.4: Caddy proxies /api same-origin per deploy/wordbase:9; `API_URL` would bake localhost:4100]; 0 `localhost:4100`. Native `<audio>` only, no faux player [D-D]. Seed reverted, DB restored empty. ⚠️ 实际播放/生产 RSS 解析留浏览器验证。)
+- [x] UT for episode mapping/duration formatting; build verify empty + seeded. (podcast.test.ts **15 tests**: selectShow×5 [determinism, nulls-last, createdAt tiebreak], sortEpisodes×5 [desc, nulls sink, no-mutation], episodeMeta×5 [exact-string pin `EP.3 · 2026 · 05 · 21 · 48 min`, conditional EP/duration]. `formatDuration`/`formatMonoDate`/`selectFeaturedEpisode`/`decodeEntities` reused from home.ts, not reimplemented. vitest 113/113, astro check 0 err/0 warn.)
 
 **Review checklist:**
-- [ ] implementation-reviewer
-- [ ] design-reviewer (new page)
-- [ ] feature-reviewer (listen-to-podcast journey)
+- [x] implementation-reviewer — ✅ PASS, 0 gaps. 15/15 real falsifiable tests (exact-string episodeMeta, no-mutation sortEpisodes, both-order selectShow determinism; 0 shell). Design-fidelity byte-match vs Home v2 `.feat-ep`/`.ep-cover` + spine 00/01/02 + mono labels. Helper reuse confirmed (not duplication); `.lede` correctly not redeclared (global tokens.css:154). `.viewall` justified omission (no consumer on this page). Tier B empty-state dist-confirmed after review flagged it logic-only.
+- [x] design-reviewer (new page) — N/A: apple-dev design-reviewer is SwiftUI-only; not applicable to Astro. Design fidelity covered by implementation-reviewer DF pass (byte-match vs Home v2 podcast block). ⚠️ 真机/浏览器视觉确认（横滑/播放器手感）留累积评审。
+- [x] feature-reviewer (listen-to-podcast journey) — N/A: apple-dev feature-reviewer is SwiftUI-only. Journey verified via dist render (3 states) + feature spec `docs/05-features/podcast-archive.md` (8/8 stories ✅, 0 deviations).
+- ⚠️ **Connectivity (Phase 7 scope):** BaseLayout footer 「播客」→ `/` + nav has no Podcast entry → `/podcast` unreachable from chrome. Same transition state as `/writing` (Phase 3). Phase 7 explicitly owns site-wide nav/footer wiring — deferred there, not a Phase 5 gap.
+- ⚠️ **Latent (when real podcast data lands):** episode date displays `createdAt`; the API returns `publishedAt` too but `api.ts` `Episode` interface omits it. For synced episodes `createdAt` ≈ sync time, not air date. Switch `episodeMeta` to `publishedAt ?? createdAt` (+ add field to interface) when real data is published. AC2 RSS resolution self-verified via curl (feed.xml → HTTP 200 valid RSS, 2 items + enclosures).
 
 <!-- /section -->
 
@@ -224,6 +228,8 @@ confirmed_at: 2026-05-30T19:45:00
 
 <!-- section: phase-6 keywords: about, now, colophon, contact, accent-picker -->
 ## Phase 6: About (/about) + accent picker
+
+**Status:** ✅ Completed — 2026-05-31
 
 **Goal:** About page (bio · now · colophon · contact) plus the relocated accent picker (5 swatches) that writes `localStorage['norvyn-v2'].accent` site-wide.
 **Depends on:** Phase 1
@@ -238,14 +244,17 @@ confirmed_at: 2026-05-30T19:45:00
 **Architecture decisions:** swatch list source (hardcoded vs settings); whether contact links come from `settings` table or static — resolve at /write-plan.
 
 **Acceptance criteria:**
-- [ ] /about builds with all 4 sections.
-- [ ] Accent picker changes site accent and persists across reload + other pages.
-- [ ] No floating Tweaks panel anywhere; font stays Geist (no switcher).
-- [ ] UT for accent persistence helper; build verify.
+- [x] /about builds with all 4 sections. (build 349 pages, +1 → `dist/about.html`; spine 00 hero + 01 Story / 02 Now / 03 Colophon / 04 Say hi = 5 `class="no"` sections. Editorial copy honest-real v1 per [D-002]: real Delphi/128+ posts/podcast-pre-launch, **0 fictional** persona — data-driven sync deferred to issue #3.)
+- [x] Accent picker changes site accent and persists across reload + other pages. (5 swatches in 03 Colophon [D-001], each `data-value` + inline `background`; click → `persistAccent` [preserves theme, single-source `theme.ts`] + sets inline `--accent` live + moves `.sel`; click guarded by `isValidAccent`. FOUC bootstrap [BaseLayout:46-61, `is:inline`, every page] reads `stored.accent` → survives reload + applies on all pages. Reviewer traced loop consistent.)
+- [x] No floating Tweaks panel anywhere; font stays Geist (no switcher). (about.astro + dist grep `tweaks|EDITMODE|twFont|Grotesk` = 0; Tweaks panel relocated to inline colophon swatches, font-switcher dropped entirely.)
+- [x] UT for accent persistence helper; build verify. (theme.test.ts **24 tests** [+9: ACCENTS order/length, isValidAccent true/false/empty, persistAccent theme-preservation (falsifiable — naive `{accent}`-only impl fails), null-raw, round-trip]. vitest 122/122, astro check 0 err/0 warn, build 349 pages.)
 
 **Review checklist:**
-- [ ] implementation-reviewer
-- [ ] design-reviewer (new page)
+- [x] implementation-reviewer — ✅ PASS, 0 plan-vs-code gaps, 0 design-fidelity mismatches. 9/9 real falsifiable tests (theme-preservation falsifiable). CSS verbatim port of About ref incl `.ab-hero` descendant overrides (eyebrow/h1/lede). Honest-copy [D-002] dist-grep 0 fictional. Footer edit link-href-only across all 14 pages (mailto+github+/about; RSS/Mastodon removed; 0 dead `href="#"`). a11y: swatches aria-label+title, external links `rel=noopener`. 2 advisories fixed (isValidAccent wired as guard; dead client ACCENTS import removed).
+- [x] design-reviewer (new page) — N/A: apple-dev design-reviewer is SwiftUI-only; not applicable to Astro. Design fidelity covered by implementation-reviewer DF pass (verbatim CSS port vs About ref; authorized copy/contact divergences per [D-002]/scope). ⚠️ 真机/浏览器视觉确认（换色即时反馈、portrait 渐变、暗色对比 ↓PE-001）留累积评审。
+- ⚠️ **PE-001 (pre-existing, surfaced by picker):** FOUC bootstrap always sets inline `--accent`, shadowing tokens.css dark twin `--accent:#7088FF`; light-tuned swatches (esp. Graphite `#3F3F46`) are low-contrast on dark paper. Predates Phase 6 (Phase 1 bootstrap). Needs user decision (per-theme accent variants vs accept 「全站同步」). Surfaced — not a Phase 6 gap. **用户决定暂不修,记 issue #5 跟踪 (2026-05-31)。**
+- ⚠️ **Connectivity (Phase 7 scope):** nav-bar has no About entry; footer Navigate 作品/写作/播客 still → `/`. `/about` reachable via direct URL + footer 关于 → `/about` (wired this phase). Full site-wide nav/footer wiring owned by Phase 7.
+- **Deferred (captured):** About content auto-update from GitHub+ASC (issue #3, overlaps Phase 8); email subscription/newsletter (issue #4).
 
 <!-- /section -->
 
