@@ -10,6 +10,8 @@ import { analyticsRouter } from './routes/analytics.js';
 import { settingsRouter } from './routes/settings.js';
 import { buildRouter } from './routes/build.js';
 import { redirectsRouter } from './routes/redirects.js';
+import { podcastsRouter } from './routes/podcasts.js';
+import { appsRouter } from './routes/apps.js';
 import { redirectMiddleware } from './middleware/redirect.js';
 import { errorMiddleware } from './middleware/error.js';
 import type { AppEnv } from './types.js';
@@ -34,6 +36,8 @@ app.route('/api/analytics', analyticsRouter);
 app.route('/api/settings', settingsRouter);
 app.route('/api/build', buildRouter);
 app.route('/api/redirects', redirectsRouter);
+app.route('/api/podcasts', podcastsRouter);
+app.route('/api/apps', appsRouter);
 
 // Redirect middleware (catches old WP URLs and redirect table entries)
 app.use('*', redirectMiddleware);

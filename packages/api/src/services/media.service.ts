@@ -32,17 +32,23 @@ function generateUniqueFilename(originalName: string): string {
 interface UploadOptions {
   file: File | { name: string; size: number; type: string; arrayBuffer: () => Promise<ArrayBuffer> };
   altText?: string;
+  maxSize?: number;
+}
+
+export function podcastAudioMaxBytes(): number {
+  return parseInt(process.env.PODCAST_MAX_AUDIO_MB || '200', 10) * 1024 * 1024;
 }
 
 export async function uploadMedia(options: UploadOptions) {
   await ensureUploadsDir();
 
   const { file, altText } = options;
+  const limit = options.maxSize ?? MAX_FILE_SIZE;
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 
-  if (buffer.length > MAX_FILE_SIZE) {
-    throw new Error(`File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB`);
+  if (buffer.length > limit) {
+    throw new Error(`File too large. Maximum size is ${limit / 1024 / 1024}MB`);
   }
 
   const datePath = getDatePath();
