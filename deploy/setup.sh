@@ -85,12 +85,20 @@ sudo restorecon -Rv /var/www/wordbase
 # Allow Caddy to proxy to Node.js on port 4100
 sudo setsebool -P httpd_can_network_connect 1 2>/dev/null || true
 
-# 9. Install systemd service
-echo "[9/10] Installing systemd service..."
+# 9. Install systemd services
+echo "[9/10] Installing systemd services..."
 sudo cp /var/www/wordbase/deploy/wordbase-api.service /etc/systemd/system/
+# Decoupled rebuild: the API drops a marker, this path unit runs the build
+# outside the API sandbox. See deploy/rebuild.sh + build.service.ts.
+sudo cp /var/www/wordbase/deploy/wordbase-rebuild.service /etc/systemd/system/
+sudo cp /var/www/wordbase/deploy/wordbase-rebuild.path /etc/systemd/system/
+chmod +x /var/www/wordbase/deploy/rebuild.sh
+# Ensure the watched marker exists (caddy-owned so the API can rewrite it).
+sudo -u caddy touch /var/www/wordbase/packages/api/data/.rebuild-request
 sudo systemctl daemon-reload
 sudo systemctl enable wordbase-api
 sudo systemctl restart wordbase-api
+sudo systemctl enable --now wordbase-rebuild.path
 
 # 10. Install Caddy config
 echo "[10/10] Installing Caddy configuration..."

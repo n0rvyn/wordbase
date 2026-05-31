@@ -1,65 +1,50 @@
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { writeFileSync, readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { REPO_ROOT } from '../paths.js';
 
-const execAsync = promisify(exec);
+/**
+ * Decoupled static-site rebuild.
+ *
+ * The API runs inside a strict systemd sandbox (ProtectSystem=strict) that can
+ * only write packages/api/data — it deliberately CANNOT write the web build
+ * output. So instead of running `pnpm build` in-process (which fails silently
+ * under the sandbox), triggerBuild() just drops a request marker in the data
+ * dir. A separate, non-web-facing systemd unit (wordbase-rebuild.path →
+ * wordbase-rebuild.service) watches that file and runs the real build outside
+ * the sandbox, writing build-status.json back here for getBuildStatus() to read.
+ */
 
 interface BuildState {
-  status: 'idle' | 'building' | 'success' | 'failed';
+  status: 'idle' | 'requested' | 'building' | 'success' | 'failed';
   startedAt: number | null;
   completedAt: number | null;
   error: string | null;
   duration: number | null;
 }
 
-let currentBuild: BuildState = {
-  status: 'idle',
-  startedAt: null,
-  completedAt: null,
-  error: null,
-  duration: null,
-};
+const DATA_DIR = join(REPO_ROOT, 'packages/api/data');
+const REQUEST_FILE = join(DATA_DIR, '.rebuild-request');
+const STATUS_FILE = join(DATA_DIR, 'build-status.json');
 
 export function getBuildStatus(): BuildState {
-  return { ...currentBuild };
+  try {
+    if (existsSync(STATUS_FILE)) {
+      return JSON.parse(readFileSync(STATUS_FILE, 'utf8')) as BuildState;
+    }
+  } catch {
+    // Corrupt/partial status file — fall through to idle.
+  }
+  return { status: 'idle', startedAt: null, completedAt: null, error: null, duration: null };
 }
 
 export async function triggerBuild(): Promise<BuildState> {
-  if (currentBuild.status === 'building') {
-    return currentBuild;
+  const now = Date.now();
+  try {
+    // Touch the request marker; the wordbase-rebuild.path unit fires on modify.
+    writeFileSync(REQUEST_FILE, `${now}\n`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { status: 'failed', startedAt: now, completedAt: now, error: `Failed to queue rebuild: ${message}`, duration: 0 };
   }
-
-  currentBuild = {
-    status: 'building',
-    startedAt: Date.now(),
-    completedAt: null,
-    error: null,
-    duration: null,
-  };
-
-  // Run build in background (non-blocking)
-  const projectRoot = join(process.cwd(), '..');
-  const webDir = join(projectRoot, 'web');
-
-  execAsync(`cd "${webDir}" && pnpm build`, { timeout: 120000 })
-    .then(() => {
-      currentBuild = {
-        ...currentBuild,
-        status: 'success',
-        completedAt: Date.now(),
-        duration: Date.now() - (currentBuild.startedAt || Date.now()),
-        error: null,
-      };
-    })
-    .catch((err: any) => {
-      currentBuild = {
-        ...currentBuild,
-        status: 'failed',
-        completedAt: Date.now(),
-        duration: Date.now() - (currentBuild.startedAt || Date.now()),
-        error: err.stderr || err.message || 'Build failed',
-      };
-    });
-
-  return currentBuild;
+  return { status: 'requested', startedAt: now, completedAt: null, error: null, duration: null };
 }

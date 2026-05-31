@@ -1,0 +1,10 @@
+[Unit]
+Description=Watch for WordBase rebuild requests from the API
+
+[Path]
+# The API (sandboxed) touches this marker; fire the rebuild service on change.
+PathChanged=/var/www/wordbase/packages/api/data/.rebuild-request
+Unit=wordbase-rebuild.service
+
+[Install]
+WantedBy=multi-user.target

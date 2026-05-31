@@ -1,0 +1,27 @@
+[Unit]
+Description=WordBase static site rebuild (decoupled from the API sandbox)
+After=wordbase-api.service
+
+[Service]
+Type=oneshot
+# Runs as root: needs to write the served web root, chown to caddy, and reapply
+# SELinux labels — mirroring the manual deploy build. NOT web-facing; its only
+# trigger is a local marker file the sandboxed API drops, with no parameters.
+User=root
+WorkingDirectory=/var/www/wordbase/packages/web
+Environment=NODE_ENV=production
+Environment=ASTRO_TELEMETRY_DISABLED=1
+# Writable HOME so any tool that touches $HOME doesn't hit the read-only FS.
+Environment=HOME=/var/www/wordbase/packages/api/data
+ExecStart=/usr/bin/bash /var/www/wordbase/deploy/rebuild.sh
+
+# Sandbox: scoped to what the build writes. Looser than the API only in that it
+# may write packages/web (it is not reachable from the network).
+ProtectSystem=strict
+ReadWritePaths=/var/www/wordbase/packages/web
+ReadWritePaths=/var/www/wordbase/packages/api/data
+PrivateTmp=true
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=wordbase-rebuild
