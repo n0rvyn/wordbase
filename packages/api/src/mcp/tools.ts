@@ -8,6 +8,7 @@ import * as podcastService from '../services/podcast.service.js';
 import * as episodeService from '../services/episode.service.js';
 import * as appService from '../services/app.service.js';
 import * as appSyncService from '../services/app-sync.service.js';
+import * as pageService from '../services/page.service.js';
 
 export function registerTools(server: any) {
   server.tool(
@@ -547,6 +548,58 @@ export function registerTools(server: any) {
     }
   );
 
+  server.tool(
+    'app_update',
+    "Update an app's editorial display info (tagline/features/accentColor/links/sortOrder/status/...). NOTE: description, screenshots, and icon are managed by app_sync (synced from the App Store) and are NOT editable here — editing them would be reverted on the next sync. After editing, run the build-trigger tool to render on /apps/:slug.",
+    {
+      id: { type: 'string', description: 'App ID' },
+      name: { type: 'string', description: 'App name' },
+      slug: { type: 'string', description: 'URL slug' },
+      tagline: { type: 'string', description: 'Short tagline' },
+      accentColor: { type: 'string', description: 'Accent color hex code' },
+      features: { type: 'string', description: 'JSON array of feature objects [{icon, title, blurb}]' },
+      links: { type: 'string', description: 'JSON object of additional links' },
+      sortOrder: { type: 'number', description: 'Sort order' },
+      status: { type: 'string', description: 'Status: draft or published' },
+      meta: { type: 'string', description: 'JSON metadata string' },
+    },
+    async (args: Record<string, unknown>) => {
+      const app = await appService.updateApp(args.id as string, {
+        name: args.name as string | undefined,
+        slug: args.slug as string | undefined,
+        tagline: args.tagline as string | undefined,
+        accentColor: args.accentColor as string | undefined,
+        features: args.features as string | undefined,
+        links: args.links as string | undefined,
+        sortOrder: args.sortOrder as number | undefined,
+        status: args.status as string | undefined,
+        meta: args.meta as string | undefined,
+      });
+      if (!app) {
+        return { content: [{ type: 'text' as const, text: 'App not found' }], isError: true };
+      }
+      return { content: [{ type: 'text' as const, text: JSON.stringify(app, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'app_discover',
+    'Discover apps from App Store Connect and create draft rows for new ones (idempotent; no sync, no publish, no ASC writeback).',
+    {},
+    async () => {
+      try {
+        const result = await appService.discoverApps();
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Discovery failed';
+        if (message.includes('ASC_NOT_CONFIGURED') || message.includes('ASC not configured')) {
+          return { content: [{ type: 'text' as const, text: 'ASC not configured' }], isError: true };
+        }
+        return { content: [{ type: 'text' as const, text: `Discovery failed: ${message}` }], isError: true };
+      }
+    }
+  );
+
   // App sync tools
   server.tool(
     'app_sync',
@@ -572,6 +625,132 @@ export function registerTools(server: any) {
     async () => {
       const result = await appSyncService.syncAllApps();
       return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  // Page tools (companion pages: privacy/terms/help/...)
+  server.tool(
+    'page_list',
+    'List all WordBase pages (companion pages: privacy/terms/help/...)',
+    {},
+    async () => {
+      const pages = await pageService.listPages();
+      return { content: [{ type: 'text' as const, text: JSON.stringify(pages, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'page_get',
+    'Get a single companion page by ID or slug',
+    {
+      idOrSlug: { type: 'string', description: 'Page ID or slug' },
+    },
+    async (args: Record<string, unknown>) => {
+      const page = await pageService.getPage(args.idOrSlug as string);
+      if (!page) {
+        return { content: [{ type: 'text' as const, text: 'Page not found' }], isError: true };
+      }
+      return { content: [{ type: 'text' as const, text: JSON.stringify(page, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'page_create',
+    'Create a companion page (privacy/terms/help/...). Use slug convention <app>-<type> (e.g. delphi-privacy). Optional app arg stamps meta.appId for app↔page association.',
+    {
+      title: { type: 'string', description: 'Page title' },
+      content: { type: 'string', description: 'Page content in Markdown' },
+      slug: { type: 'string', description: 'URL slug (recommended: <app>-<type>, e.g. delphi-privacy)' },
+      sortOrder: { type: 'number', description: 'Sort order (default: 0)' },
+      status: { type: 'string', description: 'Status: draft (default) or published' },
+      meta: { type: 'string', description: 'JSON metadata string' },
+      app: { type: 'string', description: 'App slug to associate this page with (stamps meta.appId)' },
+    },
+    async (args: Record<string, unknown>) => {
+      let metaStr = args.meta as string | undefined;
+      if (args.app) {
+        let existing: Record<string, unknown> = {};
+        if (metaStr) {
+          try {
+            const parsed = JSON.parse(metaStr);
+            if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+              return { content: [{ type: 'text' as const, text: 'Invalid meta: must be a JSON object string' }], isError: true };
+            }
+            existing = parsed as Record<string, unknown>;
+          } catch {
+            return { content: [{ type: 'text' as const, text: 'Invalid meta: must be a JSON object string' }], isError: true };
+          }
+        }
+        existing.appId = args.app as string;
+        metaStr = JSON.stringify(existing);
+      }
+      const page = await pageService.createPage({
+        title: args.title as string,
+        content: args.content as string,
+        slug: args.slug as string | undefined,
+        sortOrder: args.sortOrder as number | undefined,
+        status: args.status as string | undefined,
+        meta: metaStr,
+      });
+      return { content: [{ type: 'text' as const, text: JSON.stringify(page, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'page_update',
+    'Update a companion page',
+    {
+      id: { type: 'string', description: 'Page ID' },
+      title: { type: 'string', description: 'Page title' },
+      slug: { type: 'string', description: 'URL slug' },
+      content: { type: 'string', description: 'Page content in Markdown' },
+      sortOrder: { type: 'number', description: 'Sort order' },
+      status: { type: 'string', description: 'Status: draft or published' },
+      meta: { type: 'string', description: 'JSON metadata string' },
+    },
+    async (args: Record<string, unknown>) => {
+      const page = await pageService.updatePage(args.id as string, {
+        title: args.title as string | undefined,
+        slug: args.slug as string | undefined,
+        content: args.content as string | undefined,
+        sortOrder: args.sortOrder as number | undefined,
+        status: args.status as string | undefined,
+        meta: args.meta as string | undefined,
+      });
+      if (!page) {
+        return { content: [{ type: 'text' as const, text: 'Page not found' }], isError: true };
+      }
+      return { content: [{ type: 'text' as const, text: JSON.stringify(page, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'page_delete',
+    'Delete a companion page',
+    {
+      id: { type: 'string', description: 'Page ID' },
+    },
+    async (args: Record<string, unknown>) => {
+      const deleted = await pageService.deletePage(args.id as string);
+      if (!deleted) {
+        return { content: [{ type: 'text' as const, text: 'Page not found' }], isError: true };
+      }
+      return { content: [{ type: 'text' as const, text: JSON.stringify({ success: true, id: args.id }, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'page_publish',
+    'Publish a companion page (sets status=published). Run the build-trigger tool afterward to render it at its public URL.',
+    {
+      id: { type: 'string', description: 'Page ID' },
+    },
+    async (args: Record<string, unknown>) => {
+      const page = await pageService.publishPage(args.id as string);
+      if (!page) {
+        return { content: [{ type: 'text' as const, text: 'Page not found' }], isError: true };
+      }
+      return { content: [{ type: 'text' as const, text: JSON.stringify(page, null, 2) }] };
     }
   );
 
