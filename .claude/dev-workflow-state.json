@@ -1,15 +1,16 @@
 {
   "project": "norvyn.com Frontend Redesign",
-  "current_phase": 7,
-  "phase_name": "Legacy aux pages + old-layout cleanup",
+  "current_phase": 8,
+  "phase_name": "Reverse integration — app content MCP",
   "phase_step": "done",
   "dev_guide": "docs/06-plans/2026-05-30-frontend-redesign-dev-guide.md",
-  "plan_file": "docs/06-plans/2026-05-31-phase7-legacy-cleanup-plan.md",
-  "verification_report": "MUST-REVISE×1 (Task 9 bare .prose → unstyled CMS body) + 2 advisories (Task 10 grep BaseLayout false-fail; Task 3 viewall placement) → all revised: prose.css extraction [D-006], grep -v BaseLayout, viewall per real markup. Re-approved inline. Full/Opus.",
-  "task_progress": "10/10 done, 0 blocked. nav IA Apps·Writing·Podcast + footer 更多 col; new /apps index (selectFeaturedApp/restApps reused); home #apps viewall; 8 pages migrated (5 alias→direct, 3 Tailwind→spine); prose.css extracted single-source (article+[slug]); transition-alias block deleted (grep-gated, 0 consumers).",
-  "review_reports": ["packages/web/.claude/reviews/implementation-reviewer-phase7.md (✅ PASS, 0 gaps; alias-deletion SAFE [0 consumers across all src incl admin]; article NO REGRESSION [prose.css byte-identical, moved not duplicated, 126 articles styled]; 11 edited files = exactly plan targets)", "packages/web/.claude/reviews/plan-verifier-phase7.md (MUST-REVISE×1 + 2 advisories → revised+re-approved)"],
-  "test_report": "PASS — vitest 122/122, astro check 0 err/0 warn/29 hints, build 350 pages (+1 /apps). Verified: alias block deleted + 0 consumers in src; prose.css single-source imported in both article+[slug], sample article dist still styled; /apps lists Delphi; 8 migrated pages 0 alias/0 tailwind; nav Apps·Writing·Podcast; footer 更多 col 分类/标签/归档.",
+  "plan_file": "docs/06-plans/2026-05-31-phase8-mcp-plan.md",
+  "verification_report": "MUST-REVISE×2 resolved (Task 4 handler harness; DP-001=A app_update sync-safe fields only). Full/Opus.",
+  "task_progress": "5/5 done + F-1 fixed. publishPage added; 8 MCP tools (app_update sync-safe-only/app_discover/page_*6); page_create meta.appId stamp + malformed-meta isError guard; handler-capturing test harness. ASC GET-only preserved.",
+  "review_reports": ["packages/api/.claude/reviews/implementation-reviewer-phase8.md (✅ PASS, 0 blocking; [D-004] guard SOLID [9-field allowlist, no sync-owned leak]; tests falsifiable; F-1 page_create meta-parse fixed+tested)", "packages/api/.claude/reviews/plan-verifier-phase8.md (MUST-REVISE×2 → resolved)"],
+  "test_report": "PASS — vitest 87/87 (13 files, +mcp handler tests incl malformed-meta), tsc build 0 errors. 8 tools registered + stdio tools/list confirmed; app_update sync-safe-only; ASC GET-only; smoke key revoked.",
   "gaps_remaining": 0,
-  "known_issues": ["PE-001 → issue #5 (deferred, user decided 暂不修): dark-mode accent contrast.", "PE-P7 (pre-existing, non-defect): @tailwindcss/typography .prose coexists in article bundle; custom prose.css wins on specificity, no visual impact. Future cleanup could drop Tailwind typography from public site (keep for admin)."],
-  "last_updated": "2026-05-31T15:20:00"
+  "known_issues": ["PE-001 → issue #5 (dark-mode accent contrast, user 暂不修).", "PE-P7 (pre-existing, non-defect): @tailwindcss/typography .prose coexists, prose.css wins on specificity.", "Phase 8 scope-adj (user DP-001=A authorized): app_update excludes description/screenshots/icon (sync-owned); narrower than dev-guide literal wording, documented."],
+  "all_phases_complete": true,
+  "last_updated": "2026-05-31T16:25:00"
 }
