@@ -49,3 +49,30 @@ export function resolveTheme(prefs: ThemePrefs): string {
 export function resolveAccent(prefs: ThemePrefs): string {
   return prefs.accent || DEFAULT_ACCENT;
 }
+
+export interface AccentOption {
+  value: string;
+  name: string;
+}
+
+/** All available accent colors. Indigo is first and is the default. */
+export const ACCENTS: AccentOption[] = [
+  { value: '#3457B6', name: 'Indigo' },
+  { value: '#2C4EE0', name: 'Cobalt' },
+  { value: '#0E7C66', name: 'Emerald' },
+  { value: '#3F3F46', name: 'Graphite' },
+  { value: '#B4612A', name: 'Ember' },
+];
+
+/** Returns true if `accent` is one of the known accent values. */
+export function isValidAccent(accent: string): boolean {
+  return ACCENTS.some(a => a.value === accent);
+}
+
+/**
+ * Returns a new serialized localStorage blob with `accent` merged in.
+ * Preserves any existing `theme` key. Pure — does NOT write to localStorage.
+ */
+export function persistAccent(raw: string | null, accent: string): string {
+  return JSON.stringify(mergePrefs(readPrefs(raw), { accent }));
+}

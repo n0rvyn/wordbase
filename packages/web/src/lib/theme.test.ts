@@ -7,6 +7,9 @@ import {
   resolveAccent,
   DEFAULT_THEME,
   DEFAULT_ACCENT,
+  ACCENTS,
+  isValidAccent,
+  persistAccent,
 } from './theme';
 
 describe('readPrefs', () => {
@@ -53,6 +56,40 @@ describe('mergePrefs', () => {
       theme: 'dark',
       accent: '#abcdef',
     });
+  });
+});
+
+describe('ACCENTS', () => {
+  it('has length 5', () => expect(ACCENTS).toHaveLength(5));
+  it('first entry is the default accent (Indigo #3457B6)', () =>
+    expect(ACCENTS[0].value).toBe(DEFAULT_ACCENT));
+  it('contains the default accent somewhere in the list', () =>
+    expect(ACCENTS.some(a => a.value === DEFAULT_ACCENT)).toBe(true));
+});
+
+describe('isValidAccent', () => {
+  it('returns true for a known accent (#0E7C66 Emerald)', () =>
+    expect(isValidAccent('#0E7C66')).toBe(true));
+  it('returns false for an arbitrary hex (#ffffff)', () =>
+    expect(isValidAccent('#ffffff')).toBe(false));
+  it('returns false for an empty string', () =>
+    expect(isValidAccent('')).toBe(false));
+});
+
+describe('persistAccent', () => {
+  it('preserves existing theme while updating accent', () => {
+    const result = JSON.parse(persistAccent('{"theme":"dark","accent":"#3457B6"}', '#0E7C66'));
+    expect(result.theme).toBe('dark');
+    expect(result.accent).toBe('#0E7C66');
+  });
+  it('handles null raw (no prior stored prefs)', () => {
+    const result = JSON.parse(persistAccent(null, '#2C4EE0'));
+    expect(result.accent).toBe('#2C4EE0');
+    expect(result.theme).toBeUndefined();
+  });
+  it('round-trip: resolveAccent(readPrefs(persistAccent(...))) === the target accent', () => {
+    const raw = '{"theme":"light","accent":"#3457B6"}';
+    expect(resolveAccent(readPrefs(persistAccent(raw, '#B4612A')))).toBe('#B4612A');
   });
 });
 
