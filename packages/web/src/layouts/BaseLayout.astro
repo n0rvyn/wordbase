@@ -12,17 +12,10 @@ const siteTitle = 'norvyn';
 const fullTitle = title === siteTitle ? title : `${title} — ${siteTitle}`;
 const currentPath = Astro.url.pathname;
 
-// DP-002=B: nav links point to existing routes during transition.
-// Each link annotated with its target phase.
 const navItems = [
-  { href: '/',           label: '文章',  // → /writing in Phase 3
-    isActive: currentPath === '/' || currentPath.startsWith('/page/') },
-  { href: '/categories', label: '分类',  // stays /categories (Phase 2+)
-    isActive: currentPath.startsWith('/categories') },
-  { href: '/tags',       label: '标签',  // stays /tags (Phase 2+)
-    isActive: currentPath.startsWith('/tags') },
-  { href: '/archives',   label: '归档',  // → /about in Phase 6
-    isActive: currentPath.startsWith('/archives') },
+  { href: '/apps',     label: 'Apps',    isActive: currentPath.startsWith('/apps') },
+  { href: '/writing',  label: 'Writing', isActive: currentPath.startsWith('/writing') },
+  { href: '/podcast',  label: 'Podcast', isActive: currentPath.startsWith('/podcast') },
 ];
 ---
 
@@ -91,10 +84,16 @@ const navItems = [
         <div class="foot-cols">
           <div class="foot-col">
             <h4>Navigate</h4>
-            <a href="/">作品</a>
-            <a href="/">写作</a>
-            <a href="/">播客</a>
+            <a href="/apps">作品</a>
+            <a href="/writing">写作</a>
+            <a href="/podcast">播客</a>
             <a href="/about">关于</a>
+          </div>
+          <div class="foot-col">
+            <h4>更多</h4>
+            <a href="/categories">分类</a>
+            <a href="/tags">标签</a>
+            <a href="/archives">归档</a>
           </div>
           <div class="foot-col">
             <h4>Elsewhere</h4>
@@ -294,29 +293,4 @@ const navItems = [
     html { scroll-behavior: auto; }
   }
 
-  /* ============================================================
-     TRANSITION ALIASES — remove as pages migrate; delete in Phase 7
-     Maps old BaseLayout token names → new tokens so unmigrated
-     pages retain their colors during the phase-by-phase migration.
-  ============================================================ */
-  :root {
-    /* Color aliases */
-    --color-ink:            var(--ink);
-    --color-ink-light:      var(--ink-2);
-    --color-ink-faint:      var(--ink-3);
-    --color-ink-ghost:      var(--ink-4);
-    --color-paper:          var(--paper);
-    --color-paper-warm:     var(--surface-2);
-    --color-paper-white:    var(--surface);
-    --color-vermillion:     var(--accent);
-    --color-vermillion-light: var(--accent-soft);
-    --color-rule:           var(--line);
-
-    /* Non-color aliases (also used by existing pages) */
-    --font-sans:            var(--font-ui);
-    --font-body:            var(--font-read);
-    --content-padding:      var(--gut);
-    --content-width:        680px;
-    --content-wide:         780px;
-  }
 </style>
