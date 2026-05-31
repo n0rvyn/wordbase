@@ -1,14 +1,14 @@
 {
   "project": "norvyn.com Frontend Redesign",
-  "current_phase": 3.5,
-  "phase_name": "Backend ASC sync fix + real app data",
+  "current_phase": 4,
+  "phase_name": "App Detail (/apps/[slug])",
   "phase_step": "done",
   "dev_guide": "docs/06-plans/2026-05-30-frontend-redesign-dev-guide.md",
-  "plan_file": "docs/06-plans/2026-05-31-phase3.5-asc-sync-fix-plan.md",
-  "verification_report": "Approved. Cycle1 must-revise (2 blocking+3 rec) all applied; Cycle2 (Tasks1-6) Approved 5 revisions confirmed vs source; Task7 (discovery, folded in) Approved after name NOT-NULL fallback fix (?? d.id). Plan grew to 7 tasks. Discovery added per user; reverse-integration moved to dev-guide Phase 8.",
+  "plan_file": "docs/06-plans/2026-05-31-phase4-app-detail-plan.md",
+  "verification_report": "Approved (--fast). Cycle1 5 must-revise (define:vars hyphen→inline style, formatYear helper, getApps limit:10000, tautological test→literal #0979a5, About overflow-wrap) applied; Cycle2 confirmed 4 + caught nested-<main> invalid (my MR-1 introduced) → <div id=top>. shade('#0CA8E5',-28)=#0979a5 hand-verified.",
   "task_progress": null,
-  "review_reports": [".claude/reviews/implementation-reviewer-2026-05-31-104309.md (❌→resolved: 7/7 tasks real code; G-1 verLoc guard non-discriminating FIXED — fixture reordered en-US-first, mutation-proven [break-order revert → test FAIL]; G-2 appStoreId no unique index / concurrent-discover race = recommended/low-sev DEFERRED for single-user manual usage; ASC description discard confirmed intentional per DP-3.5-2)"],
-  "test_report": "PASS — vitest 82/82 (was 75; +7: discovery/screenshot/merge tests), tsc --noEmit 0 errors. Real-path E2E (live ASC creds, local :4101): discover→9 drafts idempotent; Delphi 6756039348 sync→publish→GET = 15 ASC screenshots resolved to 1290x2796bb.png, subtitle zh-Hans, category Productivity(iTunes), accentColor #0CA8E5, 5 features, published. See docs/06-plans/execution-report.md.",
+  "review_reports": [".claude/reviews/implementation-reviewer-2026-05-31-115105.md (✅ PASS, 0 gaps need remediation: P-1 links-not-rendered=reference doesn't either, P-2 plan said index.html but flat-file is site-wide format; design fidelity 0 mismatch vs App Detail ref, shade byte-faithful, tweaks/EDITMODE stripped grep=0, every img alt, App Store rel=noopener target=_blank, exactly 1 main/h1; spot-verified href construction + alt in dist)"],
+  "test_report": "PASS — vitest 98/98 (71 web + 27 new app.test.ts incl shade #0979a5 literal + null-safe meta), astro check 0 errors (pre-existing admin ts(6133) warnings only). Build 347 pages (+1 /apps/delphi). dist asserts: --app:#0CA8E5/--app-2:#0979a5 inline on <div id=top>, real icon img, 15 screenshots+1 phone preview, 5 features, rating cell absent (count 0), no tweaks/EDITMODE, exactly 1 <main>; empty-safe (8 drafts no page). See execution-report.md.",
   "gaps_remaining": 0,
-  "last_updated": "2026-05-31T09:20:00"
+  "last_updated": "2026-05-31T11:05:00"
 }

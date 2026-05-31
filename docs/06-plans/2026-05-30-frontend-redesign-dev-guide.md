@@ -162,6 +162,8 @@ confirmed_at: 2026-05-30T19:45:00
 <!-- section: phase-4 keywords: app-detail, getstaticpaths, app-color, screenshots, features -->
 ## Phase 4: App Detail (/apps/[slug])
 
+**Status:** ✅ Completed — 2026-05-31
+
 **Goal:** Data-driven per-app landing template (one template, 5+ apps) via `getStaticPaths` over published apps, using `--app`/`--app-2` per-app coloring.
 **Depends on:** Phase 1
 **Scope:**
@@ -176,16 +178,16 @@ confirmed_at: 2026-05-30T19:45:00
 **Architecture decisions:** JSON field parse/guards (features/screenshots/links) at build; screenshot real-image vs CSS-placeholder switch; how `shade()` is ported (build util) — resolve at /write-plan.
 
 **Acceptance criteria:**
-- [ ] With a seeded published app (real App Store ID synced), /apps/[slug] renders all sections with real category/version/rating/screenshots.
-- [ ] Per-app accent color applies to icon/screenshots only; site accent unchanged elsewhere.
-- [ ] Null fields degrade gracefully (no empty meta cells, no broken JSON).
-- [ ] Zero published apps → build succeeds, no /apps pages.
-- [ ] UT for field mapping/JSON guards/shade(); build verify with seeded app.
+- [x] With the real published app (Delphi 6756039348, synced in Phase 3.5), `/apps/delphi-认识你自己` renders all sections with real category `Productivity`/version 1.0/**15 screenshots**. (评分 0/0 → 信息格按 null-safe 隐藏,非显示 0。)
+- [x] Per-app accent color applies to icon/screenshots only:`--app:#0CA8E5`/`--app-2:#0979a5` 内联在 `<div id="top">`,作用域限本页子树,站点 `--accent` 别处不变。
+- [x] Null fields degrade gracefully:null-safe meta(省略空格)、`parseJsonArray` 守卫 null/malformed/non-array、appStoreUrl 空则从 appStoreId 拼 `id6756039348`。
+- [x] Zero published apps → build succeeds, no /apps pages:`getStaticPaths` 只 over published,8 个 draft 不生成页;build 347 页(+1 = /apps/delphi)。
+- [x] UT for field mapping/JSON guards/shade();build verify:app.test.ts **27 测试**(含 `shade('#0CA8E5',-28)==='#0979a5'` 字面量、ratingCount=0 省略格);build dist 断言全过。vitest 98/98、astro check 0 err。
 
 **Review checklist:**
-- [ ] implementation-reviewer
-- [ ] design-reviewer (new template)
-- [ ] feature-reviewer (browse-an-app journey)
+- [x] implementation-reviewer — ✅ PASS,0 gap 需修(P-1 links 未渲染=参考稿也不渲染;P-2 plan 写 index.html 实为站点级 flat-file 格式,输出正确)。design-fidelity:spine 00-04 + meta 序 + shade 字节级一致,tweaks/EDITMODE/字体切换全剥离(grep 0)。a11y:每 img 有 alt,App Store CTA `rel=noopener target=_blank`。
+- [x] design-reviewer (new template) — N/A:apple-dev design-reviewer 仅 SwiftUI;设计保真由 implementation-reviewer 的 DF pass 覆盖(0 mismatch vs App Detail 参考稿)。⚠️ 真机/浏览器视觉确认(双色上色、横滑截图手感、手机预览)留累积评审。
+- [x] feature-reviewer (browse-an-app journey) — N/A:apple-dev feature-reviewer 仅 SwiftUI;browse-an-app 旅程经 dist 渲染验证(真实 Delphi 全段渲染)。
 
 <!-- /section -->
 
