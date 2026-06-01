@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { cors } from 'hono/cors';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { postsRouter } from './routes/posts.js';
 import { categoriesRouter } from './routes/categories.js';
@@ -17,6 +18,23 @@ import { errorMiddleware } from './middleware/error.js';
 import type { AppEnv } from './types.js';
 
 export const app = new Hono<AppEnv>();
+
+// CORS: the admin UI (Astro dev server, localhost:4321/4322/…) and the API
+// (localhost:4100) are different origins in local dev, so the browser needs
+// CORS headers to read API responses. Production is same-origin behind Caddy.
+app.use(
+  '*',
+  cors({
+    origin: (origin) => {
+      if (!origin) return origin; // non-browser / same-origin requests
+      if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return origin;
+      if (process.env.SITE_URL && origin === process.env.SITE_URL) return origin;
+      return undefined; // not allowed
+    },
+    allowHeaders: ['Content-Type', 'Authorization'],
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  })
+);
 
 app.onError(errorMiddleware);
 
