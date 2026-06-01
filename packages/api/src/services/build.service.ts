@@ -14,7 +14,7 @@ import { REPO_ROOT } from '../paths.js';
  * the sandbox, writing build-status.json back here for getBuildStatus() to read.
  */
 
-interface BuildState {
+export interface BuildState {
   status: 'idle' | 'requested' | 'building' | 'success' | 'failed';
   startedAt: number | null;
   completedAt: number | null;
