@@ -1,3 +1,5 @@
+// Build-time only (page frontmatter + sitemap run on the server during the
+// static build). Talks to the LOCAL API directly — never the public origin.
 const API_URL = import.meta.env.API_URL || 'http://localhost:4100';
 
 export interface Post {

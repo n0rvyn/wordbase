@@ -1,4 +1,4 @@
-const API_URL = (typeof import.meta !== 'undefined' && import.meta.env?.API_URL) || 'http://localhost:4100';
+const API_URL = ((typeof import.meta !== 'undefined' && import.meta.env?.PUBLIC_SITE_URL) || 'http://localhost:4100').replace(/\/$/, '');
 
 function getApiKey(): string | null {
   if (typeof window === 'undefined') return null;
