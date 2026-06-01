@@ -2,10 +2,21 @@ import { drizzle } from 'drizzle-orm/better-sqlite3';
 import Database from 'better-sqlite3';
 import * as schema from './schema.js';
 
-const sqlite = new Database(process.env.WORDBASE_DB_PATH || './data/blog.db');
+export const DB_FILE = process.env.WORDBASE_DB_PATH || './data/blog.db';
+const sqlite = new Database(DB_FILE);
 sqlite.pragma('journal_mode = WAL');
 sqlite.pragma('foreign_keys = ON');
 export const db = drizzle(sqlite, { schema });
+
+// Expose only primitive pragma values (keeps the better-sqlite3 type internal,
+// which declaration emit cannot otherwise name across modules).
+export function dbPragmas() {
+  return {
+    pageCount: sqlite.pragma('page_count', { simple: true }) as number,
+    pageSize: sqlite.pragma('page_size', { simple: true }) as number,
+    journalMode: sqlite.pragma('journal_mode', { simple: true }) as string,
+  };
+}
 
 // Initialize tables
 export function initializeDatabase() {
@@ -105,6 +116,18 @@ export function initializeDatabase() {
       ip_hash TEXT,
       created_at INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS request_metrics (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      method TEXT NOT NULL,
+      route TEXT NOT NULL,
+      status INTEGER NOT NULL,
+      duration_ms REAL NOT NULL,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS ix_request_metrics_created ON request_metrics(created_at);
+    CREATE INDEX IF NOT EXISTS ix_request_metrics_route ON request_metrics(method, route);
 
     CREATE TABLE IF NOT EXISTS api_keys (
       id TEXT PRIMARY KEY,

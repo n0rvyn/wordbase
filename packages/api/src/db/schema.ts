@@ -106,6 +106,21 @@ export const pageViews = sqliteTable('page_views', {
   createdAt: integer('created_at').notNull(),
 });
 
+// request_metrics table — one row per server-side request (Stage B observability).
+// `route` is the matched Hono pattern (e.g. /api/posts/:id), NOT the raw path,
+// so cardinality stays bounded regardless of traffic.
+export const requestMetrics = sqliteTable('request_metrics', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  method: text('method').notNull(),
+  route: text('route').notNull(),
+  status: integer('status').notNull(),
+  durationMs: real('duration_ms').notNull(),
+  createdAt: integer('created_at').notNull(),
+}, (t) => ({
+  createdIdx: index('ix_request_metrics_created').on(t.createdAt),
+  routeIdx: index('ix_request_metrics_route').on(t.method, t.route),
+}));
+
 // api_keys table
 export const apiKeys = sqliteTable('api_keys', {
   id: text('id').primaryKey(),
@@ -226,6 +241,7 @@ export type Media = typeof media.$inferSelect;
 export type Page = typeof pages.$inferSelect;
 export type Setting = typeof settings.$inferSelect;
 export type PageView = typeof pageViews.$inferSelect;
+export type RequestMetric = typeof requestMetrics.$inferSelect;
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type Redirect = typeof redirects.$inferSelect;
 export type Podcast = typeof podcasts.$inferSelect;
