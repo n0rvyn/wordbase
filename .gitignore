@@ -33,6 +33,9 @@ packages/web/dist/
 packages/api/dist/
 packages/web/.claude/
 
+# Astro generated type cache
+.astro/
+
 # Internal AI-workflow planning docs (not for the public repo)
 docs/06-plans/
 docs/11-crystals/
