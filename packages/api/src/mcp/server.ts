@@ -1,4 +1,7 @@
 import '../env.js'; // load repo-root .env first
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { eq } from 'drizzle-orm';
@@ -6,6 +9,12 @@ import bcrypt from 'bcryptjs';
 import { initializeDatabase, db } from '../db/index.js';
 import { apiKeys } from '../db/schema.js';
 import { registerTools } from './tools.js';
+
+// Read the version from package.json so the MCP reports whatever the release
+// pipeline last bumped it to — resolves to packages/api/package.json from both
+// src/mcp/ (dev, tsx) and dist/mcp/ (built).
+const pkgPath = join(dirname(fileURLToPath(import.meta.url)), '../../package.json');
+const { version: pkgVersion } = JSON.parse(readFileSync(pkgPath, 'utf8')) as { version: string };
 
 async function validateApiKey(token: string): Promise<boolean> {
   if (token.length < 8) return false;
@@ -36,7 +45,7 @@ async function main() {
   // Create MCP server
   const server = new McpServer({
     name: 'wordbase-blog',
-    version: '1.0.0',
+    version: pkgVersion,
   });
 
   // Register tools
