@@ -16,12 +16,17 @@ import { registerTools } from './tools.js';
 const pkgPath = join(dirname(fileURLToPath(import.meta.url)), '../../package.json');
 const { version: pkgVersion } = JSON.parse(readFileSync(pkgPath, 'utf8')) as { version: string };
 
-async function validateApiKey(token: string): Promise<boolean> {
-  if (token.length < 8) return false;
+// Validate the key and return its scopes (or null if invalid). The MCP server
+// runs every tool under this one configured key, so the tools are gated by the
+// scopes returned here (#6).
+async function validateApiKey(token: string): Promise<string[] | null> {
+  if (token.length < 8) return null;
   const prefix = token.slice(0, 8);
   const [key] = await db.select().from(apiKeys).where(eq(apiKeys.keyPrefix, prefix)).limit(1);
-  if (!key) return false;
-  return bcrypt.compare(token, key.keyHash);
+  if (!key) return null;
+  const ok = await bcrypt.compare(token, key.keyHash);
+  if (!ok) return null;
+  return JSON.parse(key.permissions) as string[];
 }
 
 async function main() {
@@ -35,9 +40,9 @@ async function main() {
   // Initialize database
   initializeDatabase();
 
-  // Validate key against database
-  const valid = await validateApiKey(apiKey);
-  if (!valid) {
+  // Validate key against database and load its scopes
+  const permissions = await validateApiKey(apiKey);
+  if (!permissions) {
     console.error('Error: WORDBASE_API_KEY is not a valid API key in the database');
     process.exit(1);
   }
@@ -48,8 +53,8 @@ async function main() {
     version: pkgVersion,
   });
 
-  // Register tools
-  registerTools(server);
+  // Register tools (gated by the configured key's scopes)
+  registerTools(server, permissions);
 
   // Connect transport
   const transport = new StdioServerTransport();

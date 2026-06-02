@@ -1,1 +1,1 @@
-export { authMiddleware, validateBearerToken } from './auth.js';
+export { authMiddleware, validateBearerToken, requireScope, hasScope } from './auth.js';

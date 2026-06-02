@@ -436,6 +436,43 @@ cd packages/api && pnpm cli key:regenerate admin
 
 Keys use prefix-based lookup (first 8 chars) + bcrypt verification. The raw key is shown once at creation; store it securely.
 
+### Scopes (enforced)
+
+Each key carries a `permissions` array of `domain:action` scopes (e.g. `posts:write`, `media:read`, `build:trigger`). Every authenticated REST route and every MCP tool checks the calling key's scopes — a key missing the required scope gets **403** (REST) or an error result (MCP). Matching rules:
+
+- `*` or `admin` → full access (every scope).
+- `<domain>:*` (e.g. `apps:*`) → every action in that domain.
+- otherwise an exact `domain:action` match is required.
+
+Available scopes (a `:read` scope only gates the authenticated read routes/tools; public GETs need no key):
+
+| Domain | Scopes | Gates |
+|--------|--------|-------|
+| `posts` | `posts:read`, `posts:write` | read = MCP list/get (incl. drafts); write = create/update/delete/publish/archive |
+| `pages` | `pages:read`, `pages:write` | read = MCP list/get; write = create/update/delete/publish |
+| `categories` | `categories:write` | create/update/delete |
+| `tags` | `tags:write` | create/update/delete |
+| `comments` | `comments:read`, `comments:write` | read = view pending/spam; write = approve/spam/edit/delete/reply |
+| `media` | `media:read`, `media:write` | read = list/get; write = upload/delete |
+| `apps` | `apps:read`, `apps:write` | read = MCP list; write = create/update/delete/publish/discover/sync |
+| `podcasts` | `podcasts:read`, `podcasts:write` | read = MCP list; write = show/episode create/update/delete/publish/upload |
+| `redirects` | `redirects:read`, `redirects:write` | read = list; write = create/delete |
+| `settings` | `settings:read`, `settings:write` | read = get; write = update |
+| `analytics` | `analytics:read` | overview / per-post stats |
+| `observability` | `observability:read` | admin observability panel |
+| `build` | `build:read`, `build:trigger` | read = status; trigger = start a rebuild |
+
+`key:create <name>` with no scopes mints a **full-admin** (`*`) key; pass explicit scopes for a least-privilege key:
+
+```bash
+# full-admin key (default) — for the primary WORDBASE_API_KEY
+cd packages/api && pnpm cli key:create admin
+# least-privilege key — can only publish posts and trigger builds
+cd packages/api && pnpm cli key:create ci posts:write build:trigger
+```
+
+Treat a leaked key as a compromise of whatever it is scoped to, and rotate with `key:regenerate`. **Migration note:** existing keys minted before enforcement may carry partial scopes; re-mint or update the deployed `WORDBASE_API_KEY` to `["*"]` (or the scopes its integrations need) so it is not 403d after deploy.
+
 ## Design
 
 The frontend uses an "Ink & Paper" editorial aesthetic:

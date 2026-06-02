@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { authMiddleware } from '../middleware/index.js';
+import { authMiddleware, requireScope } from '../middleware/index.js';
 import * as postService from '../services/post.service.js';
 import { triggerBuild } from '../services/build.service.js';
 import type { AppEnv } from '../types.js';
@@ -27,33 +27,33 @@ postsRouter.get('/:idOrSlug', async (c) => {
 });
 
 // Authenticated routes
-postsRouter.post('/', authMiddleware, async (c) => {
+postsRouter.post('/', authMiddleware, requireScope('posts:write'), async (c) => {
   const body = await c.req.json();
   const post = await postService.createPost(body);
   return c.json(post, 201);
 });
 
-postsRouter.put('/:id', authMiddleware, async (c) => {
+postsRouter.put('/:id', authMiddleware, requireScope('posts:write'), async (c) => {
   const body = await c.req.json();
   const post = await postService.updatePost(c.req.param('id'), body);
   if (!post) return c.json({ error: { code: 'NOT_FOUND', message: 'Post not found' } }, 404);
   return c.json(post);
 });
 
-postsRouter.delete('/:id', authMiddleware, async (c) => {
+postsRouter.delete('/:id', authMiddleware, requireScope('posts:write'), async (c) => {
   const post = await postService.deletePost(c.req.param('id'));
   if (!post) return c.json({ error: { code: 'NOT_FOUND', message: 'Post not found' } }, 404);
   return c.json({ success: true });
 });
 
-postsRouter.post('/:id/publish', authMiddleware, async (c) => {
+postsRouter.post('/:id/publish', authMiddleware, requireScope('posts:write'), async (c) => {
   const post = await postService.publishPost(c.req.param('id'));
   if (!post) return c.json({ error: { code: 'NOT_FOUND', message: 'Post not found' } }, 404);
   triggerBuild();
   return c.json(post);
 });
 
-postsRouter.post('/:id/archive', authMiddleware, async (c) => {
+postsRouter.post('/:id/archive', authMiddleware, requireScope('posts:write'), async (c) => {
   const post = await postService.archivePost(c.req.param('id'));
   if (!post) return c.json({ error: { code: 'NOT_FOUND', message: 'Post not found' } }, 404);
   return c.json(post);

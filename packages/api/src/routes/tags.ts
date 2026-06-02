@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { authMiddleware } from '../middleware/index.js';
+import { authMiddleware, requireScope } from '../middleware/index.js';
 import * as tagService from '../services/tag.service.js';
 import type { AppEnv } from '../types.js';
 
@@ -16,20 +16,20 @@ tagsRouter.get('/:idOrSlug', async (c) => {
   return c.json(tag);
 });
 
-tagsRouter.post('/', authMiddleware, async (c) => {
+tagsRouter.post('/', authMiddleware, requireScope('tags:write'), async (c) => {
   const body = await c.req.json();
   const tag = await tagService.createTag(body);
   return c.json(tag, 201);
 });
 
-tagsRouter.put('/:id', authMiddleware, async (c) => {
+tagsRouter.put('/:id', authMiddleware, requireScope('tags:write'), async (c) => {
   const body = await c.req.json();
   const tag = await tagService.updateTag(c.req.param('id'), body);
   if (!tag) return c.json({ error: { code: 'NOT_FOUND', message: 'Tag not found' } }, 404);
   return c.json(tag);
 });
 
-tagsRouter.delete('/:id', authMiddleware, async (c) => {
+tagsRouter.delete('/:id', authMiddleware, requireScope('tags:write'), async (c) => {
   const tag = await tagService.deleteTag(c.req.param('id'));
   if (!tag) return c.json({ error: { code: 'NOT_FOUND', message: 'Tag not found' } }, 404);
   return c.json({ success: true });

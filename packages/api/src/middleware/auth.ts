@@ -33,3 +33,40 @@ export const authMiddleware = createMiddleware<AppEnv>(async (c, next) => {
   c.set('auth', auth);
   await next();
 });
+
+/**
+ * Does a key's permission set satisfy a required scope?
+ *
+ * Scopes use a `domain:action` form (e.g. `posts:write`, `media:read`,
+ * `build:trigger`). A key satisfies `required` when it holds:
+ *   - the full-admin sentinel `*` or `admin`,
+ *   - the exact scope, or
+ *   - the scope's domain wildcard (e.g. `posts:*` satisfies `posts:write`).
+ * An empty/absent permission set satisfies nothing.
+ */
+export function hasScope(permissions: string[] | undefined, required: string): boolean {
+  if (!permissions || permissions.length === 0) return false;
+  if (permissions.includes('*') || permissions.includes('admin')) return true;
+  if (permissions.includes(required)) return true;
+  const domain = required.split(':')[0];
+  return permissions.includes(`${domain}:*`);
+}
+
+/**
+ * Route guard requiring the authenticated key to hold `scope`. Chain it AFTER
+ * `authMiddleware` (which puts the key's `auth` on the context); returns 403 if
+ * the scope is missing. This is what makes the stored `permissions` field real —
+ * before this, every valid key had full access regardless of its scopes (#6).
+ */
+export function requireScope(scope: string) {
+  return createMiddleware<AppEnv>(async (c, next) => {
+    const auth = c.get('auth');
+    if (!auth || !hasScope(auth.permissions, scope)) {
+      return c.json(
+        { error: { code: 'FORBIDDEN', message: `API key lacks required scope: ${scope}` } },
+        403
+      );
+    }
+    await next();
+  });
+}

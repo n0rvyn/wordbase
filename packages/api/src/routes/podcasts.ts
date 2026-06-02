@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { authMiddleware } from '../middleware/index.js';
+import { authMiddleware, requireScope } from '../middleware/index.js';
 import * as podcastService from '../services/podcast.service.js';
 import * as episodeService from '../services/episode.service.js';
 import * as feedService from '../services/feed.service.js';
@@ -58,33 +58,33 @@ podcastsRouter.get('/:slug/feed.xml', async (c) => {
 
 // ---- Authenticated routes ----
 
-podcastsRouter.post('/', authMiddleware, async (c) => {
+podcastsRouter.post('/', authMiddleware, requireScope('podcasts:write'), async (c) => {
   const body = await c.req.json();
   const show = await podcastService.createPodcast(body);
   return c.json(show, 201);
 });
 
-podcastsRouter.put('/:id', authMiddleware, async (c) => {
+podcastsRouter.put('/:id', authMiddleware, requireScope('podcasts:write'), async (c) => {
   const body = await c.req.json();
   const show = await podcastService.updatePodcast(c.req.param('id'), body);
   if (!show) return c.json({ error: { code: 'NOT_FOUND', message: 'Podcast not found' } }, 404);
   return c.json(show);
 });
 
-podcastsRouter.delete('/:id', authMiddleware, async (c) => {
+podcastsRouter.delete('/:id', authMiddleware, requireScope('podcasts:write'), async (c) => {
   const show = await podcastService.deletePodcast(c.req.param('id'));
   if (!show) return c.json({ error: { code: 'NOT_FOUND', message: 'Podcast not found' } }, 404);
   return c.json({ success: true });
 });
 
-podcastsRouter.post('/:id/publish', authMiddleware, async (c) => {
+podcastsRouter.post('/:id/publish', authMiddleware, requireScope('podcasts:write'), async (c) => {
   const show = await podcastService.publishPodcast(c.req.param('id'));
   if (!show) return c.json({ error: { code: 'NOT_FOUND', message: 'Podcast not found' } }, 404);
   triggerBuild();
   return c.json(show);
 });
 
-podcastsRouter.post('/:slug/episodes', authMiddleware, async (c) => {
+podcastsRouter.post('/:slug/episodes', authMiddleware, requireScope('podcasts:write'), async (c) => {
   const show = await podcastService.getPodcast(c.req.param('slug'));
   if (!show) return c.json({ error: { code: 'NOT_FOUND', message: 'Podcast not found' } }, 404);
   const body = await c.req.json();
@@ -99,27 +99,27 @@ podcastsRouter.post('/:slug/episodes', authMiddleware, async (c) => {
   }
 });
 
-podcastsRouter.put('/episodes/:id', authMiddleware, async (c) => {
+podcastsRouter.put('/episodes/:id', authMiddleware, requireScope('podcasts:write'), async (c) => {
   const body = await c.req.json();
   const episode = await episodeService.updateEpisode(c.req.param('id'), body);
   if (!episode) return c.json({ error: { code: 'NOT_FOUND', message: 'Episode not found' } }, 404);
   return c.json(episode);
 });
 
-podcastsRouter.delete('/episodes/:id', authMiddleware, async (c) => {
+podcastsRouter.delete('/episodes/:id', authMiddleware, requireScope('podcasts:write'), async (c) => {
   const episode = await episodeService.deleteEpisode(c.req.param('id'));
   if (!episode) return c.json({ error: { code: 'NOT_FOUND', message: 'Episode not found' } }, 404);
   return c.json({ success: true });
 });
 
-podcastsRouter.post('/episodes/:id/publish', authMiddleware, async (c) => {
+podcastsRouter.post('/episodes/:id/publish', authMiddleware, requireScope('podcasts:write'), async (c) => {
   const episode = await episodeService.publishEpisode(c.req.param('id'));
   if (!episode) return c.json({ error: { code: 'NOT_FOUND', message: 'Episode not found' } }, 404);
   triggerBuild();
   return c.json(episode);
 });
 
-podcastsRouter.post('/:slug/episodes/audio', authMiddleware, async (c) => {
+podcastsRouter.post('/:slug/episodes/audio', authMiddleware, requireScope('podcasts:write'), async (c) => {
   const show = await podcastService.getPodcast(c.req.param('slug'));
   if (!show) return c.json({ error: { code: 'NOT_FOUND', message: 'Podcast not found' } }, 404);
   const body = await c.req.json();

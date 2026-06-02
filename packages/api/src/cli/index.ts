@@ -9,13 +9,19 @@ async function main() {
     case 'key:create': {
       const name = args[1];
       if (!name) {
-        console.error('Usage: key:create <name> [permissions...]');
-        console.error('Example: key:create admin posts:read posts:write comments:manage');
+        console.error('Usage: key:create <name> [scopes...]');
+        console.error('Scopes are enforced per route and per MCP tool, in domain:action form');
+        console.error('(e.g. posts:write, media:read, build:trigger). Omit scopes for a full-admin key.');
+        console.error('Examples:');
+        console.error('  key:create admin                          # full access (*)');
+        console.error('  key:create ci posts:write build:trigger   # least-privilege key');
         process.exit(1);
       }
       const permissions = args.slice(2);
       if (permissions.length === 0) {
-        permissions.push('posts:read', 'posts:write', 'categories:write', 'tags:write', 'pages:write');
+        // No scopes given → full-admin key. Scopes ARE enforced (requireScope /
+        // hasScope), so pass explicit domain:action scopes to mint a limited key.
+        permissions.push('*');
       }
       await generateKey(name, permissions);
       break;

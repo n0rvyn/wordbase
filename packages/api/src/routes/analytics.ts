@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { authMiddleware } from '../middleware/index.js';
+import { authMiddleware, requireScope } from '../middleware/index.js';
 import * as analyticsService from '../services/analytics.service.js';
 import type { AppEnv } from '../types.js';
 
@@ -26,13 +26,13 @@ analyticsRouter.post('/pageview', async (c) => {
 });
 
 // GET /overview - Analytics overview (auth required)
-analyticsRouter.get('/overview', authMiddleware, async (c) => {
+analyticsRouter.get('/overview', authMiddleware, requireScope('analytics:read'), async (c) => {
   const overview = await analyticsService.getOverview();
   return c.json(overview);
 });
 
 // GET /posts/:id - Per-post stats (auth required)
-analyticsRouter.get('/posts/:id', authMiddleware, async (c) => {
+analyticsRouter.get('/posts/:id', authMiddleware, requireScope('analytics:read'), async (c) => {
   const result = await analyticsService.getPostPageViews(c.req.param('id'));
   if (!result) return c.json({ error: { code: 'NOT_FOUND', message: 'Post not found' } }, 404);
   return c.json(result);

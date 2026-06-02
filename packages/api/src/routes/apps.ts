@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { authMiddleware } from '../middleware/index.js';
+import { authMiddleware, requireScope } from '../middleware/index.js';
 import * as appService from '../services/app.service.js';
 import * as appSyncService from '../services/app-sync.service.js';
 import { triggerBuild } from '../services/build.service.js';
@@ -107,12 +107,12 @@ appsRouter.get('/:slug', async (c) => {
 // ---- Sync routes (literal /sync before /:id/sync to avoid ambiguity) ----
 
 // /discover must appear before /:id routes to avoid /:id capturing the literal "discover" segment.
-appsRouter.post('/discover', authMiddleware, async (c) => {
+appsRouter.post('/discover', authMiddleware, requireScope('apps:write'), async (c) => {
   const result = await appService.discoverApps();
   return c.json(result);
 });
 
-appsRouter.post('/sync', authMiddleware, async (c) => {
+appsRouter.post('/sync', authMiddleware, requireScope('apps:write'), async (c) => {
   try {
     const result = await appSyncService.syncAllApps();
     return c.json(result);
@@ -122,7 +122,7 @@ appsRouter.post('/sync', authMiddleware, async (c) => {
   }
 });
 
-appsRouter.post('/:id/sync', authMiddleware, async (c) => {
+appsRouter.post('/:id/sync', authMiddleware, requireScope('apps:write'), async (c) => {
   const id = c.req.param('id');
   try {
     await appSyncService.syncApp(id);
@@ -141,7 +141,7 @@ appsRouter.post('/:id/sync', authMiddleware, async (c) => {
   }
 });
 
-appsRouter.post('/', authMiddleware, async (c) => {
+appsRouter.post('/', authMiddleware, requireScope('apps:write'), async (c) => {
   const body = await c.req.json();
   try {
     const app = await appService.createApp(body);
@@ -157,7 +157,7 @@ appsRouter.post('/', authMiddleware, async (c) => {
   }
 });
 
-appsRouter.put('/:id', authMiddleware, async (c) => {
+appsRouter.put('/:id', authMiddleware, requireScope('apps:write'), async (c) => {
   const body = await c.req.json();
   try {
     const app = await appService.updateApp(c.req.param('id'), body);
@@ -174,13 +174,13 @@ appsRouter.put('/:id', authMiddleware, async (c) => {
   }
 });
 
-appsRouter.delete('/:id', authMiddleware, async (c) => {
+appsRouter.delete('/:id', authMiddleware, requireScope('apps:write'), async (c) => {
   const app = await appService.deleteApp(c.req.param('id'));
   if (!app) return c.json({ error: { code: 'NOT_FOUND', message: 'App not found' } }, 404);
   return c.json({ success: true });
 });
 
-appsRouter.post('/:id/publish', authMiddleware, async (c) => {
+appsRouter.post('/:id/publish', authMiddleware, requireScope('apps:write'), async (c) => {
   const app = await appService.publishApp(c.req.param('id'));
   if (!app) return c.json({ error: { code: 'NOT_FOUND', message: 'App not found' } }, 404);
   triggerBuild();

@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { authMiddleware } from '../middleware/index.js';
+import { authMiddleware, requireScope } from '../middleware/index.js';
 import * as categoryService from '../services/category.service.js';
 import type { AppEnv } from '../types.js';
 
@@ -16,20 +16,20 @@ categoriesRouter.get('/:idOrSlug', async (c) => {
   return c.json(category);
 });
 
-categoriesRouter.post('/', authMiddleware, async (c) => {
+categoriesRouter.post('/', authMiddleware, requireScope('categories:write'), async (c) => {
   const body = await c.req.json();
   const category = await categoryService.createCategory(body);
   return c.json(category, 201);
 });
 
-categoriesRouter.put('/:id', authMiddleware, async (c) => {
+categoriesRouter.put('/:id', authMiddleware, requireScope('categories:write'), async (c) => {
   const body = await c.req.json();
   const category = await categoryService.updateCategory(c.req.param('id'), body);
   if (!category) return c.json({ error: { code: 'NOT_FOUND', message: 'Category not found' } }, 404);
   return c.json(category);
 });
 
-categoriesRouter.delete('/:id', authMiddleware, async (c) => {
+categoriesRouter.delete('/:id', authMiddleware, requireScope('categories:write'), async (c) => {
   const category = await categoryService.deleteCategory(c.req.param('id'));
   if (!category) return c.json({ error: { code: 'NOT_FOUND', message: 'Category not found' } }, 404);
   return c.json({ success: true });

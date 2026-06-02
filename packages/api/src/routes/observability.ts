@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { authMiddleware } from '../middleware/index.js';
+import { authMiddleware, requireScope } from '../middleware/index.js';
 import * as analyticsService from '../services/analytics.service.js';
 import * as observabilityService from '../services/observability.service.js';
 import type { AppEnv } from '../types.js';
@@ -9,6 +9,7 @@ import type { AppEnv } from '../types.js';
 export const observabilityRouter = new Hono<AppEnv>();
 
 observabilityRouter.use('*', authMiddleware);
+observabilityRouter.use('*', requireScope('observability:read'));
 
 // GET /visits?days=30 — raw PV, unique visitors, deduplicated sessions
 observabilityRouter.get('/visits', async (c) => {

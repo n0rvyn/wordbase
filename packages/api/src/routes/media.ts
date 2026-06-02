@@ -1,11 +1,11 @@
 import { Hono } from 'hono';
-import { authMiddleware } from '../middleware/index.js';
+import { authMiddleware, requireScope } from '../middleware/index.js';
 import * as mediaService from '../services/media.service.js';
 import type { AppEnv } from '../types.js';
 
 export const mediaRouter = new Hono<AppEnv>();
 
-mediaRouter.get('/', authMiddleware, async (c) => {
+mediaRouter.get('/', authMiddleware, requireScope('media:read'), async (c) => {
   const { page, limit } = c.req.query();
   const result = await mediaService.listMedia({
     page: page ? parseInt(page) : undefined,
@@ -14,13 +14,13 @@ mediaRouter.get('/', authMiddleware, async (c) => {
   return c.json(result);
 });
 
-mediaRouter.get('/:id', authMiddleware, async (c) => {
+mediaRouter.get('/:id', authMiddleware, requireScope('media:read'), async (c) => {
   const media = await mediaService.getMedia(c.req.param('id'));
   if (!media) return c.json({ error: { code: 'NOT_FOUND', message: 'Media not found' } }, 404);
   return c.json(media);
 });
 
-mediaRouter.post('/', authMiddleware, async (c) => {
+mediaRouter.post('/', authMiddleware, requireScope('media:write'), async (c) => {
   const formData = await c.req.formData();
   const file = formData.get('file') as File | null;
 
@@ -39,7 +39,7 @@ mediaRouter.post('/', authMiddleware, async (c) => {
   }
 });
 
-mediaRouter.delete('/:id', authMiddleware, async (c) => {
+mediaRouter.delete('/:id', authMiddleware, requireScope('media:write'), async (c) => {
   const deleted = await mediaService.deleteMedia(c.req.param('id'));
   if (!deleted) return c.json({ error: { code: 'NOT_FOUND', message: 'Media not found' } }, 404);
   return c.json({ success: true });

@@ -9,8 +9,75 @@ import * as episodeService from '../services/episode.service.js';
 import * as appService from '../services/app.service.js';
 import * as appSyncService from '../services/app-sync.service.js';
 import * as pageService from '../services/page.service.js';
+import { hasScope } from '../middleware/auth.js';
 
-export function registerTools(server: any) {
+// Required scope per MCP tool — mirrors the REST route scopes. Before this, MCP
+// tools ran with zero scope checks (#6); the wrapper below enforces them.
+const TOOL_SCOPES: Record<string, string> = {
+  blog_list_posts: 'posts:read',
+  blog_get_post: 'posts:read',
+  blog_create_post: 'posts:write',
+  blog_update_post_meta: 'posts:write',
+  blog_list_media: 'media:read',
+  blog_upload_media: 'media:write',
+  blog_delete_media: 'media:write',
+  blog_list_comments: 'comments:read',
+  blog_moderate_comment: 'comments:write',
+  blog_reply_comment: 'comments:write',
+  blog_delete_comment: 'comments:write',
+  blog_analytics_overview: 'analytics:read',
+  blog_analytics_top_posts: 'analytics:read',
+  blog_analytics_trends: 'analytics:read',
+  blog_content_stats: 'analytics:read',
+  blog_trigger_build: 'build:trigger',
+  blog_build_status: 'build:read',
+  blog_manage_redirects: 'redirects:write',
+  podcast_list_shows: 'podcasts:read',
+  podcast_create_show: 'podcasts:write',
+  podcast_publish_show: 'podcasts:write',
+  podcast_list_episodes: 'podcasts:read',
+  podcast_create_episode: 'podcasts:write',
+  podcast_upload_audio: 'podcasts:write',
+  podcast_publish_episode: 'podcasts:write',
+  app_list: 'apps:read',
+  app_create: 'apps:write',
+  app_publish: 'apps:write',
+  app_update: 'apps:write',
+  app_discover: 'apps:write',
+  app_sync: 'apps:write',
+  app_sync_all: 'apps:write',
+  page_list: 'pages:read',
+  page_get: 'pages:read',
+  page_create: 'pages:write',
+  page_update: 'pages:write',
+  page_delete: 'pages:write',
+  page_publish: 'pages:write',
+};
+
+export function registerTools(realServer: any, permissions: string[] = ['*']) {
+  // Wrap the SDK's tool() so each registration below is gated by its TOOL_SCOPES
+  // entry, without editing all 38 call sites. A tool call made with an
+  // out-of-scope key returns an MCP error result instead of executing.
+  const server = {
+    tool(...args: any[]) {
+      const name = args[0] as string;
+      const scope = TOOL_SCOPES[name];
+      const handler = args[args.length - 1];
+      if (scope && typeof handler === 'function') {
+        args[args.length - 1] = (...callArgs: any[]) => {
+          if (!hasScope(permissions, scope)) {
+            return {
+              content: [{ type: 'text' as const, text: `Permission denied: API key lacks the "${scope}" scope.` }],
+              isError: true,
+            };
+          }
+          return handler(...callArgs);
+        };
+      }
+      return realServer.tool(...args);
+    },
+  };
+
   server.tool(
     'blog_list_posts',
     'List blog posts with optional filtering',

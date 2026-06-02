@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { authMiddleware, validateBearerToken } from '../middleware/index.js';
+import { authMiddleware, validateBearerToken, requireScope, hasScope } from '../middleware/index.js';
 import * as commentService from '../services/comment.service.js';
 import type { AppEnv } from '../types.js';
 
@@ -16,6 +16,9 @@ commentsRouter.get('/posts/:postId/comments', async (c) => {
     const auth = await validateBearerToken(c.req.header('Authorization'));
     if (!auth) {
       return c.json({ error: { code: 'UNAUTHORIZED', message: 'Authentication required to view non-approved comments' } }, 401);
+    }
+    if (!hasScope(auth.permissions, 'comments:read')) {
+      return c.json({ error: { code: 'FORBIDDEN', message: 'API key lacks required scope: comments:read' } }, 403);
     }
   }
 
@@ -64,21 +67,21 @@ commentsRouter.post('/posts/:postId/comments', async (c) => {
 });
 
 // POST /comments/:id/approve - Approve comment (auth required)
-commentsRouter.post('/comments/:id/approve', authMiddleware, async (c) => {
+commentsRouter.post('/comments/:id/approve', authMiddleware, requireScope('comments:write'), async (c) => {
   const comment = await commentService.updateCommentStatus(c.req.param('id'), 'approved');
   if (!comment) return c.json({ error: { code: 'NOT_FOUND', message: 'Comment not found' } }, 404);
   return c.json(comment);
 });
 
 // POST /comments/:id/spam - Mark as spam (auth required)
-commentsRouter.post('/comments/:id/spam', authMiddleware, async (c) => {
+commentsRouter.post('/comments/:id/spam', authMiddleware, requireScope('comments:write'), async (c) => {
   const comment = await commentService.updateCommentStatus(c.req.param('id'), 'spam');
   if (!comment) return c.json({ error: { code: 'NOT_FOUND', message: 'Comment not found' } }, 404);
   return c.json(comment);
 });
 
 // PUT /comments/:id - Edit comment (auth required)
-commentsRouter.put('/comments/:id', authMiddleware, async (c) => {
+commentsRouter.put('/comments/:id', authMiddleware, requireScope('comments:write'), async (c) => {
   const body = await c.req.json();
   if (body.status) {
     const comment = await commentService.updateCommentStatus(c.req.param('id'), body.status);
@@ -89,7 +92,7 @@ commentsRouter.put('/comments/:id', authMiddleware, async (c) => {
 });
 
 // DELETE /comments/:id - Delete comment (auth required)
-commentsRouter.delete('/comments/:id', authMiddleware, async (c) => {
+commentsRouter.delete('/comments/:id', authMiddleware, requireScope('comments:write'), async (c) => {
   const deleted = await commentService.deleteComment(c.req.param('id'));
   if (!deleted) return c.json({ error: { code: 'NOT_FOUND', message: 'Comment not found' } }, 404);
   return c.json({ success: true });
