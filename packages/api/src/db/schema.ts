@@ -229,7 +229,11 @@ export const apps = sqliteTable('apps', {
   whatsNew: text('whats_new'),
   featured: integer('featured').notNull().default(0),
   lastSyncedAt: integer('last_synced_at'),
-});
+}, (t) => ({
+  // Issue #2: prevent concurrent /discover from creating duplicate app rows.
+  // SQLite treats NULLs as distinct, so manual apps without an App Store ID are unaffected.
+  appStoreIdUnique: uniqueIndex('ux_apps_app_store_id').on(t.appStoreId),
+}));
 
 // Type exports for queries
 export type Post = typeof posts.$inferSelect;

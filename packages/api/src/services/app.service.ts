@@ -177,10 +177,27 @@ export async function publishApp(id: string) {
 }
 
 /**
+ * True when an error is the `ux_apps_app_store_id` unique-index violation (issue #2),
+ * as opposed to any other constraint (e.g. the slug unique index). Used to tell a
+ * lost discover race apart from a genuine failure.
+ */
+export function isAppStoreIdConflict(err: unknown): boolean {
+  const e = err as { code?: string; message?: string };
+  const message = e?.message ?? '';
+  const isUnique = e?.code === 'SQLITE_CONSTRAINT_UNIQUE' || /UNIQUE constraint failed/i.test(message);
+  return isUnique && /app_store_id/i.test(message);
+}
+
+/**
  * Discover apps from ASC and idempotently create draft rows for new ones.
  * Existing apps (matched by appStoreId) are NOT modified.
  * No sync, no publish — discovery creates DRAFTS only.
  * Throws ASC_NOT_CONFIGURED if ASC credentials are absent.
+ *
+ * Concurrency (issue #2): the SELECT-then-INSERT below is a TOCTOU window — two
+ * overlapping discover calls could both miss the SELECT. The ux_apps_app_store_id
+ * unique index is the real guarantee; here we catch the resulting conflict and
+ * reclassify the losing insert as "existing" instead of surfacing an error.
  */
 export async function discoverApps(): Promise<{ created: string[]; existing: string[] }> {
   const ascApps = await listAscApps();
@@ -196,7 +213,10 @@ export async function discoverApps(): Promise<{ created: string[]; existing: str
 
     if (found) {
       existing.push(found.id);
-    } else {
+      continue;
+    }
+
+    try {
       const app = await createApp({
         name: entry.name,
         appStoreId: entry.appStoreId,
@@ -204,6 +224,16 @@ export async function discoverApps(): Promise<{ created: string[]; existing: str
         status: 'draft',
       });
       created.push(app.id);
+    } catch (err) {
+      if (!isAppStoreIdConflict(err)) throw err;
+      // A concurrent discover (or a row inserted between our SELECT and INSERT)
+      // already created this app — re-read and count it as existing.
+      const [raced] = await db
+        .select()
+        .from(apps)
+        .where(eq(apps.appStoreId, entry.appStoreId))
+        .limit(1);
+      if (raced) existing.push(raced.id);
     }
   }
 

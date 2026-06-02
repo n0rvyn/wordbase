@@ -250,4 +250,29 @@ export function initializeDatabase() {
   addCol('whats_new', 'whats_new TEXT');
   addCol('featured', 'featured INTEGER NOT NULL DEFAULT 0');
   addCol('last_synced_at', 'last_synced_at INTEGER');
+
+  // Issue #2: enforce App Store ID uniqueness so concurrent /discover cannot
+  // SELECT-miss then both INSERT a duplicate app row. SQLite treats NULLs as
+  // distinct, so manually-created apps without an App Store ID stay allowed.
+  // If a legacy DB already holds duplicates the CREATE throws — dedup (keep the
+  // earliest row per app_store_id) and retry, so boot never fails on old data.
+  const createAppStoreIdIndex = () =>
+    sqlite.exec('CREATE UNIQUE INDEX IF NOT EXISTS ux_apps_app_store_id ON apps(app_store_id);');
+  try {
+    createAppStoreIdIndex();
+  } catch {
+    const removed = sqlite
+      .prepare(
+        `DELETE FROM apps
+         WHERE app_store_id IS NOT NULL
+           AND rowid NOT IN (
+             SELECT MIN(rowid) FROM apps WHERE app_store_id IS NOT NULL GROUP BY app_store_id
+           )`
+      )
+      .run();
+    console.warn(
+      `[db] Removed ${removed.changes} duplicate app row(s) (kept earliest per app_store_id) before adding ux_apps_app_store_id`
+    );
+    createAppStoreIdIndex();
+  }
 }

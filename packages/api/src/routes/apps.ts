@@ -143,15 +143,35 @@ appsRouter.post('/:id/sync', authMiddleware, async (c) => {
 
 appsRouter.post('/', authMiddleware, async (c) => {
   const body = await c.req.json();
-  const app = await appService.createApp(body);
-  return c.json(app, 201);
+  try {
+    const app = await appService.createApp(body);
+    return c.json(app, 201);
+  } catch (err) {
+    if (appService.isAppStoreIdConflict(err)) {
+      return c.json(
+        { error: { code: 'CONFLICT', message: 'An app with this App Store ID already exists' } },
+        409
+      );
+    }
+    throw err;
+  }
 });
 
 appsRouter.put('/:id', authMiddleware, async (c) => {
   const body = await c.req.json();
-  const app = await appService.updateApp(c.req.param('id'), body);
-  if (!app) return c.json({ error: { code: 'NOT_FOUND', message: 'App not found' } }, 404);
-  return c.json(app);
+  try {
+    const app = await appService.updateApp(c.req.param('id'), body);
+    if (!app) return c.json({ error: { code: 'NOT_FOUND', message: 'App not found' } }, 404);
+    return c.json(app);
+  } catch (err) {
+    if (appService.isAppStoreIdConflict(err)) {
+      return c.json(
+        { error: { code: 'CONFLICT', message: 'Another app already uses this App Store ID' } },
+        409
+      );
+    }
+    throw err;
+  }
 });
 
 appsRouter.delete('/:id', authMiddleware, async (c) => {
