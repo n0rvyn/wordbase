@@ -177,6 +177,8 @@ const apiUrl = (import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4100').repl
 </style>
 
 <script>
+  import { escapeHtml } from '../lib/escape';
+
   const section = document.getElementById('comments')!;
   const postId = section.dataset.postId!;
   const apiUrl = section.dataset.apiUrl!;
@@ -193,10 +195,10 @@ const apiUrl = (import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4100').repl
     return `
       <div style="${ml}border-top:1px solid var(--line);padding:16px 0;">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-          <span style="font-family:var(--font-display);font-weight:600;font-size:14.5px;color:var(--ink);">${c.authorName}</span>
+          <span style="font-family:var(--font-display);font-weight:600;font-size:14.5px;color:var(--ink);">${escapeHtml(c.authorName)}</span>
           <span style="font-family:var(--font-mono);font-size:11.5px;color:var(--ink-3);">${formatDate(c.createdAt)}</span>
         </div>
-        <p style="font-family:var(--font-read);font-size:15px;color:var(--ink-2);margin:0;">${c.content}</p>
+        <p style="font-family:var(--font-read);font-size:15px;color:var(--ink-2);margin:0;">${escapeHtml(c.content)}</p>
       </div>
     `;
   }
