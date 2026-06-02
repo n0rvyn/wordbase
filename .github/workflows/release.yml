@@ -1,0 +1,80 @@
+name: Release
+
+# On every push to main, derive a semver bump from the conventional-commit
+# messages, bump the version, regenerate CHANGELOG.md and MCP-TOOLS.md, then
+# commit + tag. WordBase is self-hosted (not published to npm), so this only
+# produces version metadata, a changelog, the MCP tool catalog, and a git tag.
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # push the version-bump commit + tag
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history for conventional-commit analysis
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Detect version bump type
+        id: bump
+        run: node scripts/detect-bump.mjs >> "$GITHUB_OUTPUT"
+
+      - name: Get last tag
+        id: tags
+        if: steps.bump.outputs.type != 'none'
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "last=$LAST_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Bump version (root + api)
+        if: steps.bump.outputs.type != 'none'
+        id: version
+        run: |
+          npm version ${{ steps.bump.outputs.type }} --no-git-tag-version
+          npm version ${{ steps.bump.outputs.type }} --no-git-tag-version \
+            --prefix packages/api
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate CHANGELOG.md
+        if: steps.bump.outputs.type != 'none'
+        env:
+          LAST_TAG: ${{ steps.tags.outputs.last }}
+          NEW_VERSION: ${{ steps.version.outputs.version }}
+        run: node scripts/generate-changelog.mjs "$LAST_TAG" "$NEW_VERSION"
+
+      - name: Regenerate MCP tool catalog
+        if: steps.bump.outputs.type != 'none'
+        run: pnpm mcp:catalog
+
+      - name: Commit version bump and tag
+        if: steps.bump.outputs.type != 'none'
+        env:
+          NEW_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json packages/api/package.json CHANGELOG.md MCP-TOOLS.md
+          git commit -m "chore(release): v$NEW_VERSION"
+          git tag "v$NEW_VERSION"
+          git push origin main --tags
