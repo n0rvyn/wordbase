@@ -76,7 +76,7 @@ describe('MCP-over-HTTP route (/api/mcp)', () => {
     expect(json.result?.serverInfo?.name).toBe('wordbase-blog');
   });
 
-  it('lists all 42 tools on the established session', async () => {
+  it('lists all 43 tools on the established session', async () => {
     const sid = await openSession(KEYS.full);
     const res = await app.request('/api/mcp', {
       method: 'POST',
@@ -85,7 +85,7 @@ describe('MCP-over-HTTP route (/api/mcp)', () => {
     });
     expect(res.status).toBe(200);
     const json = (await res.json()) as { result?: { tools?: unknown[] } };
-    expect(json.result?.tools?.length).toBe(42);
+    expect(json.result?.tools?.length).toBe(43);
   });
 
   it('scope-gates tool execution: an apps-only key is denied a posts tool', async () => {

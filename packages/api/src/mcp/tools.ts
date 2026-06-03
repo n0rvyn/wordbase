@@ -6,6 +6,7 @@ import * as buildService from '../services/build.service.js';
 import * as redirectService from '../services/redirect.service.js';
 import * as podcastService from '../services/podcast.service.js';
 import * as episodeService from '../services/episode.service.js';
+import * as podcastAnalytics from '../services/podcast-analytics.service.js';
 import * as appService from '../services/app.service.js';
 import * as appSyncService from '../services/app-sync.service.js';
 import * as pageService from '../services/page.service.js';
@@ -67,6 +68,7 @@ const TOOL_SCOPES: Record<string, string> = {
   podcast_upload_audio_from_url: 'podcasts:write',
   podcast_publish_episode: 'podcasts:write',
   podcast_import_feed: 'podcasts:write',
+  podcast_analytics: 'podcasts:read',
   app_list: 'apps:read',
   app_create: 'apps:write',
   app_publish: 'apps:write',
@@ -497,6 +499,25 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
         limit: args.limit as number | undefined,
       });
       return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'podcast_analytics',
+    'Podcast consumption analytics: deduped downloads (total + windowed), active-subscriber estimate, top episodes, and feed-poll client distribution',
+    {
+      days: { type: 'number', description: 'Window in days for windowed downloads (default: 30)' },
+      limit: { type: 'number', description: 'Max top episodes / clients to return (default: 10)' },
+    },
+    async (args: Record<string, unknown>) => {
+      const days = (args.days as number | undefined) ?? 30;
+      const limit = (args.limit as number | undefined) ?? 10;
+      const [summary, topEpisodes, clients] = await Promise.all([
+        podcastAnalytics.getPodcastSummary(days),
+        podcastAnalytics.getTopEpisodes(limit),
+        podcastAnalytics.getPodcastClients(limit),
+      ]);
+      return { content: [{ type: 'text' as const, text: JSON.stringify({ summary, topEpisodes, clients }, null, 2) }] };
     }
   );
 

@@ -113,6 +113,12 @@ vi.mock('../services/episode.service.js', () => ({
   uploadEpisodeAudio: vi.fn(async () => ({ url: 'http://example.com/audio.mp3' })),
 }));
 
+vi.mock('../services/podcast-analytics.service.js', () => ({
+  getPodcastSummary: vi.fn(async () => ({ days: 30, totalDownloads: 5, windowDownloads: 3, subscriberEstimate: 2, subscriberWindowDays: 7 })),
+  getTopEpisodes: vi.fn(async () => [{ episodeId: 'ep1', title: 'E1', slug: 'e1', downloads: 5 }]),
+  getPodcastClients: vi.fn(async () => [{ type: 'Overcast', count: 2 }]),
+}));
+
 vi.mock('../services/feed-import.service.js', () => ({
   parseExternalFeed: vi.fn(() => ({
     show: { title: 'Feed Show', coverImage: 'http://cdn/feed.jpg', ownerEmail: 'feed@x.com' },
@@ -161,6 +167,7 @@ describe('registerTools — tool name registration', () => {
     expect(names).toContain('podcast_create_episode');
     expect(names).toContain('podcast_upload_audio');
     expect(names).toContain('podcast_publish_episode');
+    expect(names).toContain('podcast_analytics');
   });
 
   it('registers new app_* tools', () => {
@@ -316,6 +323,21 @@ describe('registerTools — handler behavior (Phase 8)', () => {
 
     expect(result.isError).toBe(true);
     expect(createPage).not.toHaveBeenCalled();
+  });
+
+  it('podcast_analytics aggregates summary + top episodes + clients into one JSON payload', async () => {
+    const { getPodcastSummary, getTopEpisodes, getPodcastClients } = await import('../services/podcast-analytics.service.js');
+    const handler = server.getHandler('podcast_analytics')!;
+    const result = await handler({ days: 30, limit: 10 }) as { content: { text: string }[] };
+
+    expect(getPodcastSummary).toHaveBeenCalledWith(30);
+    expect(getTopEpisodes).toHaveBeenCalledWith(10);
+    expect(getPodcastClients).toHaveBeenCalledWith(10);
+
+    const payload = JSON.parse(result.content[0].text);
+    expect(payload.summary.totalDownloads).toBe(5);
+    expect(payload.topEpisodes[0].episodeId).toBe('ep1');
+    expect(payload.clients[0].type).toBe('Overcast');
   });
 
   it('page_publish calls publishPage (not updatePage) and returns isError on null', async () => {
