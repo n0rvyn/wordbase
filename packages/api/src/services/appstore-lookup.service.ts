@@ -15,6 +15,7 @@ export interface ItunesAppMeta {
   icon: string | null;
   screenshots: string[];
   description: string | null;
+  platform: string;
 }
 
 function toTs(iso: unknown): number | null {
@@ -55,6 +56,8 @@ export async function lookupApp(
     ? (r.screenshotUrls as unknown[]).filter((s): s is string => typeof s === 'string')
     : [];
 
+  const platform = r.kind === 'mac-software' ? 'macOS' : 'iOS';
+
   return {
     category: typeof r.primaryGenreName === 'string' ? r.primaryGenreName : null,
     version: typeof r.version === 'string' ? r.version : null,
@@ -67,5 +70,6 @@ export async function lookupApp(
     icon: typeof r.artworkUrl512 === 'string' ? r.artworkUrl512 : null,
     screenshots,
     description: typeof r.description === 'string' ? r.description : null,
+    platform,
   };
 }

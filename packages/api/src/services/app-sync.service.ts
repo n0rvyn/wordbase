@@ -63,6 +63,8 @@ export async function syncApp(appId: string): Promise<void> {
     // category/version: ASC-first, then iTunes, then cur
     category: asc?.category ?? itunes?.category ?? cur.category,
     version: asc?.version ?? itunes?.version ?? cur.version,
+    // platform: ASC-first, then iTunes, then cur
+    platform: asc?.platform ?? itunes?.platform ?? cur.platform,
     // screenshots merged above
     screenshots,
     // rest from iTunes, fall back to cur

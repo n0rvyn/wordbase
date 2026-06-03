@@ -112,6 +112,7 @@ const mockVersionsResponse = {
 };
 
 // appScreenshotSets fixture: 2 sets, 3 screenshots total with templateUrl placeholders.
+// shot-001/002 represent a macOS landscape asset (2880x1800), shot-003 an iOS portrait (1290x2796).
 const mockScreenshotSetsResponse = {
   data: [
     {
@@ -145,6 +146,8 @@ const mockScreenshotSetsResponse = {
       attributes: {
         imageAsset: {
           templateUrl: 'https://is1-ssl.mzstatic.com/image/thumb/PurpleSource001/{w}x{h}bb.{f}',
+          width: 2880,
+          height: 1800,
         },
       },
     },
@@ -154,6 +157,8 @@ const mockScreenshotSetsResponse = {
       attributes: {
         imageAsset: {
           templateUrl: 'https://is1-ssl.mzstatic.com/image/thumb/PurpleSource002/{w}x{h}bb.{f}',
+          width: 2880,
+          height: 1800,
         },
       },
     },
@@ -163,6 +168,8 @@ const mockScreenshotSetsResponse = {
       attributes: {
         imageAsset: {
           templateUrl: 'https://is1-ssl.mzstatic.com/image/thumb/PurpleSource003/{w}x{h}bb.{f}',
+          width: 1290,
+          height: 2796,
         },
       },
     },
@@ -269,8 +276,15 @@ describe('fetchAppMetadata', () => {
       expect(url).not.toContain('{w}');
       expect(url).not.toContain('{h}');
       expect(url).not.toContain('{f}');
-      expect(url).toContain('1290x2796bb.png');
+      expect(url).toContain('bb.png');
     }
+    // native dims: per-asset imageAsset.width/height (not hardcoded 1290x2796)
+    expect(result!.screenshots[0]).toContain('2880x1800bb.png');
+    expect(result!.screenshots[1]).toContain('2880x1800bb.png');
+    expect(result!.screenshots[2]).toContain('1290x2796bb.png');
+
+    // platform: ASC appStoreVersions.attributes.platform === 'IOS' → 'iOS'
+    expect(result!.platform).toBe('iOS');
 
     // Regression guard 1: no invalid nested include substring in any fetched URL
     for (const url of fetchedUrls) {
@@ -285,6 +299,71 @@ describe('fetchAppMetadata', () => {
     // Regression guard 3 (MR-1): screenshot-sets call used the zh-Hans verLocId deterministically
     expect(fetchedUrls.some(u => u.includes(`/${VER_LOC_ZH_ID}/appScreenshotSets`))).toBe(true);
     expect(fetchedUrls.some(u => u.includes(`/${VER_LOC_EN_ID}/appScreenshotSets`))).toBe(false);
+  });
+
+  it('reports platform as macOS when appStoreVersions attributes.platform is MAC_OS', async () => {
+    const macVersionsResponse = {
+      data: [
+        {
+          id: 'ver-mac-001',
+          type: 'appStoreVersions',
+          attributes: {
+            versionString: '2.0',
+            platform: 'MAC_OS',
+          },
+          relationships: {
+            appStoreVersionLocalizations: {
+              data: [
+                { id: VER_LOC_EN_ID, type: 'appStoreVersionLocalizations' },
+                { id: VER_LOC_ZH_ID, type: 'appStoreVersionLocalizations' },
+              ],
+            },
+          },
+        },
+      ],
+      included: [
+        {
+          id: VER_LOC_ZH_ID,
+          type: 'appStoreVersionLocalizations',
+          attributes: {
+            locale: 'zh-Hans',
+            whatsNew: null,
+            description: 'Mac 应用。',
+            promotionalText: null,
+          },
+        },
+        {
+          id: VER_LOC_EN_ID,
+          type: 'appStoreVersionLocalizations',
+          attributes: {
+            locale: 'en-US',
+            whatsNew: null,
+            description: 'Mac app.',
+            promotionalText: null,
+          },
+        },
+      ],
+    };
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/appStoreVersions')) {
+        return Promise.resolve({ ok: true, json: async () => macVersionsResponse });
+      }
+      if (url.includes('/appScreenshotSets')) {
+        return Promise.resolve({ ok: true, json: async () => mockScreenshotSetsResponse });
+      }
+      if (url.includes('/appInfoLocalizations')) {
+        return Promise.resolve({ ok: true, json: async () => mockAppInfoLocalizationsResponse });
+      }
+      if (url.includes('/appInfos')) {
+        return Promise.resolve({ ok: true, json: async () => mockAppInfosResponse });
+      }
+      return Promise.resolve({ ok: false, status: 404, json: async () => ({}) });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { fetchAppMetadata } = await import('../services/asc.service.js');
+    const result = await fetchAppMetadata(TEST_APP_ID);
+    expect(result).not.toBeNull();
+    expect(result!.platform).toBe('macOS');
   });
 });
 

@@ -24,6 +24,9 @@ export async function getStaticPaths() {
 
 const { app, moreApps } = Astro.props as { app: App; moreApps: App[] };
 
+// macOS apps render screenshots in a Mac-window frame; iOS keeps the phone frame.
+const isMac = app.platform === 'macOS';
+
 // Parse JSON string fields
 const features = parseJsonArray<{ icon: string; title: string; blurb: string }>(app.features);
 const screenshots = parseJsonArray<string>(app.screenshots);
@@ -100,20 +103,27 @@ const appStoreHref = app.appStoreUrl ?? (app.appStoreId ? `https://apps.apple.co
             </div>
           </div>
 
-          <!-- Phone preview: first screenshot or CSS placeholder -->
-          <div class="phone">
-            <div class="screen">
-              {screenshots.length > 0
-                ? <img src={screenshots[0]} alt={`${app.name} screenshot`} />
-                : (
-                  <>
-                    <div class="s-top"><span>9:41</span><span>{app.name}</span></div>
-                    <div class="ring"><div><span class="t">—</span><span class="c">Preview</span></div></div>
-                  </>
-                )
-              }
+          <!-- Preview: mac-window frame for macOS, phone frame otherwise -->
+          {isMac && screenshots.length > 0 ? (
+            <div class="mac-win">
+              <div class="mac-bar"><span class="mac-dots"><i class="mac-dot"></i><i class="mac-dot"></i><i class="mac-dot"></i></span></div>
+              <div class="mac-screen"><img src={screenshots[0]} alt={`${app.name} screenshot`} /></div>
             </div>
-          </div>
+          ) : (
+            <div class="phone">
+              <div class="screen">
+                {screenshots.length > 0
+                  ? <img src={screenshots[0]} alt={`${app.name} screenshot`} />
+                  : (
+                    <>
+                      <div class="s-top"><span>9:41</span><span>{app.name}</span></div>
+                      <div class="ring"><div><span class="t">—</span><span class="c">Preview</span></div></div>
+                    </>
+                  )
+                }
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </header>
@@ -154,9 +164,16 @@ const appStoreHref = app.appStoreUrl ?? (app.appStoreId ? `https://apps.apple.co
           <div class="shots">
             {screenshots.map((url, i) => (
               <div class="shot">
-                <div class="shot-frame">
-                  <img src={url} alt={`${app.name} screenshot ${i + 1}`} />
-                </div>
+                {isMac ? (
+                  <div class="mac-win">
+                    <div class="mac-bar"><span class="mac-dots"><i class="mac-dot"></i><i class="mac-dot"></i><i class="mac-dot"></i></span></div>
+                    <div class="mac-screen"><img src={url} alt={`${app.name} screenshot ${i + 1}`} /></div>
+                  </div>
+                ) : (
+                  <div class="shot-frame">
+                    <img src={url} alt={`${app.name} screenshot ${i + 1}`} />
+                  </div>
+                )}
                 <span class="cap">{String(i + 1).padStart(2, '0')}</span>
               </div>
             ))}

@@ -19,6 +19,7 @@ export interface AscAppMeta {
   whatsNew: string | null;
   description: string | null;
   screenshots: string[];
+  platform: string | null;
 }
 
 // Token cache
@@ -130,7 +131,7 @@ interface AscVersionsResponse {
   data: Array<{
     id: string;
     type: string;
-    attributes?: { versionString?: string };
+    attributes?: { versionString?: string; platform?: string };
     relationships?: Record<string, { data: Array<{ id: string; type: string }> }>;
   }>;
   included?: Array<{
@@ -283,11 +284,15 @@ export async function fetchAppMetadata(appStoreId: string): Promise<AscAppMeta |
   let whatsNew: string | null = null;
   let description: string | null = null;
   let verLocId: string | null = null;
+  let platform: string | null = null;
 
   const versionList = versionsData.data ?? [];
   if (versionList.length > 0) {
     const ver = versionList[0];
     version = ver.attributes?.versionString ?? null;
+
+    const rawPlatform = ver.attributes?.platform ?? null;
+    platform = rawPlatform === 'MAC_OS' ? 'macOS' : rawPlatform === 'IOS' ? 'iOS' : null;
 
     const verIncluded = versionsData.included ?? [];
     const verLocIds = ver.relationships?.appStoreVersionLocalizations?.data?.map(d => d.id) ?? [];
@@ -325,10 +330,10 @@ export async function fetchAppMetadata(appStoreId: string): Promise<AscAppMeta |
       const screenshotIncluded = screenshotSetsData.included ?? [];
       for (const resource of screenshotIncluded) {
         if (resource.type === 'appScreenshots') {
-          const tpl = (resource.attributes as { imageAsset?: { templateUrl?: string } } | undefined)
-            ?.imageAsset?.templateUrl;
-          if (tpl) {
-            screenshots.push(resolveTemplateUrl(tpl, 1290, 2796, 'png'));
+          const ia = (resource.attributes as { imageAsset?: { templateUrl?: string; width?: number; height?: number } } | undefined)
+            ?.imageAsset;
+          if (ia?.templateUrl) {
+            screenshots.push(resolveTemplateUrl(ia.templateUrl, ia.width ?? 1290, ia.height ?? 2796, 'png'));
           }
         }
       }
@@ -346,5 +351,6 @@ export async function fetchAppMetadata(appStoreId: string): Promise<AscAppMeta |
     whatsNew,
     description,
     screenshots,
+    platform,
   };
 }

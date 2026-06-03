@@ -68,6 +68,7 @@ describe('syncApp', () => {
       icon: 'https://icon.example.com/icon.png',
       screenshots: ['https://s1.example.com'],
       description: 'iTunes desc',
+      platform: 'iOS',
     });
     isAscConfiguredMock.mockReturnValue(true);
     fetchAppMetadataMock.mockResolvedValue({
@@ -77,6 +78,7 @@ describe('syncApp', () => {
       whatsNew: "What's new from ASC",
       description: 'ASC desc',
       screenshots: [],
+      platform: 'iOS',
     });
 
     await syncApp(appId);
@@ -102,6 +104,7 @@ describe('syncApp', () => {
       icon: null,
       screenshots: [],
       description: null,
+      platform: 'iOS',
     });
     isAscConfiguredMock.mockReturnValue(true);
     fetchAppMetadataMock.mockResolvedValue({
@@ -111,6 +114,7 @@ describe('syncApp', () => {
       whatsNew: 'New',
       description: null,
       screenshots: ['https://s.example.com'],
+      platform: 'iOS',
     });
 
     await syncApp(appId);
@@ -132,6 +136,7 @@ describe('syncApp', () => {
       icon: null,
       screenshots: [],
       description: null,
+      platform: 'iOS',
     });
     isAscConfiguredMock.mockReturnValue(false);
 
@@ -158,6 +163,7 @@ describe('syncApp', () => {
       icon: null,
       screenshots: [],
       description: null,
+      platform: 'iOS',
     });
     isAscConfiguredMock.mockReturnValue(false);
 
@@ -181,6 +187,7 @@ describe('syncApp', () => {
       icon: null,
       screenshots: ['https://it/1.png', 'https://it/2.png'],
       description: 'iTunes desc',
+      platform: 'iOS',
     });
     isAscConfiguredMock.mockReturnValue(true);
     fetchAppMetadataMock.mockResolvedValue({
@@ -190,6 +197,7 @@ describe('syncApp', () => {
       whatsNew: null,
       description: null,
       screenshots: [], // ASC has no screenshots — must fall through to iTunes
+      platform: 'iOS',
     });
 
     await syncApp(appId);
@@ -212,6 +220,7 @@ describe('syncApp', () => {
       icon: null,
       screenshots: ['https://it/1.png', 'https://it/2.png'],
       description: null,
+      platform: 'iOS',
     });
     isAscConfiguredMock.mockReturnValue(true);
     fetchAppMetadataMock.mockResolvedValue({
@@ -221,6 +230,7 @@ describe('syncApp', () => {
       whatsNew: null,
       description: null,
       screenshots: ['https://asc/a.png', 'https://asc/b.png', 'https://asc/c.png'],
+      platform: 'iOS',
     });
 
     await syncApp(appId);
@@ -243,6 +253,7 @@ describe('syncApp', () => {
       icon: null,
       screenshots: [],
       description: null,
+      platform: 'iOS',
     });
     isAscConfiguredMock.mockReturnValue(true);
     fetchAppMetadataMock.mockRejectedValue(new Error('ASC_NOT_CONFIGURED'));
@@ -283,6 +294,7 @@ describe('syncAllApps', () => {
       icon: null,
       screenshots: [],
       description: null,
+      platform: 'iOS',
     });
     isAscConfiguredMock.mockReturnValue(false);
 
@@ -322,6 +334,7 @@ describe('syncAllApps', () => {
         icon: null,
         screenshots: [],
         description: null,
+        platform: 'iOS',
       })
       .mockRejectedValueOnce(new Error('iTunes fetch failed'));
 
@@ -330,5 +343,95 @@ describe('syncAllApps', () => {
     const result = await syncAllApps();
     expect(result.synced).toBeGreaterThanOrEqual(1);
     expect(result.failed.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('syncApp platform field', () => {
+  it('stores platform=macOS when ASC returns platform=macOS', async () => {
+    lookupMock.mockResolvedValue({
+      rating: 4.0,
+      ratingCount: 100,
+      category: 'Developer Tools',
+      version: '1.0',
+      releaseDate: null,
+      currentVersionReleaseDate: null,
+      minimumOsVersion: null,
+      price: null,
+      icon: null,
+      screenshots: [],
+      description: null,
+      platform: 'iOS',
+    });
+    isAscConfiguredMock.mockReturnValue(true);
+    fetchAppMetadataMock.mockResolvedValue({
+      category: 'Developer Tools',
+      version: '1.0',
+      subtitle: null,
+      whatsNew: null,
+      description: null,
+      screenshots: [],
+      platform: 'macOS',
+    });
+
+    await syncApp(appId);
+
+    const [row] = await db.select().from(apps).where(eq(apps.id, appId));
+    expect(row.platform).toBe('macOS');
+  });
+
+  it('falls back to iTunes platform=macOS when ASC is not configured', async () => {
+    lookupMock.mockResolvedValue({
+      rating: 4.0,
+      ratingCount: 100,
+      category: 'Developer Tools',
+      version: '1.0',
+      releaseDate: null,
+      currentVersionReleaseDate: null,
+      minimumOsVersion: null,
+      price: null,
+      icon: null,
+      screenshots: [],
+      description: null,
+      platform: 'macOS',
+    });
+    isAscConfiguredMock.mockReturnValue(false);
+
+    await syncApp(appId);
+
+    const [row] = await db.select().from(apps).where(eq(apps.id, appId));
+    expect(row.platform).toBe('macOS');
+  });
+
+  it('preserves cur.platform when both ASC and iTunes platform are null', async () => {
+    // existing row already has platform: 'iOS' from beforeEach insert
+    lookupMock.mockResolvedValue({
+      rating: 4.0,
+      ratingCount: 100,
+      category: 'Productivity',
+      version: '1.0',
+      releaseDate: null,
+      currentVersionReleaseDate: null,
+      minimumOsVersion: null,
+      price: null,
+      icon: null,
+      screenshots: [],
+      description: null,
+      platform: 'iOS', // not macOS — must not overwrite
+    });
+    isAscConfiguredMock.mockReturnValue(true);
+    fetchAppMetadataMock.mockResolvedValue({
+      category: null,
+      version: null,
+      subtitle: null,
+      whatsNew: null,
+      description: null,
+      screenshots: [],
+      platform: null,
+    });
+
+    await syncApp(appId);
+
+    const [row] = await db.select().from(apps).where(eq(apps.id, appId));
+    expect(row.platform).toBe('iOS');
   });
 });

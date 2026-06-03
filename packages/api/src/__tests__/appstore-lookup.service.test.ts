@@ -19,6 +19,29 @@ const mockLookupResult = {
       ],
       formattedPrice: 'Free',
       description: 'A great productivity app.',
+      kind: 'software',
+    },
+  ],
+};
+
+const mockMacLookupResult = {
+  resultCount: 1,
+  results: [
+    {
+      primaryGenreName: 'Developer Tools',
+      version: '1.2.0',
+      releaseDate: '2023-06-01T07:00:00Z',
+      currentVersionReleaseDate: '2024-05-15T08:00:00Z',
+      averageUserRating: 4.5,
+      userRatingCount: 200,
+      minimumOsVersion: '13.0',
+      artworkUrl512: 'https://example.com/mac-icon512.png',
+      screenshotUrls: [
+        'https://example.com/mac-screen1.png',
+      ],
+      formattedPrice: '$9.99',
+      description: 'A Mac productivity app.',
+      kind: 'mac-software',
     },
   ],
 };
@@ -80,6 +103,16 @@ describe('lookupApp', () => {
     expect(Array.isArray(result!.screenshots)).toBe(true);
     expect(result!.screenshots).toHaveLength(2);
     expect(result!.price).toBe('Free');
+    expect(result!.platform).toBe('iOS');
+  });
+
+  it('reports platform as macOS when kind is mac-software', async () => {
+    vi.stubGlobal('fetch', makeFetch(mockMacLookupResult));
+    const result = await lookupApp('6760217982');
+    expect(result).not.toBeNull();
+    expect(result!.platform).toBe('macOS');
+    expect(result!.category).toBe('Developer Tools');
+    expect(result!.screenshots).toHaveLength(1);
   });
 
   it('returns null when resultCount is 0', async () => {
