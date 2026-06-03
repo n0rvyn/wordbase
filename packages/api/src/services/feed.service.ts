@@ -31,6 +31,13 @@ export function episodeTranscriptPath(slug: string): string {
   return `/api/podcasts/episodes/${encodeURIComponent(slug)}/transcript.txt`;
 }
 
+// The download-tracking path the <enclosure> points at (instead of the raw audio
+// URL). The route (routes/podcasts.ts) records the hit then 302s to the real file.
+// Shared so the feed href and the route can never drift. Percent-encoded for CJK slugs.
+export function episodeDownloadPath(slug: string): string {
+  return `/api/podcasts/episodes/${encodeURIComponent(slug)}/download`;
+}
+
 export function buildPodcastFeedXml(
   show: Podcast,
   episodes: PodcastEpisode[],
@@ -82,7 +89,9 @@ export function buildPodcastFeedXml(
 
   const itemLines: string[] = [];
   for (const ep of publishedEpisodes) {
-    const audioUrl = absolutizeUrl(ep.audioUrl, site);
+    // Point the enclosure at the download-tracking redirect, not the raw audio URL,
+    // so client downloads are counted. type/length still describe the real file.
+    const audioUrl = absolutizeUrl(episodeDownloadPath(ep.slug), site);
     const pubDate = new Date((ep.publishedAt ?? 0) * 1000).toUTCString();
     const epCoverUrl = absolutizeUrl(ep.coverImage, site);
     // Short text for <description>/<itunes:summary>; full HTML in <content:encoded>.
