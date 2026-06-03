@@ -42,17 +42,25 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
     <div class="spine">
       <span class="no">00</span>
       <span class="lab">Podcast</span>
-      {podcast?.description && stripMarkdown(podcast.description, 40) && (
-        <span class="note">{stripMarkdown(podcast.description, 40)}</span>
-      )}
+      {podcast && <span class="note">自制的 AI 信息源</span>}
       {!podcast && <span class="note">一档慢节奏的播客。</span>}
     </div>
     <div class="show-head">
-      <div class="show-cover">
-        {showCover
-          ? <img src={showCover} alt={showTitle} width="132" height="132" loading="eager" />
-          : <span>{showTitle.charAt(0)}</span>
-        }
+      <div class="show-id">
+        <div class="show-cover">
+          {showCover
+            ? <img src={showCover} alt={showTitle} width="132" height="132" loading="eager" />
+            : <span>{showTitle.charAt(0)}</span>
+          }
+        </div>
+        {feedHref && (
+          <div class="subscribe">
+            <a class="btn btn-1" href={feedHref}>订阅 · RSS ↗</a>
+            {podcast?.link && (
+              <a class="btn btn-2" href={podcast.link} target="_blank" rel="noopener noreferrer">在播客客户端收听</a>
+            )}
+          </div>
+        )}
       </div>
       <div class="show-meta">
         <div class="eyebrow">
@@ -62,14 +70,6 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
         <p class="lede">
           {podcast?.description ? stripMarkdown(podcast.description, podcast.description.length) : '一档慢节奏的播客。'}
         </p>
-        {feedHref && (
-          <div class="subscribe">
-            <a class="btn btn-1" href={feedHref}>订阅 · RSS ↗</a>
-            {podcast?.link && (
-              <a class="btn btn-2" href={podcast.link} target="_blank" rel="noopener noreferrer">在播客客户端收听</a>
-            )}
-          </div>
-        )}
       </div>
     </div>
   </div>
@@ -168,8 +168,8 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
   .btn-2 { background: transparent; color: var(--ink); border-color: var(--line-2); }
   .btn-2:hover { border-color: var(--ink-3); background: var(--surface-2); }
 
-  /* ── Subscribe row ────────────────────────────────────────────────────────── */
-  .subscribe { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 26px; }
+  /* ── Subscribe (stacked under the cover in the show-id column) ────────────── */
+  .subscribe { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
 
   /* ── Show header (00 HERO) ────────────────────────────────────────────────── */
   /* Cover-left, identity-right (Apple show-header). To flip the cover to the
@@ -177,8 +177,10 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
      since .show-cover comes first in source — move it after .show-meta instead. */
   .show-head {
     display: grid; grid-template-columns: auto 1fr;
-    gap: clamp(20px, 3vw, 36px); align-items: center;
+    gap: clamp(20px, 3vw, 36px); align-items: start;
   }
+  /* Left column: cover + subscribe stacked, top-aligned with the identity text. */
+  .show-id { display: flex; flex-direction: column; gap: 20px; align-items: flex-start; }
   .show-cover {
     width: clamp(112px, 13vw, 132px); aspect-ratio: 1;
     border-radius: var(--r-lg); flex-shrink: 0; overflow: hidden;
