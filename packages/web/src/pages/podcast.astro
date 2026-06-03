@@ -103,7 +103,7 @@ const host = podcast?.author ?? podcast?.ownerName ?? null;
             {featuredEp.episodeNumber != null ? `EP.${featuredEp.episodeNumber} · 最新一期` : '最新一期'}
           </span>
           <h3>{featuredEp.title}</h3>
-          <audio controls preload="metadata" src={featuredEp.audioUrl}></audio>
+          <audio controls preload="none" src={`/api/podcasts/episodes/${encodeURIComponent(featuredEp.slug)}/download`}></audio>
         </div>
       </div>
     </div>
@@ -124,7 +124,7 @@ const host = podcast?.author ?? podcast?.ownerName ?? null;
           <div class="item ep-row">
             <div class="item-title">{ep.title}</div>
             <div class="item-meta">{episodeMeta(ep)}</div>
-            <audio controls preload="none" src={ep.audioUrl}></audio>
+            <audio controls preload="none" src={`/api/podcasts/episodes/${encodeURIComponent(ep.slug)}/download`}></audio>
           </div>
         ))}
       </div>
