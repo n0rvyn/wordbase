@@ -10,6 +10,7 @@ const { app } = await import('../app.js');
 const KEYS = {
   full: 'mcpfull-aaaaaaaa', // ["*"]
   apps: 'mcpapps-bbbbbbbb', // ["apps:read","apps:write"]
+  pod: 'mcppods-cccccccc', // ["podcasts:read","podcasts:write"] — no observability:read
 };
 
 async function seedKey(raw: string, name: string, permissions: string) {
@@ -51,6 +52,7 @@ async function openSession(raw: string): Promise<string> {
 beforeAll(async () => {
   await seedKey(KEYS.full, 'mcp-full', '["*"]');
   await seedKey(KEYS.apps, 'mcp-apps', '["apps:read","apps:write"]');
+  await seedKey(KEYS.pod, 'mcp-pod', '["podcasts:read","podcasts:write"]');
 });
 
 describe('MCP-over-HTTP route (/api/mcp)', () => {
@@ -102,5 +104,24 @@ describe('MCP-over-HTTP route (/api/mcp)', () => {
     const json = (await res.json()) as { result?: { isError?: boolean; content?: { text?: string }[] } };
     expect(json.result?.isError).toBe(true);
     expect(json.result?.content?.[0]?.text).toContain('posts:read');
+  });
+
+  // podcast_analytics serves the same data as the REST /api/observability/podcast/*
+  // routes (observability:read). A podcasts-scoped key must NOT reach it via MCP —
+  // otherwise it's a scope-mismatch escalation (MCP grants what REST denies).
+  it('scope-gates podcast_analytics: a podcasts-only key is denied (needs observability:read)', async () => {
+    const sid = await openSession(KEYS.pod);
+    const res = await app.request('/api/mcp', {
+      method: 'POST',
+      headers: headers(KEYS.pod, sid),
+      body: JSON.stringify({
+        jsonrpc: '2.0', id: 3, method: 'tools/call',
+        params: { name: 'podcast_analytics', arguments: {} },
+      }),
+    });
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as { result?: { isError?: boolean; content?: { text?: string }[] } };
+    expect(json.result?.isError).toBe(true);
+    expect(json.result?.content?.[0]?.text).toContain('observability:read');
   });
 });

@@ -68,7 +68,11 @@ const TOOL_SCOPES: Record<string, string> = {
   podcast_upload_audio_from_url: 'podcasts:write',
   podcast_publish_episode: 'podcasts:write',
   podcast_import_feed: 'podcasts:write',
-  podcast_analytics: 'podcasts:read',
+  // Mirrors the REST gate: the identical analytics service calls are served by
+  // /api/observability/podcast/* under 'observability:read'. Gating the MCP tool
+  // with 'podcasts:read' would let a podcast-CRUD key read analytics it's denied
+  // over REST (scope-mismatch privilege escalation), so it must match.
+  podcast_analytics: 'observability:read',
   app_list: 'apps:read',
   app_create: 'apps:write',
   app_publish: 'apps:write',
