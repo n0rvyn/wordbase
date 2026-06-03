@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "wordbase": {
+      "type": "http",
+      "url": "https://norvyn.com/api/mcp",
+      "headers": {
+        "Authorization": "Bearer ${WORDBASE_API_KEY}"
+      }
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "wordbase",
+  "version": "1.0.0",
+  "description": "Remote MCP server for the WordBase platform (blog, podcast, apps, pages) plus publishing workflow commands.",
+  "author": { "name": "Norvyn", "email": "norvyn@norvyn.com" },
+  "homepage": "https://norvyn.com",
+  "repository": "https://github.com/n0rvyn/wordbase",
+  "license": "MIT",
+  "keywords": ["mcp", "blog", "podcast", "cms", "apps"],
+  "defaultEnabled": false
+}

@@ -1,0 +1,26 @@
+{
+  "name": "n0rvyn-wordbase",
+  "owner": {
+    "name": "Norvyn",
+    "email": "norvyn@norvyn.com"
+  },
+  "metadata": {
+    "description": "WordBase platform tools: remote MCP for blog, podcast, apps, and pages, plus publishing workflow commands.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "wordbase",
+      "source": "./plugins/wordbase",
+      "description": "Remote MCP server for the WordBase platform (blog, podcast, apps, pages) plus publishing workflow commands.",
+      "version": "1.0.0",
+      "author": { "name": "Norvyn", "email": "norvyn@norvyn.com" },
+      "homepage": "https://norvyn.com",
+      "repository": "https://github.com/n0rvyn/wordbase",
+      "license": "MIT",
+      "category": "content",
+      "tags": ["mcp", "blog", "podcast", "cms", "apps"],
+      "strict": true
+    }
+  ]
+}
