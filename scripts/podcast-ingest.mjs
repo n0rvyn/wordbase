@@ -162,7 +162,7 @@ async function main() {
     const needUpload = !st.audioUploaded || !st.audioUrl || (st.audioMtime !== undefined && st.audioMtime !== audioMtime);
     if (needUpload) {
       if (DRY) {
-        console.log(`${nn} ▸ would upload audio ${a.audio} (${(audioStat.size / 1048576).toFixed(1)} MB, ${audioType})`);
+        console.log(`${nn} ▸ would upload audio ${a.audio} (${(audioStat.size / 1048576).toFixed(1)} MB)`);
         audioUrl = audioUrl || '/uploads/(dry-run)';
       } else {
         process.stdout.write(`${nn} ▸ uploading audio ${a.audio} (${(audioStat.size / 1048576).toFixed(1)} MB) … `);
