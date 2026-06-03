@@ -187,7 +187,7 @@ async function main() {
     const body = {
       title,
       summary,                 // short → page grey line + feed <description>/<itunes:summary>
-      showNotes: transcript,   // full → feed <content:encoded>
+      showNotes: summary,      // short → feed <content:encoded> (episode notes in apps; full text belongs in transcript, not here)
       transcript,              // full → <podcast:transcript> + /transcript.txt (groundwork for synced display)
       audioUrl,
       audioType,
