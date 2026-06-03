@@ -14,6 +14,7 @@ import { buildRouter } from './routes/build.js';
 import { redirectsRouter } from './routes/redirects.js';
 import { podcastsRouter } from './routes/podcasts.js';
 import { appsRouter } from './routes/apps.js';
+import { mcpHttpHandler } from './mcp/http.js';
 import { redirectMiddleware } from './middleware/redirect.js';
 import { errorMiddleware } from './middleware/error.js';
 import { metricsMiddleware } from './middleware/metrics.js';
@@ -54,6 +55,10 @@ app.route('/api/categories', categoriesRouter);
 app.route('/api/tags', tagsRouter);
 app.route('/api/pages', pagesRouter);
 app.route('/api/media', mediaRouter);
+// MCP-over-HTTP (Streamable HTTP transport). Registered before the broad
+// `/api` comments mount so the exact path wins. Auth + scope-gating happen
+// inside the handler. See mcp/http.ts.
+app.on(['POST', 'GET', 'DELETE'], '/api/mcp', mcpHttpHandler);
 app.route('/api', commentsRouter);
 app.route('/api/analytics', analyticsRouter);
 app.route('/api/observability', observabilityRouter);
