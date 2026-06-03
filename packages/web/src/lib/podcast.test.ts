@@ -144,6 +144,17 @@ describe('episodeMeta', () => {
     expect(episodeMeta(ep)).toBe('2026 · 05 · 21 · 48 min');
   });
 
+  it('uses publishedAt for the date, not createdAt', () => {
+    const published = Date.UTC(2026, 0, 9, 12, 0, 0) / 1000; // 2026-01-09
+    const ep = makeEpisode({ id: 'e', episodeNumber: 3, duration: 2880, createdAt: fixedTs, publishedAt: published });
+    expect(episodeMeta(ep)).toBe('EP.3 · 2026 · 01 · 09 · 48 min');
+  });
+
+  it('falls back to createdAt when publishedAt is null', () => {
+    const ep = makeEpisode({ id: 'e', episodeNumber: 3, duration: 2880, createdAt: fixedTs, publishedAt: null });
+    expect(episodeMeta(ep)).toBe('EP.3 · 2026 · 05 · 21 · 48 min');
+  });
+
   it('omits duration segment when duration is 0', () => {
     const ep = makeEpisode({ id: 'e', episodeNumber: 3, duration: 0, createdAt: fixedTs });
     expect(episodeMeta(ep)).toBe('EP.3 · 2026 · 05 · 21');

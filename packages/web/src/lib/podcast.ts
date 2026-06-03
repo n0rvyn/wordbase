@@ -34,13 +34,17 @@ export function sortEpisodes(eps: Episode[]): Episode[] {
  * Build the display meta string for an episode, e.g. "EP.3 · 2026 · 05 · 21 · 48 min".
  * Parts: EP.{n} (if episodeNumber != null), date (always), duration (if non-empty).
  * Joined with ' · '.
+ *
+ * Date is the real publish date (publishedAt), falling back to createdAt only when
+ * an episode has no publish date — otherwise every episode shows its ingest day,
+ * not when it aired.
  */
 export function episodeMeta(ep: Episode): string {
   const parts: string[] = [];
   if (ep.episodeNumber != null) {
     parts.push(`EP.${ep.episodeNumber}`);
   }
-  parts.push(formatMonoDate(ep.createdAt));
+  parts.push(formatMonoDate(ep.publishedAt ?? ep.createdAt));
   const dur = formatDuration(ep.duration);
   if (dur) parts.push(dur);
   return parts.join(' · ');

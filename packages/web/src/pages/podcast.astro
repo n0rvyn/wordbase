@@ -32,8 +32,9 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
 ---
 
 <BaseLayout
-  title={podcast ? `${showTitle} — norvyn` : '播客 — norvyn'}
+  title={podcast ? showTitle : '播客'}
   description={podcast?.description ? stripMarkdown(podcast.description, 120) : '一档慢节奏的播客。'}
+  ogImage="/og-podcast.png"
 >
 
 <!-- 00 HERO — show header (cover + identity) -->
