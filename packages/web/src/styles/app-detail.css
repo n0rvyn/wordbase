@@ -377,42 +377,22 @@
 }
 
 /* ---- mac window frame (landscape screenshots) ---- */
+/* Minimal MacBook display: dark bezel + rounded screen + camera notch (no base) */
 .mac-win {
-  aspect-ratio: 16 / 10;
-  border-radius: 16px;
-  border: 1px solid var(--line-2);
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-.mac-bar {
-  flex: 0 0 30px;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 0 12px;
-  border-bottom: 1px solid var(--line);
-  background: var(--surface-2);
-}
-.mac-dots {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-}
-.mac-dot {
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  display: inline-block;
-}
-.mac-dot:nth-child(1) { background: #ff5f57; }
-.mac-dot:nth-child(2) { background: #febc2e; }
-.mac-dot:nth-child(3) { background: #28c840; }
-.mac-screen {
-  flex: 1;
   position: relative;
+  aspect-ratio: 16 / 10;
+  border-radius: 18px;
+  padding: 11px;                 /* dark bezel thickness */
+  background: #1c1c1e;           /* MacBook display bezel */
+  border: 1px solid #2a2a2c;     /* faint device edge — holds in light + dark themes */
+  box-shadow: var(--shadow);
+}
+.mac-screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
   background: linear-gradient(170deg, color-mix(in srgb, var(--app) 20%, var(--surface)), var(--surface) 70%);
 }
 .mac-screen img {
@@ -421,6 +401,20 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+/* Rectangular camera notch hanging from the top bezel into the screen */
+.mac-notch {
+  position: absolute;
+  top: 11px;                     /* = bezel padding → starts at the screen's top edge */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 22%;
+  max-width: 88px;
+  height: 15px;
+  background: #1c1c1e;           /* same as bezel → reads as the bezel dipping in */
+  border-bottom-left-radius: 7px;
+  border-bottom-right-radius: 7px;
+  z-index: 2;
 }
 .ad-hero .mac-win {
   width: min(420px, 100%);

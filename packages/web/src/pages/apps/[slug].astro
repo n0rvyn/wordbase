@@ -103,11 +103,11 @@ const appStoreHref = app.appStoreUrl ?? (app.appStoreId ? `https://apps.apple.co
             </div>
           </div>
 
-          <!-- Preview: mac-window frame for macOS, phone frame otherwise -->
+          <!-- Preview: MacBook screen frame for macOS, phone frame otherwise -->
           {isMac && screenshots.length > 0 ? (
             <div class="mac-win">
-              <div class="mac-bar"><span class="mac-dots"><i class="mac-dot"></i><i class="mac-dot"></i><i class="mac-dot"></i></span></div>
               <div class="mac-screen"><img src={screenshots[0]} alt={`${app.name} screenshot`} /></div>
+              <span class="mac-notch"></span>
             </div>
           ) : (
             <div class="phone">
@@ -166,8 +166,8 @@ const appStoreHref = app.appStoreUrl ?? (app.appStoreId ? `https://apps.apple.co
               <div class="shot">
                 {isMac ? (
                   <div class="mac-win">
-                    <div class="mac-bar"><span class="mac-dots"><i class="mac-dot"></i><i class="mac-dot"></i><i class="mac-dot"></i></span></div>
                     <div class="mac-screen"><img src={url} alt={`${app.name} screenshot ${i + 1}`} /></div>
+                    <span class="mac-notch"></span>
                   </div>
                 ) : (
                   <div class="shot-frame">
