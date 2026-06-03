@@ -23,6 +23,12 @@ const archive = sortEpisodes(episodes).filter(e => e.id !== featuredEp?.id);
 const showTitle = podcast ? decodeEntities(podcast.title) : '播客';
 const feedHref = podcast ? `/api/podcasts/${podcast.slug}/feed.xml` : null;
 const host = podcast?.author ?? podcast?.ownerName ?? null;
+const showCover = podcast?.coverImage || featuredEp?.coverImage || null;
+
+// Grey 2-line blurb for an episode row — short summary only (full transcript
+// lives in showNotes / content:encoded, far too long for the list). Returns
+// '' when absent so the markup can skip rendering an empty line.
+const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary, 180) : '');
 ---
 
 <BaseLayout
@@ -30,7 +36,7 @@ const host = podcast?.author ?? podcast?.ownerName ?? null;
   description={podcast?.description ? stripMarkdown(podcast.description, 120) : '一档慢节奏的播客。'}
 >
 
-<!-- 00 HERO -->
+<!-- 00 HERO — show header (cover + identity) -->
 <header class="sec wrap" style="border-top:none;padding-top:clamp(44px,6vw,80px)">
   <div class="row2">
     <div class="spine">
@@ -41,22 +47,30 @@ const host = podcast?.author ?? podcast?.ownerName ?? null;
       )}
       {!podcast && <span class="note">一档慢节奏的播客。</span>}
     </div>
-    <div>
-      <div class="eyebrow">
-        Podcast{host ? ` · 主播 ${host}` : ''}
+    <div class="show-head">
+      <div class="show-cover">
+        {showCover
+          ? <img src={showCover} alt={showTitle} width="132" height="132" loading="eager" />
+          : <span>{showTitle.charAt(0)}</span>
+        }
       </div>
-      <h1>{showTitle}</h1>
-      <p class="lede">
-        {podcast?.description ? stripMarkdown(podcast.description, podcast.description.length) : '一档慢节奏的播客。'}
-      </p>
-      {feedHref && (
-        <div class="subscribe">
-          <a class="btn btn-1" href={feedHref}>订阅 · RSS ↗</a>
-          {podcast?.link && (
-            <a class="btn btn-2" href={podcast.link} target="_blank" rel="noopener noreferrer">在播客客户端收听</a>
-          )}
+      <div class="show-meta">
+        <div class="eyebrow">
+          Podcast{host ? ` · 主播 ${host}` : ''}
         </div>
-      )}
+        <h1>{showTitle}</h1>
+        <p class="lede">
+          {podcast?.description ? stripMarkdown(podcast.description, podcast.description.length) : '一档慢节奏的播客。'}
+        </p>
+        {feedHref && (
+          <div class="subscribe">
+            <a class="btn btn-1" href={feedHref}>订阅 · RSS ↗</a>
+            {podcast?.link && (
+              <a class="btn btn-2" href={podcast.link} target="_blank" rel="noopener noreferrer">在播客客户端收听</a>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   </div>
 </header>
@@ -83,7 +97,7 @@ const host = podcast?.author ?? podcast?.ownerName ?? null;
 )}
 
 {podcast && featuredEp && (
-  <!-- 01 LATEST -->
+  <!-- 01 LATEST — same row structure as the archive, just emphasized -->
   <section class="sec wrap">
     <div class="row2">
       <div class="spine">
@@ -91,20 +105,15 @@ const host = podcast?.author ?? podcast?.ownerName ?? null;
         <span class="lab">Latest</span>
         <span class="note">最新一期。</span>
       </div>
-      <div class="feat-ep">
-        <div class="ep-cover">
-          {(podcast.coverImage || featuredEp.coverImage)
-            ? <img src={podcast.coverImage || featuredEp.coverImage || ''} alt={showTitle} width="104" height="104" style="border-radius:18px;width:100%;height:100%;object-fit:cover;" />
-            : <span>{showTitle.charAt(0)}</span>
-          }
-        </div>
-        <div class="eb">
-          <span class="en">
+      <div class="ep-list">
+        <article class="ep-item ep-item--feature">
+          <span class="ep-eyebrow ep-eyebrow--accent">
             {featuredEp.episodeNumber != null ? `EP.${featuredEp.episodeNumber} · 最新一期` : '最新一期'}
           </span>
-          <h3>{featuredEp.title}</h3>
+          <h3 class="ep-title">{featuredEp.title}</h3>
+          {epBlurb(featuredEp) && <p class="ep-sum">{epBlurb(featuredEp)}</p>}
           <audio controls preload="none" src={`/api/podcasts/episodes/${encodeURIComponent(featuredEp.slug)}/download`}></audio>
-        </div>
+        </article>
       </div>
     </div>
   </section>
@@ -119,13 +128,14 @@ const host = podcast?.author ?? podcast?.ownerName ?? null;
         <span class="lab">Episodes</span>
         <span class="note">全部单集，按期号倒序。</span>
       </div>
-      <div class="list">
+      <div class="ep-list">
         {archive.map((ep: Episode) => (
-          <div class="item ep-row">
-            <div class="item-title">{ep.title}</div>
-            <div class="item-meta">{episodeMeta(ep)}</div>
+          <article class="ep-item">
+            <span class="ep-eyebrow">{episodeMeta(ep)}</span>
+            <h3 class="ep-title">{ep.title}</h3>
+            {epBlurb(ep) && <p class="ep-sum">{epBlurb(ep)}</p>}
             <audio controls preload="none" src={`/api/podcasts/episodes/${encodeURIComponent(ep.slug)}/download`}></audio>
-          </div>
+          </article>
         ))}
       </div>
     </div>
@@ -161,35 +171,54 @@ const host = podcast?.author ?? podcast?.ownerName ?? null;
   /* ── Subscribe row ────────────────────────────────────────────────────────── */
   .subscribe { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 26px; }
 
-  /* ── Featured episode ─────────────────────────────────────────────────────── */
-  .feat-ep {
+  /* ── Show header (00 HERO) ────────────────────────────────────────────────── */
+  /* Cover-left, identity-right (Apple show-header). To flip the cover to the
+     right, change grid-template-columns to `1fr auto` and reorder is automatic
+     since .show-cover comes first in source — move it after .show-meta instead. */
+  .show-head {
     display: grid; grid-template-columns: auto 1fr;
-    gap: 22px; align-items: center;
-    padding: 8px 0 28px; margin-bottom: 8px;
-    border-bottom: 1px solid var(--line);
+    gap: clamp(20px, 3vw, 36px); align-items: center;
   }
-  .ep-cover {
-    width: 104px; height: 104px; border-radius: 18px; flex-shrink: 0;
+  .show-cover {
+    width: clamp(112px, 13vw, 132px); aspect-ratio: 1;
+    border-radius: var(--r-lg); flex-shrink: 0; overflow: hidden;
     background: radial-gradient(120% 120% at 20% 0%, color-mix(in srgb, var(--accent) 50%, #15151a), #0e0e14);
     display: grid; place-items: center; box-shadow: var(--shadow);
   }
-  .ep-cover span {
+  .show-cover img { width: 100%; height: 100%; object-fit: cover; }
+  .show-cover span {
     font-family: var(--font-display); font-weight: 700;
-    font-size: 30px; color: #fff; letter-spacing: -.03em;
+    font-size: 38px; color: #fff; letter-spacing: -.03em;
   }
-  .feat-ep .eb .en {
-    font-family: var(--font-mono); font-size: 11.5px;
-    letter-spacing: .1em; text-transform: uppercase; color: var(--accent);
-  }
-  .feat-ep .eb h3 {
-    font-family: var(--font-display); font-weight: 600;
-    font-size: clamp(20px, 2.3vw, 26px); letter-spacing: -.02em; margin: 8px 0 16px;
-  }
-  audio { width: 100%; max-width: 420px; margin-top: 8px; }
+  .show-meta h1 { margin: 0; }
+  .show-meta .eyebrow { margin-bottom: 16px; }
 
-  /* ── Episode list rows ────────────────────────────────────────────────────── */
-  .ep-row { grid-template-columns: 1fr; gap: 10px 0; align-items: start; }
-  .ep-row audio { margin-top: 4px; }
+  /* ── Episode rows (01 Latest + 02 Episodes share this) ────────────────────── */
+  .ep-list { display: flex; flex-direction: column; }
+  .ep-item {
+    display: flex; flex-direction: column; align-items: flex-start;
+    gap: 10px; padding: 26px 0; border-top: 1px solid var(--line);
+  }
+  .ep-item:first-child { border-top: none; padding-top: 2px; }
+  .ep-eyebrow {
+    font-family: var(--font-mono); font-size: 11.5px;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3);
+  }
+  .ep-eyebrow--accent { color: var(--accent); }
+  .ep-title {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: clamp(18px, 1.7vw, 21px); letter-spacing: -.02em;
+    line-height: 1.3; margin: 0;
+  }
+  /* The featured (latest) episode reads larger than the archive rows. */
+  .ep-item--feature .ep-title { font-size: clamp(20px, 2.3vw, 26px); }
+  .ep-sum {
+    font-family: var(--font-read); font-size: 15px; line-height: 1.6;
+    color: var(--ink-2); max-width: 64ch; margin: 0;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  audio { width: 100%; max-width: 480px; margin-top: 6px; }
 
   /* ── Empty state ──────────────────────────────────────────────────────────── */
   .empty {
@@ -201,6 +230,7 @@ const host = podcast?.author ?? podcast?.ownerName ?? null;
 
   /* ── Responsive ───────────────────────────────────────────────────────────── */
   @media (max-width: 880px) {
-    .feat-ep { grid-template-columns: 1fr; }
+    .show-head { grid-template-columns: 1fr; gap: 22px; }
+    .show-cover { width: 96px; }
   }
 </style>
