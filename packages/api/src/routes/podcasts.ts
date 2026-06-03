@@ -3,6 +3,7 @@ import { authMiddleware, requireScope } from '../middleware/index.js';
 import * as podcastService from '../services/podcast.service.js';
 import * as episodeService from '../services/episode.service.js';
 import * as feedService from '../services/feed.service.js';
+import * as podcastAnalytics from '../services/podcast-analytics.service.js';
 import { triggerBuild } from '../services/build.service.js';
 import type { AppEnv } from '../types.js';
 
@@ -40,6 +41,39 @@ podcastsRouter.get('/episodes/:idOrSlug/transcript.txt', async (c) => {
   });
 });
 
+// Download-tracking redirect (public). The feed's <enclosure> and the site's <audio>
+// point here instead of the raw audio URL; we record the hit then 302 to the real
+// file (the same URL that works today — Caddy serves /uploads in prod). The standard
+// podcast-host pattern: counting happens on this hop, bytes are served by the target.
+// Recording is best-effort and must never block or break the redirect.
+podcastsRouter.get('/episodes/:idOrSlug/download', async (c) => {
+  const episode = await episodeService.getEpisode(c.req.param('idOrSlug'));
+  if (!episode || !episode.audioUrl) {
+    return c.json({ error: { code: 'NOT_FOUND', message: 'Episode audio not found' } }, 404);
+  }
+
+  // Count only real GET fetches. Hono dispatches HEAD to this GET handler too, but a
+  // HEAD is a probe (Apple Podcasts validates the enclosure with one) — not a download.
+  if (c.req.method === 'GET') {
+    try {
+      await podcastAnalytics.recordPodcastEvent({
+        eventType: 'download',
+        podcastId: episode.podcastId,
+        episodeId: episode.id,
+        userAgent: c.req.header('user-agent') || 'unknown',
+        ipAddress: c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'unknown',
+        referrer: c.req.header('referer') || null,
+      });
+    } catch {
+      // swallow — analytics must not affect the download
+    }
+  }
+
+  const siteUrl = (process.env.SITE_URL || 'https://norvyn.com').replace(/\/$/, '');
+  const target = /^https?:\/\//.test(episode.audioUrl) ? episode.audioUrl : `${siteUrl}${episode.audioUrl}`;
+  return c.redirect(target, 302);
+});
+
 podcastsRouter.get('/:slug', async (c) => {
   const show = await podcastService.getPodcast(c.req.param('slug'));
   if (!show) return c.json({ error: { code: 'NOT_FOUND', message: 'Podcast not found' } }, 404);
@@ -62,6 +96,20 @@ podcastsRouter.get('/:slug/feed.xml', async (c) => {
   const show = await podcastService.getPodcast(c.req.param('slug'));
   if (!show) return c.json({ error: { code: 'NOT_FOUND', message: 'Podcast not found' } }, 404);
   const { data: episodes } = await episodeService.listEpisodes(show.id, { limit: 200 });
+
+  // Record the feed poll (best-effort) — podcast clients pulling the feed are the
+  // closest proxy for active subscribers. Never let it break feed delivery.
+  try {
+    await podcastAnalytics.recordPodcastEvent({
+      eventType: 'feed_poll',
+      podcastId: show.id,
+      userAgent: c.req.header('user-agent') || 'unknown',
+      ipAddress: c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'unknown',
+    });
+  } catch {
+    // swallow — analytics must not affect the feed
+  }
+
   const siteUrl = process.env.SITE_URL || 'https://norvyn.com';
   const xml = feedService.buildPodcastFeedXml(show, episodes, siteUrl);
   return new Response(xml, {
