@@ -71,11 +71,27 @@ const mockAppInfoLocalizationsResponse = {
 const mockVersionsResponse = {
   data: [
     {
+      // Newest version, NOT yet released — must be skipped in favour of READY_FOR_SALE.
+      // Listed FIRST so a revert to "take latest (versionList[0])" would pick 1.1 and
+      // fail the version==='1.0' assertion below.
+      id: 'ver-002',
+      type: 'appStoreVersions',
+      attributes: {
+        versionString: '1.1',
+        platform: 'IOS',
+        appStoreState: 'PREPARE_FOR_SUBMISSION',
+      },
+      relationships: {
+        appStoreVersionLocalizations: { data: [] },
+      },
+    },
+    {
       id: 'ver-001',
       type: 'appStoreVersions',
       attributes: {
         versionString: '1.0',
         platform: 'IOS',
+        appStoreState: 'READY_FOR_SALE',
       },
       relationships: {
         appStoreVersionLocalizations: {
@@ -261,7 +277,8 @@ describe('fetchAppMetadata', () => {
     // subtitle: zh-Hans preferred
     expect(result!.subtitle).toBe('记录点滴，让思想生根发芽。');
 
-    // version
+    // version: prefers the READY_FOR_SALE version (1.0) over the newer
+    // PREPARE_FOR_SUBMISSION version (1.1) listed first → guards "take latest" revert
     expect(result!.version).toBe('1.0');
 
     // whatsNew: zh-Hans loc has null — expect null (not en-US value)

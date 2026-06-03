@@ -131,7 +131,7 @@ interface AscVersionsResponse {
   data: Array<{
     id: string;
     type: string;
-    attributes?: { versionString?: string; platform?: string };
+    attributes?: { versionString?: string; platform?: string; appStoreState?: string };
     relationships?: Record<string, { data: Array<{ id: string; type: string }> }>;
   }>;
   included?: Array<{
@@ -272,11 +272,16 @@ export async function fetchAppMetadata(appStoreId: string): Promise<AscAppMeta |
     }
   }
 
-  // Step 2: Fetch latest appStoreVersion + localizations (unchanged — API-valid)
-  // Deterministically select verLocId: prefer zh-Hans, else first.
-  // This id is reused in Task 2 for screenshots (MR-1 determinism).
+  // Step 2: Fetch appStoreVersions + localizations.
+  // Public landing pages mirror the LIVE App Store listing, so prefer the
+  // released version (READY_FOR_SALE) for all public-facing data — version
+  // string, whatsNew, description, screenshots. The newest version may be an
+  // in-progress PREPARE_FOR_SUBMISSION with incomplete/rejected assets (e.g.
+  // screenshots that failed Apple's processing), which must not shadow the
+  // live listing. Apps never released (no READY_FOR_SALE) fall back to latest.
+  // Deterministically select verLocId within the chosen version: zh-Hans, else first.
   const versionsData = await ascFetch<AscVersionsResponse>(
-    `/v1/apps/${appStoreId}/appStoreVersions?limit=1&include=appStoreVersionLocalizations`,
+    `/v1/apps/${appStoreId}/appStoreVersions?limit=10&include=appStoreVersionLocalizations`,
     token
   );
 
@@ -288,7 +293,8 @@ export async function fetchAppMetadata(appStoreId: string): Promise<AscAppMeta |
 
   const versionList = versionsData.data ?? [];
   if (versionList.length > 0) {
-    const ver = versionList[0];
+    // Prefer the released (live) version; fall back to the newest (versionList[0]).
+    const ver = versionList.find(v => v.attributes?.appStoreState === 'READY_FOR_SALE') ?? versionList[0];
     version = ver.attributes?.versionString ?? null;
 
     const rawPlatform = ver.attributes?.platform ?? null;
