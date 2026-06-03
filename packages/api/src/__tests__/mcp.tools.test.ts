@@ -309,3 +309,47 @@ describe('registerTools — handler behavior (Phase 8)', () => {
     expect(result.isError).toBe(true);
   });
 });
+
+// The REST publish routes (routes/podcasts.ts, routes/apps.ts) call triggerBuild()
+// so the static site rebuilds. The MCP publish handlers used to skip it, so an
+// MCP-driven publish left the site stale. These assert parity.
+describe('registerTools — MCP publish triggers a rebuild (parity with REST)', () => {
+  let server: ReturnType<typeof buildCapturingServer>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    server = buildCapturingServer();
+    registerTools(server);
+  });
+
+  it('podcast_publish_show triggers build on success, but not on not-found', async () => {
+    const { triggerBuild } = await import('../services/build.service.js');
+    const { publishPodcast } = await import('../services/podcast.service.js');
+
+    // not-found → no rebuild
+    (publishPodcast as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null);
+    await server.getHandler('podcast_publish_show')!({ id: 'missing' });
+    expect(triggerBuild).not.toHaveBeenCalled();
+
+    // success → rebuild fires
+    (publishPodcast as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: 'p1', status: 'published' });
+    await server.getHandler('podcast_publish_show')!({ id: 'p1' });
+    expect(triggerBuild).toHaveBeenCalledOnce();
+  });
+
+  it('podcast_publish_episode triggers build on success', async () => {
+    const { triggerBuild } = await import('../services/build.service.js');
+    const { publishEpisode } = await import('../services/episode.service.js');
+    (publishEpisode as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: 'e1', status: 'published' });
+    await server.getHandler('podcast_publish_episode')!({ id: 'e1' });
+    expect(triggerBuild).toHaveBeenCalledOnce();
+  });
+
+  it('app_publish triggers build on success', async () => {
+    const { triggerBuild } = await import('../services/build.service.js');
+    const { publishApp } = await import('../services/app.service.js');
+    (publishApp as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: 'a1', status: 'published' });
+    await server.getHandler('app_publish')!({ id: 'a1' });
+    expect(triggerBuild).toHaveBeenCalledOnce();
+  });
+});

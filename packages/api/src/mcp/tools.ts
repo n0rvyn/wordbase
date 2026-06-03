@@ -469,6 +469,8 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
     async (args: { id: string }) => {
       const show = await podcastService.publishPodcast(args.id);
       if (!show) return { content: [{ type: 'text' as const, text: 'Podcast not found' }], isError: true };
+      // Mirror the REST route (routes/podcasts.ts): publishing rebuilds the static site.
+      buildService.triggerBuild();
       return { content: [{ type: 'text' as const, text: JSON.stringify(show, null, 2) }] };
     }
   );
@@ -569,6 +571,8 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
     async (args: { id: string }) => {
       const episode = await episodeService.publishEpisode(args.id);
       if (!episode) return { content: [{ type: 'text' as const, text: 'Episode not found' }], isError: true };
+      // Mirror the REST route (routes/podcasts.ts): publishing rebuilds the static site.
+      buildService.triggerBuild();
       return { content: [{ type: 'text' as const, text: JSON.stringify(episode, null, 2) }] };
     }
   );
@@ -639,6 +643,8 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
     async (args: { id: string }) => {
       const app = await appService.publishApp(args.id);
       if (!app) return { content: [{ type: 'text' as const, text: 'App not found' }], isError: true };
+      // Mirror the REST route (routes/apps.ts): publishing rebuilds the static site.
+      buildService.triggerBuild();
       return { content: [{ type: 'text' as const, text: JSON.stringify(app, null, 2) }] };
     }
   );
