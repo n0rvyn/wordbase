@@ -67,7 +67,7 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
           )}
         </div>
         <div class="show-meta">
-          <h1>{showTitle}</h1>
+          <h1 class="show-title">{showTitle}</h1>
           <p class="lede">
             {podcast?.description ? stripMarkdown(podcast.description, podcast.description.length) : '一档慢节奏的播客。'}
           </p>
@@ -239,8 +239,28 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
   }
 
   /* ── Responsive ───────────────────────────────────────────────────────────── */
+  /* Mobile hero — album-header composition. The desktop two-column wrappers
+     (.show-id, .show-meta) are dissolved with display:contents so the cover,
+     title, lede and subscribe become direct grid items of .show-body; that lets
+     the cover pair with the title on one row, the description run full width
+     below, and the RSS button drop to the bottom as a full-width CTA (so it no
+     longer crowds the cover). Desktop layout above is untouched. */
   @media (max-width: 880px) {
-    .show-body { grid-template-columns: 1fr; gap: 22px; }
-    .show-cover { width: 96px; }
+    .show-id, .show-meta { display: contents; }
+    .show-body {
+      grid-template-columns: auto 1fr;
+      column-gap: clamp(16px, 4.5vw, 22px);
+      row-gap: clamp(18px, 5vw, 26px);
+      grid-template-areas:
+        "cover title"
+        "lede  lede"
+        "sub   sub";
+      align-items: start;
+    }
+    .show-cover { grid-area: cover; width: clamp(96px, 27vw, 124px); }
+    .show-title { grid-area: title; align-self: center; }
+    .lede { grid-area: lede; }
+    .subscribe { grid-area: sub; width: 100%; }
+    .subscribe .btn { width: 100%; justify-content: center; }
   }
 </style>
