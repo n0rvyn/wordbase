@@ -9,6 +9,7 @@ import * as episodeService from '../services/episode.service.js';
 import * as appService from '../services/app.service.js';
 import * as appSyncService from '../services/app-sync.service.js';
 import * as pageService from '../services/page.service.js';
+import * as feedImportService from '../services/feed-import.service.js';
 import { hasScope } from '../middleware/auth.js';
 import { z, type ZodTypeAny } from 'zod';
 
@@ -17,7 +18,7 @@ import { z, type ZodTypeAny } from 'zod';
 // it sees a non-Zod object it silently treats it as `annotations` instead — which
 // is what produced the `annotations.title` validation crash on the client for the
 // 5 tools that have a `title` field, and left every other tool with no advertised
-// parameters. Convert each descriptor to a Zod type centrally so the 38 call sites
+// parameters. Convert each descriptor to a Zod type centrally so the tool call sites
 // stay declarative.
 type PropDescriptor = { type: 'string' | 'number'; description?: string };
 
@@ -56,11 +57,15 @@ const TOOL_SCOPES: Record<string, string> = {
   blog_manage_redirects: 'redirects:write',
   podcast_list_shows: 'podcasts:read',
   podcast_create_show: 'podcasts:write',
+  podcast_update_show: 'podcasts:write',
   podcast_publish_show: 'podcasts:write',
   podcast_list_episodes: 'podcasts:read',
   podcast_create_episode: 'podcasts:write',
+  podcast_update_episode: 'podcasts:write',
   podcast_upload_audio: 'podcasts:write',
+  podcast_upload_audio_from_url: 'podcasts:write',
   podcast_publish_episode: 'podcasts:write',
+  podcast_import_feed: 'podcasts:write',
   app_list: 'apps:read',
   app_create: 'apps:write',
   app_publish: 'apps:write',
@@ -78,7 +83,7 @@ const TOOL_SCOPES: Record<string, string> = {
 
 export function registerTools(realServer: any, permissions: string[] = ['*']) {
   // Wrap the SDK's tool() so each registration below is gated by its TOOL_SCOPES
-  // entry, without editing all 38 call sites. A tool call made with an
+  // entry, without editing every call site. A tool call made with an
   // out-of-scope key returns an MCP error result instead of executing.
   const server = {
     tool(...args: any[]) {
@@ -574,6 +579,172 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
       // Mirror the REST route (routes/podcasts.ts): publishing rebuilds the static site.
       buildService.triggerBuild();
       return { content: [{ type: 'text' as const, text: JSON.stringify(episode, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'podcast_update_show',
+    "Update a podcast show's metadata (title/description/slug/author/owner/category/cover/etc.). Triggers a site rebuild.",
+    {
+      id: { type: 'string', description: 'Podcast show ID' },
+      title: { type: 'string', description: 'Show title' },
+      description: { type: 'string', description: 'Show description' },
+      slug: { type: 'string', description: 'URL slug' },
+      author: { type: 'string', description: 'Author name' },
+      ownerName: { type: 'string', description: 'Owner name for iTunes feed' },
+      ownerEmail: { type: 'string', description: 'Owner email for iTunes feed' },
+      category: { type: 'string', description: 'iTunes category' },
+      coverImage: { type: 'string', description: 'Cover image URL' },
+      language: { type: 'string', description: 'Language code (e.g. zh-CN)' },
+      copyright: { type: 'string', description: 'Copyright line' },
+      link: { type: 'string', description: 'Show website link' },
+      explicit: { type: 'number', description: '1 if explicit content, 0 otherwise' },
+      status: { type: 'string', description: 'Status: draft or published' },
+    },
+    async (args: Record<string, unknown>) => {
+      const show = await podcastService.updatePodcast(args.id as string, {
+        title: args.title as string | undefined,
+        description: args.description as string | undefined,
+        slug: args.slug as string | undefined,
+        author: args.author as string | undefined,
+        ownerName: args.ownerName as string | undefined,
+        ownerEmail: args.ownerEmail as string | undefined,
+        category: args.category as string | undefined,
+        coverImage: args.coverImage as string | undefined,
+        language: args.language as string | undefined,
+        copyright: args.copyright as string | undefined,
+        link: args.link as string | undefined,
+        explicit: args.explicit as number | undefined,
+        status: args.status as string | undefined,
+      });
+      if (!show) return { content: [{ type: 'text' as const, text: 'Podcast not found' }], isError: true };
+      buildService.triggerBuild();
+      return { content: [{ type: 'text' as const, text: JSON.stringify(show, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'podcast_update_episode',
+    'Update a podcast episode (title/summary/show notes/transcript/episode number/type/publishedAt/etc.). Rebuilds the site when the episode is published.',
+    {
+      id: { type: 'string', description: 'Episode ID' },
+      title: { type: 'string', description: 'Episode title' },
+      summary: { type: 'string', description: 'Short summary' },
+      showNotes: { type: 'string', description: 'Full show notes (HTML or Markdown)' },
+      transcript: { type: 'string', description: 'Transcript text' },
+      episodeNumber: { type: 'number', description: 'Episode number' },
+      seasonNumber: { type: 'number', description: 'Season number' },
+      episodeType: { type: 'string', description: 'Episode type: full, trailer, or bonus' },
+      explicit: { type: 'number', description: '1 if explicit, 0 otherwise' },
+      coverImage: { type: 'string', description: 'Episode cover image URL' },
+      publishedAt: { type: 'number', description: 'Publish date as a unix epoch (seconds)' },
+      status: { type: 'string', description: 'Status: draft or published' },
+    },
+    async (args: Record<string, unknown>) => {
+      const episode = await episodeService.updateEpisode(args.id as string, {
+        title: args.title as string | undefined,
+        summary: args.summary as string | undefined,
+        showNotes: args.showNotes as string | undefined,
+        transcript: args.transcript as string | undefined,
+        episodeNumber: args.episodeNumber as number | undefined,
+        seasonNumber: args.seasonNumber as number | undefined,
+        episodeType: args.episodeType as string | undefined,
+        explicit: args.explicit as number | undefined,
+        coverImage: args.coverImage as string | undefined,
+        publishedAt: args.publishedAt as number | undefined,
+        status: args.status as string | undefined,
+      });
+      if (!episode) return { content: [{ type: 'text' as const, text: 'Episode not found' }], isError: true };
+      // Only a published episode is visible in the feed/site, so only then rebuild.
+      if (episode.status === 'published') buildService.triggerBuild();
+      return { content: [{ type: 'text' as const, text: JSON.stringify(episode, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'podcast_import_feed',
+    'Import an external podcast RSS feed (e.g. Anchor/Spotify): updates or creates the show and upserts every episode (idempotent by guid). Keeps the original audio URLs and publish dates. Episodes import as draft unless status=published.',
+    {
+      feedUrl: { type: 'string', description: 'URL of the external RSS feed' },
+      podcastId: { type: 'string', description: 'Target show ID to import into; if omitted, a new show is created' },
+      externalSource: { type: 'string', description: 'Label stored on each episode for idempotent re-import (default: rss)' },
+      status: { type: 'string', description: 'Status to import episodes as: draft (default) or published' },
+    },
+    async (args: Record<string, unknown>) => {
+      const feedUrl = args.feedUrl as string;
+      const externalSource = (args.externalSource as string) || 'rss';
+      const status = (args.status as string) || 'draft';
+      let xml: string;
+      try {
+        const resp = await fetch(feedUrl);
+        if (!resp.ok) {
+          return { content: [{ type: 'text' as const, text: `Fetch failed: ${resp.status} ${resp.statusText}` }], isError: true };
+        }
+        xml = await resp.text();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'fetch error';
+        return { content: [{ type: 'text' as const, text: `Fetch failed: ${message}` }], isError: true };
+      }
+
+      const { show, episodes } = feedImportService.parseExternalFeed(xml);
+
+      let podcastId = args.podcastId as string | undefined;
+      if (podcastId) {
+        const updated = await podcastService.updatePodcast(podcastId, { ...show });
+        if (!updated) return { content: [{ type: 'text' as const, text: 'Target podcast not found' }], isError: true };
+      } else {
+        const created = await podcastService.createPodcast({ ...show, title: show.title || 'Imported Podcast' });
+        podcastId = created.id;
+      }
+
+      let createdCount = 0;
+      let updatedCount = 0;
+      for (const ep of episodes) {
+        const { created } = await episodeService.upsertEpisodeByExternal(podcastId, {
+          ...ep,
+          guid: ep.guid,
+          externalSource,
+          externalId: ep.guid,
+          status,
+        });
+        created ? createdCount++ : updatedCount++;
+      }
+
+      if (status === 'published') buildService.triggerBuild();
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify({ showId: podcastId, created: createdCount, updated: updatedCount, total: episodes.length }, null, 2) }],
+      };
+    }
+  );
+
+  server.tool(
+    'podcast_upload_audio_from_url',
+    'Fetch an audio file from a URL on the server and store it in the media library (avoids passing base64 through the client). Returns the hosted URL.',
+    {
+      url: { type: 'string', description: 'Public URL of the audio file to fetch' },
+      filename: { type: 'string', description: 'Filename to store as (default: derived from the URL)' },
+      mimeType: { type: 'string', description: 'MIME type override (default: from the response Content-Type)' },
+    },
+    async (args: Record<string, unknown>) => {
+      const url = args.url as string;
+      try {
+        const resp = await fetch(url);
+        if (!resp.ok) {
+          return { content: [{ type: 'text' as const, text: `Fetch failed: ${resp.status} ${resp.statusText}` }], isError: true };
+        }
+        const buffer = Buffer.from(await resp.arrayBuffer());
+        const filename = (args.filename as string) || url.split('/').pop()?.split('?')[0] || 'audio.mp3';
+        const mimeType = ((args.mimeType as string) || resp.headers.get('content-type') || 'audio/mpeg').split(';')[0].trim();
+        const result = await episodeService.uploadEpisodeAudio({
+          filename,
+          base64: buffer.toString('base64'),
+          mimeType,
+        });
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Upload failed';
+        return { content: [{ type: 'text' as const, text: `Upload failed: ${message}` }], isError: true };
+      }
     }
   );
 

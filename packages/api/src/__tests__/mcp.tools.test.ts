@@ -99,12 +99,14 @@ vi.mock('../services/redirect.service.js', () => ({
 vi.mock('../services/podcast.service.js', () => ({
   listPodcasts: vi.fn(async () => ({ data: [], total: 0 })),
   createPodcast: vi.fn(async (data: Record<string, unknown>) => ({ id: 'pod1', ...data })),
+  updatePodcast: vi.fn(async () => null),
   publishPodcast: vi.fn(async () => null),
 }));
 
 vi.mock('../services/episode.service.js', () => ({
   listEpisodes: vi.fn(async () => ({ data: [], total: 0 })),
   createEpisode: vi.fn(async (data: Record<string, unknown>) => ({ id: 'ep1', ...data })),
+  updateEpisode: vi.fn(async () => null),
   upsertEpisodeByExternal: vi.fn(async (data: Record<string, unknown>) => ({ id: 'ep1', ...data })),
   publishEpisode: vi.fn(async () => null),
   uploadEpisodeAudio: vi.fn(async () => ({ url: 'http://example.com/audio.mp3' })),
@@ -350,6 +352,40 @@ describe('registerTools — MCP publish triggers a rebuild (parity with REST)', 
     const { publishApp } = await import('../services/app.service.js');
     (publishApp as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: 'a1', status: 'published' });
     await server.getHandler('app_publish')!({ id: 'a1' });
+    expect(triggerBuild).toHaveBeenCalledOnce();
+  });
+
+  it('podcast_update_show updates the show and triggers a build', async () => {
+    const { triggerBuild } = await import('../services/build.service.js');
+    const { updatePodcast } = await import('../services/podcast.service.js');
+    (updatePodcast as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: 'p1', title: '拾余光' });
+    const res = await server.getHandler('podcast_update_show')!({ id: 'p1', title: '拾余光' }) as { isError?: boolean };
+    expect(updatePodcast).toHaveBeenCalledWith('p1', expect.objectContaining({ title: '拾余光' }));
+    expect(triggerBuild).toHaveBeenCalledOnce();
+    expect(res.isError).toBeUndefined();
+  });
+
+  it('podcast_update_show returns isError and skips build when not found', async () => {
+    const { triggerBuild } = await import('../services/build.service.js');
+    const { updatePodcast } = await import('../services/podcast.service.js');
+    (updatePodcast as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null);
+    const res = await server.getHandler('podcast_update_show')!({ id: 'missing' }) as { isError?: boolean };
+    expect(res.isError).toBe(true);
+    expect(triggerBuild).not.toHaveBeenCalled();
+  });
+
+  it('podcast_update_episode rebuilds only when the episode is published', async () => {
+    const { triggerBuild } = await import('../services/build.service.js');
+    const { updateEpisode } = await import('../services/episode.service.js');
+
+    // draft result → no rebuild
+    (updateEpisode as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: 'e1', status: 'draft' });
+    await server.getHandler('podcast_update_episode')!({ id: 'e1', summary: 's' });
+    expect(triggerBuild).not.toHaveBeenCalled();
+
+    // published result → rebuild
+    (updateEpisode as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: 'e1', status: 'published' });
+    await server.getHandler('podcast_update_episode')!({ id: 'e1', summary: 's2' });
     expect(triggerBuild).toHaveBeenCalledOnce();
   });
 });

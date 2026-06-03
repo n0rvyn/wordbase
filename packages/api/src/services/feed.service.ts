@@ -21,6 +21,16 @@ function absolutizeUrl(url: string | null | undefined, siteUrl: string): string 
   return `${siteUrl.replace(/\/$/, '')}${url}`;
 }
 
+// Apple's episodeType vocabulary; anything else falls back to "full".
+const VALID_EPISODE_TYPES = new Set(['full', 'trailer', 'bonus']);
+
+// The path where an episode's transcript is served as plain text. Shared with the
+// transcript route (routes/podcasts.ts) so the feed's <podcast:transcript> href and
+// the route can never drift. Percent-encoded for CJK slugs.
+export function episodeTranscriptPath(slug: string): string {
+  return `/api/podcasts/episodes/${encodeURIComponent(slug)}/transcript.txt`;
+}
+
 export function buildPodcastFeedXml(
   show: Podcast,
   episodes: PodcastEpisode[],
@@ -34,12 +44,21 @@ export function buildPodcastFeedXml(
 
   const showLink = absolutizeUrl(show.link || `/${show.slug}`, site);
   const coverImageUrl = absolutizeUrl(show.coverImage, site);
+  // Self-reference per RSS best practice; encode the slug so CJK feed URLs validate.
+  const selfHref = `${site.replace(/\/$/, '')}/api/podcasts/${encodeURIComponent(show.slug)}/feed.xml`;
+  // Keep the builder pure: derive lastBuildDate from the newest episode (already
+  // sorted desc), falling back to the show's own updatedAt — never Date.now().
+  const lastBuildSeconds = publishedEpisodes[0]?.publishedAt ?? show.updatedAt;
 
   const channelLines: string[] = [
     `    <title>${xmlEscape(show.title)}</title>`,
     `    <description>${cdataWrap(show.description)}</description>`,
+    `    <itunes:summary>${cdataWrap(show.description)}</itunes:summary>`,
     `    <language>${xmlEscape(show.language)}</language>`,
     `    <link>${xmlEscape(showLink)}</link>`,
+    `    <atom:link href="${xmlEscape(selfHref)}" rel="self" type="application/rss+xml" />`,
+    `    <itunes:type>episodic</itunes:type>`,
+    `    <lastBuildDate>${new Date(lastBuildSeconds * 1000).toUTCString()}</lastBuildDate>`,
     `    <itunes:author>${xmlEscape(show.author || show.ownerName)}</itunes:author>`,
     `    <itunes:owner>`,
     `      <itunes:name>${xmlEscape(show.ownerName)}</itunes:name>`,
@@ -66,19 +85,29 @@ export function buildPodcastFeedXml(
     const audioUrl = absolutizeUrl(ep.audioUrl, site);
     const pubDate = new Date((ep.publishedAt ?? 0) * 1000).toUTCString();
     const epCoverUrl = absolutizeUrl(ep.coverImage, site);
+    // Short text for <description>/<itunes:summary>; full HTML in <content:encoded>.
+    const summaryText = ep.summary || ep.showNotes;
+    const episodeType = VALID_EPISODE_TYPES.has(ep.episodeType) ? ep.episodeType : 'full';
 
     const item: string[] = [
       `    <item>`,
       `      <title>${xmlEscape(ep.title)}</title>`,
       `      <guid isPermaLink="false">${xmlEscape(ep.guid)}</guid>`,
       `      <pubDate>${pubDate}</pubDate>`,
-      `      <description>${cdataWrap(ep.showNotes || ep.summary)}</description>`,
+      `      <description>${cdataWrap(summaryText)}</description>`,
+      `      <itunes:summary>${cdataWrap(summaryText)}</itunes:summary>`,
       `      <enclosure url="${xmlEscape(audioUrl)}" type="${xmlEscape(ep.audioType)}" length="${ep.audioSize}" />`,
     ];
+
+    if (ep.showNotes) {
+      item.push(`      <content:encoded>${cdataWrap(ep.showNotes)}</content:encoded>`);
+    }
 
     if (ep.duration != null) {
       item.push(`      <itunes:duration>${ep.duration}</itunes:duration>`);
     }
+
+    item.push(`      <itunes:episodeType>${episodeType}</itunes:episodeType>`);
 
     if (ep.episodeNumber != null) {
       item.push(`      <itunes:episode>${ep.episodeNumber}</itunes:episode>`);
@@ -88,8 +117,17 @@ export function buildPodcastFeedXml(
       item.push(`      <itunes:season>${ep.seasonNumber}</itunes:season>`);
     }
 
+    if (ep.explicit != null) {
+      item.push(`      <itunes:explicit>${ep.explicit ? 'true' : 'false'}</itunes:explicit>`);
+    }
+
     if (epCoverUrl) {
       item.push(`      <itunes:image href="${xmlEscape(epCoverUrl)}" />`);
+    }
+
+    if (ep.transcript) {
+      const transcriptUrl = absolutizeUrl(episodeTranscriptPath(ep.slug), site);
+      item.push(`      <podcast:transcript url="${xmlEscape(transcriptUrl)}" type="text/plain" />`);
     }
 
     item.push(`    </item>`);
@@ -98,7 +136,7 @@ export function buildPodcastFeedXml(
 
   return [
     `<?xml version="1.0" encoding="UTF-8"?>`,
-    `<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:content="http://purl.org/rss/1.0/modules/content/">`,
+    `<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:podcast="https://podcastindex.org/namespace/1.0">`,
     `  <channel>`,
     channelLines.join('\n'),
     itemLines.join('\n'),

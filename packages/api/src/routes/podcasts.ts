@@ -26,6 +26,20 @@ podcastsRouter.get('/episodes/:idOrSlug', async (c) => {
   return c.json(episode);
 });
 
+// Serves an episode transcript as plain text. The feed's <podcast:transcript> href
+// is built by feedService.episodeTranscriptPath() so the two can't drift. 404 when
+// the episode has no transcript (the feed only links it when one exists).
+podcastsRouter.get('/episodes/:idOrSlug/transcript.txt', async (c) => {
+  const episode = await episodeService.getEpisode(c.req.param('idOrSlug'));
+  if (!episode || !episode.transcript) {
+    return c.json({ error: { code: 'NOT_FOUND', message: 'Transcript not found' } }, 404);
+  }
+  return new Response(episode.transcript, {
+    status: 200,
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+  });
+});
+
 podcastsRouter.get('/:slug', async (c) => {
   const show = await podcastService.getPodcast(c.req.param('slug'));
   if (!show) return c.json({ error: { code: 'NOT_FOUND', message: 'Podcast not found' } }, 404);

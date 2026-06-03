@@ -2,7 +2,7 @@
 
 Connects Claude Code to the [WordBase](https://norvyn.com) platform over a remote MCP server, plus publishing workflow skills.
 
-The MCP server runs inside the WordBase API process on the host and is reached at `https://norvyn.com/api/mcp` (Streamable HTTP). It exposes 38 tools across blog, podcast, apps, and pages — see the `wordbase-tools` skill for the full catalog.
+The MCP server runs inside the WordBase API process on the host and is reached at `https://norvyn.com/api/mcp` (Streamable HTTP). It exposes 42 tools across blog, podcast, apps, and pages — see the `wordbase-tools` skill for the full catalog.
 
 ## Requirements
 
@@ -51,7 +51,7 @@ claude mcp add --transport http wordbase https://norvyn.com/api/mcp --header "Au
 - `wb-rebuild` — trigger a site rebuild and report the result
 - `wb-publish` — publish a draft post, then rebuild
 - `wb-apps-sync` — sync app entries from App Store Connect
-- `wordbase-tools` — reference catalog of all 38 MCP tools
+- `wordbase-tools` — reference catalog of all 42 MCP tools
 
 ## Notes
 

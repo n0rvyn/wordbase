@@ -152,7 +152,7 @@ All endpoints at `/api/*`. Auth via `Authorization: Bearer <api-key>`.
 
 ## MCP Server
 
-38 tools for AI-powered content management (blog · podcast · apps · companion pages) via the MCP stdio protocol. An MCP client discovers the full, authoritative tool list at runtime via `tools/list`; the tables below mirror it for quick reference.
+42 tools for AI-powered content management (blog · podcast · apps · companion pages) via the MCP stdio protocol. An MCP client discovers the full, authoritative tool list at runtime via `tools/list`; the tables below mirror it for quick reference.
 
 ### Setup (Claude Desktop)
 

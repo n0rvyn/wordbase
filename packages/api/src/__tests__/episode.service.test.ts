@@ -80,6 +80,20 @@ describe('episode service', () => {
     expect(typeof published?.publishedAt).toBe('number');
   });
 
+  it('publishEpisode preserves an already-set publishedAt (imported original date)', async () => {
+    const show = await createPodcast({ title: 'Test Show 5b' });
+    const original = 1_600_000_000; // a fixed historical epoch
+    const ep = await createEpisode(show.id, {
+      title: 'Imported Ep',
+      audioUrl: '/uploads/ep.mp3',
+      publishedAt: original,
+    });
+    expect(ep.publishedAt).toBe(original);
+    const published = await publishEpisode(ep.id);
+    expect(published?.status).toBe('published');
+    expect(published?.publishedAt).toBe(original); // not overwritten with now()
+  });
+
   it('getEpisode finds by id and by slug', async () => {
     const show = await createPodcast({ title: 'Test Show 6' });
     const ep = await createEpisode(show.id, {

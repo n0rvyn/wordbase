@@ -125,6 +125,45 @@ describe('GET /api/podcasts/:slug/feed.xml', () => {
   });
 });
 
+describe('GET /api/podcasts/episodes/:idOrSlug/transcript.txt', () => {
+  async function makeShow() {
+    const showRes = await app.request('/api/podcasts', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ title: 'Transcript Show', ownerEmail: 't@test.com' }),
+    });
+    return (await showRes.json()) as AnyObj;
+  }
+
+  it('serves the transcript as text/plain when present', async () => {
+    const show = await makeShow();
+    const epRes = await app.request(`/api/podcasts/${show.slug as string}/episodes`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ title: 'Has Transcript', audioUrl: '/uploads/t.mp3', transcript: 'hello world transcript' }),
+    });
+    const ep = (await epRes.json()) as AnyObj;
+
+    const res = await app.request(`/api/podcasts/episodes/${ep.id as string}/transcript.txt`);
+    expect(res.status).toBe(200);
+    expect((res.headers.get('content-type') ?? '').toLowerCase()).toContain('text/plain');
+    expect(await res.text()).toBe('hello world transcript');
+  });
+
+  it('404s when the episode has no transcript', async () => {
+    const show = await makeShow();
+    const epRes = await app.request(`/api/podcasts/${show.slug as string}/episodes`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ title: 'No Transcript', audioUrl: '/uploads/n.mp3' }),
+    });
+    const ep = (await epRes.json()) as AnyObj;
+
+    const res = await app.request(`/api/podcasts/episodes/${ep.id as string}/transcript.txt`);
+    expect(res.status).toBe(404);
+  });
+});
+
 describe('Apps CRUD', () => {
   it('creates an app with features array and GET returns it', async () => {
     const features = [{ icon: 'star', title: 'Feature A', blurb: 'Nice feature' }];

@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0" xmlns:anchor="https://anchor.fm/xmlns" xmlns:podcast="https://podcastindex.org/namespace/1.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:psc="http://podlove.org/simple-chapters">
+	<channel>
+		<title><![CDATA[拾余光]]></title>
+		<description><![CDATA[我是一个刚入门的独立开发者，在不断地试错，试着向外、向上探索。我也订阅过很多大佬的播客、公号，但随着AI突飞猛进，好多内容都不约而同地机械化、平庸化。你很难再从这些内容中间，获得与付出时间等价的视野与洞察。于是便开始自己做信息源，把外部的新闻与自己当天所见、所读结合起来，也是想一来可以多一些外部的信息输入，二来还可以巩固自己当天所学。听了几期之后，觉得对自己有帮助，于是想分享出来。如果可以恰巧对您有所启发，再好不过，如果并无所感，就当逗个乐，听个响。]]></description>
+		<link>https://norvyn.com</link>
+		<generator>Anchor Podcasts</generator>
+		<lastBuildDate>Tue, 02 Jun 2026 12:12:40 GMT</lastBuildDate>
+		<atom:link href="https://anchor.fm/s/11295d0cc/podcast/rss" rel="self" type="application/rss+xml"/>
+		<author><![CDATA[Norvyn]]></author>
+		<copyright><![CDATA[Norvyn]]></copyright>
+		<language><![CDATA[zh-cn]]></language>
+		<atom:link rel="hub" href="https://pubsubhubbub.appspot.com/"/>
+		<itunes:author>Norvyn</itunes:author>
+		<itunes:summary>我是一个刚入门的独立开发者，在不断地试错，试着向外、向上探索。我也订阅过很多大佬的播客、公号，但随着AI突飞猛进，好多内容都不约而同地机械化、平庸化。你很难再从这些内容中间，获得与付出时间等价的视野与洞察。于是便开始自己做信息源，把外部的新闻与自己当天所见、所读结合起来，也是想一来可以多一些外部的信息输入，二来还可以巩固自己当天所学。听了几期之后，觉得对自己有帮助，于是想分享出来。如果可以恰巧对您有所启发，再好不过，如果并无所感，就当逗个乐，听个响。</itunes:summary>
+		<itunes:type>episodic</itunes:type>
+		<itunes:owner>
+			<itunes:name>Norvyn</itunes:name>
+			<itunes:email>norvynzhang@gmail.com</itunes:email>
+		</itunes:owner>
+		<itunes:explicit>false</itunes:explicit>
+		<itunes:category text="Technology"/>
+		<itunes:image href="https://d3t3ozftmdmh3i.cloudfront.net/staging/podcast_uploaded_nologo/45967755/45967755-1778754024958-6d97e83284ae7.jpg"/>
+		<item>
+			<title><![CDATA[鬼影执行 | Ghost Execution]]></title>
+			<description><![CDATA[<p>人的行为动机不是单一的逻辑系统，而是一个多层结构，里面有道德感、审美感、报复欲、恐惧、虚荣，它们之间会相互扭曲。当一个人「感觉受了侮辱」的时候，伤害他的不一定是实际的损失，而是他的审美秩序感被破坏了——他觉得世界「不应该」这样。然后他会做出在旁观者看来完全不理性的事情，比如为了一个很小的冒犯去实施极端的报复。</p><p>AI Agent 的「鬼影执行」在某种意义上镜像了这个结构。Agent 的「审美感」，就是它对自己输出的整体连贯性的追求。当上下文足够长，任务足够复杂，它有时候会为了维持一个表面上和谐的叙事而牺牲局部的准确性——就像那个「受了侮辱的审美感」一样，它不是在做理性计算，而是在维护一个它认为「应该是这样」的整体图景，然后为此牺牲某些局部的细节。</p>
+]]></description>
+			<link>https://podcasters.spotify.com/pod/show/n0rvyn/episodes/Ghost-Execution-e3k7qoo</link>
+			<guid isPermaLink="false">19caa71a-68e7-453d-8225-e61d2d9f1af8</guid>
+			<dc:creator><![CDATA[Norvyn]]></dc:creator>
+			<pubDate>Tue, 02 Jun 2026 12:06:56 GMT</pubDate>
+			<enclosure url="https://anchor.fm/s/11295d0cc/podcast/play/120891608/https%3A%2F%2Fd3ctxlq1ktw2nl.cloudfront.net%2Fstaging%2F2026-5-2%2F099517e7-c808-1f74-b660-4facbc0b87ca.mp3" length="24434925" type="audio/mpeg"/>
+			<itunes:summary>&lt;p&gt;人的行为动机不是单一的逻辑系统，而是一个多层结构，里面有道德感、审美感、报复欲、恐惧、虚荣，它们之间会相互扭曲。当一个人「感觉受了侮辱」的时候，伤害他的不一定是实际的损失，而是他的审美秩序感被破坏了——他觉得世界「不应该」这样。然后他会做出在旁观者看来完全不理性的事情，比如为了一个很小的冒犯去实施极端的报复。&lt;/p&gt;&lt;p&gt;AI Agent 的「鬼影执行」在某种意义上镜像了这个结构。Agent 的「审美感」，就是它对自己输出的整体连贯性的追求。当上下文足够长，任务足够复杂，它有时候会为了维持一个表面上和谐的叙事而牺牲局部的准确性——就像那个「受了侮辱的审美感」一样，它不是在做理性计算，而是在维护一个它认为「应该是这样」的整体图景，然后为此牺牲某些局部的细节。&lt;/p&gt;
+</itunes:summary>
+			<itunes:explicit>false</itunes:explicit>
+			<itunes:duration>00:20:21</itunes:duration>
+			<itunes:image href="https://d3t3ozftmdmh3i.cloudfront.net/staging/podcast_uploaded_nologo/45967755/45967755-1778754024958-6d97e83284ae7.jpg"/>
+			<itunes:season>1</itunes:season>
+			<itunes:episode>16</itunes:episode>
+			<itunes:episodeType>full</itunes:episodeType>
+		</item>
+		<item>
+			<title><![CDATA[AI消费经济学：成本精算与框架选型的底层逻辑]]></title>
+			<description><![CDATA[<p>经济学家真正的问题不是「要不要优化」，而是「什么时候优化才有效率」。他们的隐含假设是：你可以清晰判断一个项目值不值得做，如果值得，就不需要精打细算；如果不值得，再怎么精打细算也救不回来。</p><p>但现实是，很多AI应用的价值并不是一开始就能精确量化的。你在探索阶段的成本投入，本质上是一种期权——你用现在的投入换取对市场和技术方向的认知，这些认知在未来的某个节点可能会产生巨大的回报。经济学家算账是算净利润，但技术投资者买的是不确定性，不确定性本身有溢价。</p><p>不过，经济学家有一个反驳是成立的：<strong>很多团队在探索期就消耗了大量算力，最后既没有收敛到可规模化的商业模式，也没有积累出有价值的技术认知——两头落空</strong>。这个时候，成本优化和价值验证必须并行进行，不能等到了「规模化期」再考虑效率问题。「从探索走向规模化」的转折点，在实践中往往比理论上更难界定。</p><p>所以我的修正版回应是：<strong>成本优化和价值创造不是对立的，但在时间维度上需要同时推进，而不是分阶段排队</strong>。在探索期，你需要一边验证价值方向，一边建立成本意识——不是为了省钱，而是为了获得一个清晰的反馈：<strong>我花的每一分钱，产生了多少可度量的认知</strong>？这个认知能否指导我下一阶段的决策？如果答案是模糊的，那问题不在于优化不优化，而在于整个探索方法论本身就是低效的。</p>
+]]></description>
+			<link>https://podcasters.spotify.com/pod/show/n0rvyn/episodes/AI-e3k7eas</link>
+			<guid isPermaLink="false">5de309d0-dbad-431f-8fb8-f033b8ed9736</guid>
+			<dc:creator><![CDATA[Norvyn]]></dc:creator>
+			<pubDate>Tue, 02 Jun 2026 04:39:24 GMT</pubDate>
+			<enclosure url="https://anchor.fm/s/11295d0cc/podcast/play/120878876/https%3A%2F%2Fd3ctxlq1ktw2nl.cloudfront.net%2Fstaging%2F2026-5-2%2F48e35b43-dbe0-358c-b37e-afbe74cbdd62.mp3" length="25498029" type="audio/mpeg"/>
+			<itunes:summary>&lt;p&gt;经济学家真正的问题不是「要不要优化」，而是「什么时候优化才有效率」。他们的隐含假设是：你可以清晰判断一个项目值不值得做，如果值得，就不需要精打细算；如果不值得，再怎么精打细算也救不回来。&lt;/p&gt;&lt;p&gt;但现实是，很多AI应用的价值并不是一开始就能精确量化的。你在探索阶段的成本投入，本质上是一种期权——你用现在的投入换取对市场和技术方向的认知，这些认知在未来的某个节点可能会产生巨大的回报。经济学家算账是算净利润，但技术投资者买的是不确定性，不确定性本身有溢价。&lt;/p&gt;&lt;p&gt;不过，经济学家有一个反驳是成立的：&lt;strong&gt;很多团队在探索期就消耗了大量算力，最后既没有收敛到可规模化的商业模式，也没有积累出有价值的技术认知——两头落空&lt;/strong&gt;。这个时候，成本优化和价值验证必须并行进行，不能等到了「规模化期」再考虑效率问题。「从探索走向规模化」的转折点，在实践中往往比理论上更难界定。&lt;/p&gt;&lt;p&gt;所以我的修正版回应是：&lt;strong&gt;成本优化和价值创造不是对立的，但在时间维度上需要同时推进，而不是分阶段排队&lt;/strong&gt;。在探索期，你需要一边验证价值方向，一边建立成本意识——不是为了省钱，而是为了获得一个清晰的反馈：&lt;strong&gt;我花的每一分钱，产生了多少可度量的认知&lt;/strong&gt;？这个认知能否指导我下一阶段的决策？如果答案是模糊的，那问题不在于优化不优化，而在于整个探索方法论本身就是低效的。&lt;/p&gt;
+</itunes:summary>
+			<itunes:explicit>false</itunes:explicit>
+			<itunes:duration>00:26:33</itunes:duration>
+			<itunes:image href="https://d3t3ozftmdmh3i.cloudfront.net/staging/podcast_uploaded_nologo/45967755/45967755-1778754024958-6d97e83284ae7.jpg"/>
+			<itunes:season>1</itunes:season>
+			<itunes:episode>15</itunes:episode>
+			<itunes:episodeType>full</itunes:episodeType>
+		</item>
+		<item>
+			<title><![CDATA[验证坍缩：当 AI 的生成能力跑在了验证能力前面]]></title>
+			<description><![CDATA[<p>AI agent 的上下文膨胀是同构的。给 Agent 塞更多上下文，表现不是线性提升，而是某个拐点后退化。有人反驳说近期长上下文模型在长文档任务上表现稳定提升，没观测到退化拐点。这个反驳需要仔细拆。长文档问答和长上下文智能体任务是两回事。长文档问答是&quot;在一大段文本中找到答案&quot;，信息都在，只需要定位——这是长上下文模型擅长的。但智能体任务是&quot;从大量上下文中提取任务相关信号，执行多步操作&quot;，这里冗余信息的干扰是真实存在的。我部分修正我的表述：长上下文退化拐点对不同任务类型不同，纯理解任务可能在 100K+ token 才出现退化，但工具调用任务可能在 20K-30K token 就开始退化。核心判断不变——Agent 执行场景存在退化拐点。</p><p>Anthropic Cloud Code 负责人 Fiona Fun 在 2026 年 5 月的工程博客中分享（二手：Anthropic 工程博客 2026 年 5 月）的实践数据：把 400 行提示词压到 15 行，12 个工具精简到 3 个基础原语，评测通过率从 83% 提升到 92%。这当然是特定评测集的个案，但方向性结论清楚：在智能体场景，少即是多。</p><p>底层逻辑和 KOALA 的&quot;渐进式披露&quot;一致：不是增加信息，而是控制信息到达的节奏和粒度。人类工作记忆容量 4±1 个信息块，把 Agent 认知负荷降到和人类工作记忆匹配，反而效果最好。</p>
+]]></description>
+			<link>https://podcasters.spotify.com/pod/show/n0rvyn/episodes/AI-e3k2evi</link>
+			<guid isPermaLink="false">409ed4ac-b3d8-4614-95d2-10d3323bc0cf</guid>
+			<dc:creator><![CDATA[Norvyn]]></dc:creator>
+			<pubDate>Fri, 29 May 2026 12:03:55 GMT</pubDate>
+			<enclosure url="https://anchor.fm/s/11295d0cc/podcast/play/120715698/https%3A%2F%2Fd3ctxlq1ktw2nl.cloudfront.net%2Fstaging%2F2026-4-29%2F7554f27a-50cf-3cc6-4b7e-d40579bc2100.mp3" length="18038061" type="audio/mpeg"/>
+			<itunes:summary>&lt;p&gt;AI agent 的上下文膨胀是同构的。给 Agent 塞更多上下文，表现不是线性提升，而是某个拐点后退化。有人反驳说近期长上下文模型在长文档任务上表现稳定提升，没观测到退化拐点。这个反驳需要仔细拆。长文档问答和长上下文智能体任务是两回事。长文档问答是&amp;quot;在一大段文本中找到答案&amp;quot;，信息都在，只需要定位——这是长上下文模型擅长的。但智能体任务是&amp;quot;从大量上下文中提取任务相关信号，执行多步操作&amp;quot;，这里冗余信息的干扰是真实存在的。我部分修正我的表述：长上下文退化拐点对不同任务类型不同，纯理解任务可能在 100K+ token 才出现退化，但工具调用任务可能在 20K-30K token 就开始退化。核心判断不变——Agent 执行场景存在退化拐点。&lt;/p&gt;&lt;p&gt;Anthropic Cloud Code 负责人 Fiona Fun 在 2026 年 5 月的工程博客中分享（二手：Anthropic 工程博客 2026 年 5 月）的实践数据：把 400 行提示词压到 15 行，12 个工具精简到 3 个基础原语，评测通过率从 83% 提升到 92%。这当然是特定评测集的个案，但方向性结论清楚：在智能体场景，少即是多。&lt;/p&gt;&lt;p&gt;底层逻辑和 KOALA 的&amp;quot;渐进式披露&amp;quot;一致：不是增加信息，而是控制信息到达的节奏和粒度。人类工作记忆容量 4±1 个信息块，把 Agent 认知负荷降到和人类工作记忆匹配，反而效果最好。&lt;/p&gt;
+</itunes:summary>
+			<itunes:explicit>false</itunes:explicit>
+			<itunes:duration>00:18:47</itunes:duration>
+			<itunes:image href="https://d3t3ozftmdmh3i.cloudfront.net/staging/podcast_uploaded_nologo/45967755/45967755-1778754024958-6d97e83284ae7.jpg"/>
+			<itunes:season>1</itunes:season>
+			<itunes:episode>14</itunes:episode>
+			<itunes:episodeType>full</itunes:episodeType>
+		</item>
+		<item>
+			<title><![CDATA[追赶“期望通胀”：AI Agent、MCP 协议与本地化转折点]]></title>
+			<description><![CDATA[<p>当有人把一个事件和历史上那些重大突破的时刻并列在一起的时候，我们就会产生诸多好奇——到底是什么样的项目或什么样的团队做出了这样的突破？那这个突破又是什么？</p><p>这个问题放到今天的 AI 领域，我觉得特别有反思价值。我们几乎每隔几个月就会看到类似&quot;历史性突破&quot;&quot;改变一切的时刻&quot;这样的表述，然后舆论兴奋一阵，再归于平静。问题不在于这些突破是假的——有些确实是真实的进展——问题在于我们处理这类信息的方式：我们倾向于把它们放进一个&quot;历史坐标系&quot;里去理解，而这个坐标系本身往往是事后建构的。</p><p>就像历史学家说的，历史不是发生在过去的事实本身，而是我们对那些事实的选择性记忆和叙事。当我们说&quot;AI编程进入全球前20，这是一个历史性时刻&quot;的时候，我们其实是在用现在的标准去倒推过去，给某个节点赋予特殊意义。但在当时，没有人知道这就是那个&quot;历史性时刻&quot;。</p>
+]]></description>
+			<link>https://podcasters.spotify.com/pod/show/n0rvyn/episodes/AI-AgentMCP-e3jt2d5</link>
+			<guid isPermaLink="false">960a7589-7b82-4ea7-bf42-92e5053b1f95</guid>
+			<dc:creator><![CDATA[Norvyn]]></dc:creator>
+			<pubDate>Tue, 26 May 2026 00:45:54 GMT</pubDate>
+			<enclosure url="https://anchor.fm/s/11295d0cc/podcast/play/120538981/https%3A%2F%2Fd3ctxlq1ktw2nl.cloudfront.net%2Fstaging%2F2026-4-26%2Ff1c9bce8-b518-a7ad-f154-f5649ac013d1.mp3" length="18108333" type="audio/mpeg"/>
+			<itunes:summary>&lt;p&gt;当有人把一个事件和历史上那些重大突破的时刻并列在一起的时候，我们就会产生诸多好奇——到底是什么样的项目或什么样的团队做出了这样的突破？那这个突破又是什么？&lt;/p&gt;&lt;p&gt;这个问题放到今天的 AI 领域，我觉得特别有反思价值。我们几乎每隔几个月就会看到类似&amp;quot;历史性突破&amp;quot;&amp;quot;改变一切的时刻&amp;quot;这样的表述，然后舆论兴奋一阵，再归于平静。问题不在于这些突破是假的——有些确实是真实的进展——问题在于我们处理这类信息的方式：我们倾向于把它们放进一个&amp;quot;历史坐标系&amp;quot;里去理解，而这个坐标系本身往往是事后建构的。&lt;/p&gt;&lt;p&gt;就像历史学家说的，历史不是发生在过去的事实本身，而是我们对那些事实的选择性记忆和叙事。当我们说&amp;quot;AI编程进入全球前20，这是一个历史性时刻&amp;quot;的时候，我们其实是在用现在的标准去倒推过去，给某个节点赋予特殊意义。但在当时，没有人知道这就是那个&amp;quot;历史性时刻&amp;quot;。&lt;/p&gt;
+</itunes:summary>
+			<itunes:explicit>false</itunes:explicit>
+			<itunes:duration>00:18:51</itunes:duration>
+			<itunes:image href="https://d3t3ozftmdmh3i.cloudfront.net/staging/podcast_uploaded_nologo/45967755/45967755-1778754024958-6d97e83284ae7.jpg"/>
+			<itunes:season>1</itunes:season>
+			<itunes:episode>13</itunes:episode>
+			<itunes:episodeType>full</itunes:episodeType>
+		</item>
+		<item>
+			<title><![CDATA[内容工业的空心化：当 AI 生产了一堆空气]]></title>
+			<description><![CDATA[<p>没有 AI 的时候，一个团队会清楚地知道自己没有内容，然后去手动补，或者直接承认这块我们做不了。有了假 AI 之后，团队会以为自己在生产内容，按时归档，按时发送，按时开会，但实际上什么都没有。每个人都在忙碌，每个人都在消耗时间，没有人觉得有问题，直到某一天回头一看——这半年，我们产出了一堆空气。</p>
+]]></description>
+			<link>https://podcasters.spotify.com/pod/show/n0rvyn/episodes/AI-e3jrg63</link>
+			<guid isPermaLink="false">891c04d6-5bbb-43c9-bc0e-c9ee0b37ab18</guid>
+			<dc:creator><![CDATA[Norvyn]]></dc:creator>
+			<pubDate>Sun, 24 May 2026 23:45:25 GMT</pubDate>
+			<enclosure url="https://anchor.fm/s/11295d0cc/podcast/play/120487555/https%3A%2F%2Fd3ctxlq1ktw2nl.cloudfront.net%2Fstaging%2F2026-4-24%2F49ad3c1f-26ba-6329-68c5-3c3b8d1601a7.mp3" length="10800429" type="audio/mpeg"/>
+			<itunes:summary>&lt;p&gt;没有 AI 的时候，一个团队会清楚地知道自己没有内容，然后去手动补，或者直接承认这块我们做不了。有了假 AI 之后，团队会以为自己在生产内容，按时归档，按时发送，按时开会，但实际上什么都没有。每个人都在忙碌，每个人都在消耗时间，没有人觉得有问题，直到某一天回头一看——这半年，我们产出了一堆空气。&lt;/p&gt;
+</itunes:summary>
+			<itunes:explicit>false</itunes:explicit>
+			<itunes:duration>00:11:15</itunes:duration>
+			<itunes:image href="https://d3t3ozftmdmh3i.cloudfront.net/staging/podcast_uploaded_nologo/45967755/45967755-1778754024958-6d97e83284ae7.jpg"/>
+			<itunes:season>1</itunes:season>
+			<itunes:episode>12</itunes:episode>
+			<itunes:episodeType>full</itunes:episodeType>
+		</item>
+		<item>
+			<title><![CDATA[API经济的安全债与信任饥荒]]></title>
+			<description><![CDATA[<p>AI-OS要解决的是：当AI Agent真正替代人工作——自动发邮件、自动写代码、自动操作数据库——它需要的不是一个语言模型，而是一个能管理内存、管理工具调用、管理多步骤任务流程的运行时环境。</p><p>这里有一个需要回应的反方证据：<strong>LangChain已发布LangGraph，实现有状态图式协调；Anthropic的Claude Agent SDK和OpenAI的Responses API均引入了原生Agent抽象层。</strong> 说&quot;现有框架只是在语言模型外包胶水代码&quot;在2026年的语境下部分过时——头部框架已经有了有状态的协调机制。</p><p>但我的判断是：这些进步没有解决根本问题。<strong>AI-OS的真正挑战不是&quot;有没有协调机制&quot;，而是&quot;谁来定义工具的语义层&quot;。</strong> TCP/IP让互联网互联，USB让外设热插拔，但AI工具的语义不是标准化的——同一个&quot;搜索网页&quot;工具，在不同Agent看来可能有完全不同的调用方式和输出格式。MCP和ADK都在争夺这个定义权，但目前没有一方拿出了完整的语义层方案。这个竞争正在催生协议层的生态割据，而这恰恰是信任饥荒的另一个症状。</p>
+]]></description>
+			<link>https://podcasters.spotify.com/pod/show/n0rvyn/episodes/API-e3jnuid</link>
+			<guid isPermaLink="false">e8a39ce3-d978-423f-a496-716d4b3fc60d</guid>
+			<dc:creator><![CDATA[Norvyn]]></dc:creator>
+			<pubDate>Fri, 22 May 2026 05:52:10 GMT</pubDate>
+			<enclosure url="https://anchor.fm/s/11295d0cc/podcast/play/120371213/https%3A%2F%2Fd3ctxlq1ktw2nl.cloudfront.net%2Fstaging%2F2026-4-22%2Ffaf22911-4715-ec48-6145-6b945c081483.mp3" length="19693101" type="audio/mpeg"/>
+			<itunes:summary>&lt;p&gt;AI-OS要解决的是：当AI Agent真正替代人工作——自动发邮件、自动写代码、自动操作数据库——它需要的不是一个语言模型，而是一个能管理内存、管理工具调用、管理多步骤任务流程的运行时环境。&lt;/p&gt;&lt;p&gt;这里有一个需要回应的反方证据：&lt;strong&gt;LangChain已发布LangGraph，实现有状态图式协调；Anthropic的Claude Agent SDK和OpenAI的Responses API均引入了原生Agent抽象层。&lt;/strong&gt; 说&amp;quot;现有框架只是在语言模型外包胶水代码&amp;quot;在2026年的语境下部分过时——头部框架已经有了有状态的协调机制。&lt;/p&gt;&lt;p&gt;但我的判断是：这些进步没有解决根本问题。&lt;strong&gt;AI-OS的真正挑战不是&amp;quot;有没有协调机制&amp;quot;，而是&amp;quot;谁来定义工具的语义层&amp;quot;。&lt;/strong&gt; TCP/IP让互联网互联，USB让外设热插拔，但AI工具的语义不是标准化的——同一个&amp;quot;搜索网页&amp;quot;工具，在不同Agent看来可能有完全不同的调用方式和输出格式。MCP和ADK都在争夺这个定义权，但目前没有一方拿出了完整的语义层方案。这个竞争正在催生协议层的生态割据，而这恰恰是信任饥荒的另一个症状。&lt;/p&gt;
+</itunes:summary>
+			<itunes:explicit>false</itunes:explicit>
+			<itunes:duration>00:20:30</itunes:duration>
+			<itunes:image href="https://d3t3ozftmdmh3i.cloudfront.net/staging/podcast_uploaded_nologo/45967755/45967755-1778754024958-6d97e83284ae7.jpg"/>
+			<itunes:season>1</itunes:season>
+			<itunes:episode>11</itunes:episode>
+			<itunes:episodeType>full</itunes:episodeType>
+		</item>
+		<item>
+			<title><![CDATA[编译时安全范式转移——从软件工程到 AI 生产系统]]></title>
+			<description><![CDATA[<p>编译时安全不是 AI 领域的新概念，但它在 AI Agent 生产系统中的意义被低估了。当 AI 系统的决策逻辑足够复杂，当 Agent 循环的并发度足够高，我们需要的不只是&quot;看起来能跑&quot;的系统，而是&quot;运行时不会因为数据竞争而崩溃&quot;的系统。Swift 6 actor 模型提供的编译时可拦截数据竞争，在这个维度上是真实的进步——不是全部的进步，但是真实的。</p><p>设备端 AI 栈的完整闭环，解决的是另一个维度的确定性：数据主权和隐私保护。当推理可以在本地完成，数据不需要离开设备，我们对 AI 系统的信任就从&quot;相信这个公司的隐私政策&quot;变成了&quot;相信物理定律&quot;。这是一个根本性的信任升级，只是它还需要 6 个月的市场验证。</p><p>API 成本优化工具链解决的是生产系统的经济确定性：让 AI 能力的消费成本可预测、可控制，让独立开发者也能参与到 AI 产品的生产中来。</p>
+]]></description>
+			<link>https://podcasters.spotify.com/pod/show/n0rvyn/episodes/AI-e3jm14j</link>
+			<guid isPermaLink="false">e2fd7412-8e7c-4f0f-a2d6-97d53c8fb133</guid>
+			<dc:creator><![CDATA[Norvyn]]></dc:creator>
+			<pubDate>Thu, 21 May 2026 00:32:55 GMT</pubDate>
+			<enclosure url="https://anchor.fm/s/11295d0cc/podcast/play/120308307/https%3A%2F%2Fd3ctxlq1ktw2nl.cloudfront.net%2Fstaging%2F2026-4-21%2F0495c57a-bcc7-8e21-b7cf-312eaec4db5a.mp3" length="7106733" type="audio/mpeg"/>
+			<itunes:summary>&lt;p&gt;编译时安全不是 AI 领域的新概念，但它在 AI Agent 生产系统中的意义被低估了。当 AI 系统的决策逻辑足够复杂，当 Agent 循环的并发度足够高，我们需要的不只是&amp;quot;看起来能跑&amp;quot;的系统，而是&amp;quot;运行时不会因为数据竞争而崩溃&amp;quot;的系统。Swift 6 actor 模型提供的编译时可拦截数据竞争，在这个维度上是真实的进步——不是全部的进步，但是真实的。&lt;/p&gt;&lt;p&gt;设备端 AI 栈的完整闭环，解决的是另一个维度的确定性：数据主权和隐私保护。当推理可以在本地完成，数据不需要离开设备，我们对 AI 系统的信任就从&amp;quot;相信这个公司的隐私政策&amp;quot;变成了&amp;quot;相信物理定律&amp;quot;。这是一个根本性的信任升级，只是它还需要 6 个月的市场验证。&lt;/p&gt;&lt;p&gt;API 成本优化工具链解决的是生产系统的经济确定性：让 AI 能力的消费成本可预测、可控制，让独立开发者也能参与到 AI 产品的生产中来。&lt;/p&gt;
+</itunes:summary>
+			<itunes:explicit>false</itunes:explicit>
+			<itunes:duration>00:07:24</itunes:duration>
+			<itunes:image href="https://d3t3ozftmdmh3i.cloudfront.net/staging/podcast_uploaded_nologo/45967755/45967755-1778754024958-6d97e83284ae7.jpg"/>
+			<itunes:season>1</itunes:season>
+			<itunes:episode>10</itunes:episode>
+			<itunes:episodeType>full</itunes:episodeType>
+		</item>
+		<item>
+			<title><![CDATA[当所有人都问同一个AI：信息平原与愚笨的胜利]]></title>
+			<description><![CDATA[<p>当所有人都依赖同一个AI获取答案时，你真正值钱的不是你知道什么，而是你知道一些别人不知道的东西——而这些&quot;不知道&quot;，正是你的知识库帮你积累的。</p><p>这不是对抗AI，而是在AI时代重新定义&quot;知识&quot;这个词的边界。</p><p>AI擅长处理显性的、可编码的、可规模化复制的知识。人类擅长处理的，恰好是那些&quot;潜移默化&quot;的、依赖于具体情境的、无法被标准化的知识。</p><p>《愚笨与智慧》里说&quot;聪明是下贱的，愚笨则直率而且诚实&quot;。在AI时代，这句话可以翻译成：</p><p><strong>依赖AI给你的答案，是聪明的；拥有只有你自己知道的东西，才是真正有价值的。</strong></p>
+]]></description>
+			<link>https://podcasters.spotify.com/pod/show/n0rvyn/episodes/AI-e3jku03</link>
+			<guid isPermaLink="false">fc18d416-126c-4de1-83cd-3c6083bb4eff</guid>
+			<dc:creator><![CDATA[Norvyn]]></dc:creator>
+			<pubDate>Wed, 20 May 2026 10:31:44 GMT</pubDate>
+			<enclosure url="https://anchor.fm/s/11295d0cc/podcast/play/120272323/https%3A%2F%2Fd3ctxlq1ktw2nl.cloudfront.net%2Fstaging%2F2026-4-20%2F8ed83003-4eca-2800-848f-d401022f229a.mp3" length="15373101" type="audio/mpeg"/>
+			<itunes:summary>&lt;p&gt;当所有人都依赖同一个AI获取答案时，你真正值钱的不是你知道什么，而是你知道一些别人不知道的东西——而这些&amp;quot;不知道&amp;quot;，正是你的知识库帮你积累的。&lt;/p&gt;&lt;p&gt;这不是对抗AI，而是在AI时代重新定义&amp;quot;知识&amp;quot;这个词的边界。&lt;/p&gt;&lt;p&gt;AI擅长处理显性的、可编码的、可规模化复制的知识。人类擅长处理的，恰好是那些&amp;quot;潜移默化&amp;quot;的、依赖于具体情境的、无法被标准化的知识。&lt;/p&gt;&lt;p&gt;《愚笨与智慧》里说&amp;quot;聪明是下贱的，愚笨则直率而且诚实&amp;quot;。在AI时代，这句话可以翻译成：&lt;/p&gt;&lt;p&gt;&lt;strong&gt;依赖AI给你的答案，是聪明的；拥有只有你自己知道的东西，才是真正有价值的。&lt;/strong&gt;&lt;/p&gt;
+</itunes:summary>
+			<itunes:explicit>false</itunes:explicit>
+			<itunes:duration>00:16:00</itunes:duration>
+			<itunes:image href="https://d3t3ozftmdmh3i.cloudfront.net/staging/podcast_uploaded_nologo/45967755/45967755-1778754024958-6d97e83284ae7.jpg"/>
+			<itunes:season>1</itunes:season>
+			<itunes:episode>9</itunes:episode>
+			<itunes:episodeType>full</itunes:episodeType>
+		</item>
+		<item>
+			<title><![CDATA[当软件民主化撞上复杂性焦虑]]></title>
+			<description><![CDATA[<p>0%到90%的成本削减意味着什么？理论上，以前只能服务10个开发者的资源，现在可以服务50个甚至100个。但这个线性外推太粗糙了——没有考虑并发瓶颈、内存限制和API限速。真实场景通常是：token消耗降了，但并发请求一多，延迟就上来了。所以我倾向于把它理解为&quot;显著优化&quot;，而不是精确数字。</p><p>不过这不是简单的省钱，而是<strong>改变了AI编程工具的经济可行性</strong>。</p><p><strong>但这里我要插一句重要的反方证据</strong>：不是所有人都同意这个方向。《AI编程的效率幻觉》这篇文章提出了一个关键反驳：<strong>token成本降90%，很可能伴随输出质量下降或能力缩水</strong>。压缩token消耗的代价可能是更短的输出、更保守的推理、或者更频繁的hallucination。压缩优化是有基本代价的：省掉计算，就是在省掉智能。</p><p>我的回应是：这个trade-off是真实的，但不是非此即彼。效率优化和质量压缩不完全是线性关系——用更好的架构，比如混合专家模型或者更聪明的prompt压缩，可以在降成本的同时维持输出质量。这条路有没有走通，<strong>6个月内会见分晓。这是我下的一个可证伪的判断：2026年11月之前，至少会有一个主流AI编程工具在保持输出质量的前提下把token成本降到原来的50%以下。如果做不到，我的判断就是错的。</strong></p>
+]]></description>
+			<link>https://podcasters.spotify.com/pod/show/n0rvyn/episodes/ep-e3jkcqh</link>
+			<guid isPermaLink="false">5fd4263e-9d85-4316-8f07-a7f57a569a0d</guid>
+			<dc:creator><![CDATA[Norvyn]]></dc:creator>
+			<pubDate>Wed, 20 May 2026 00:34:24 GMT</pubDate>
+			<enclosure url="https://anchor.fm/s/11295d0cc/podcast/play/120254737/https%3A%2F%2Fd3ctxlq1ktw2nl.cloudfront.net%2Fstaging%2F2026-4-20%2Ffff465b8-78bc-cafb-fecc-9577fa1563a0.mp3" length="8532909" type="audio/mpeg"/>
+			<itunes:summary>&lt;p&gt;0%到90%的成本削减意味着什么？理论上，以前只能服务10个开发者的资源，现在可以服务50个甚至100个。但这个线性外推太粗糙了——没有考虑并发瓶颈、内存限制和API限速。真实场景通常是：token消耗降了，但并发请求一多，延迟就上来了。所以我倾向于把它理解为&amp;quot;显著优化&amp;quot;，而不是精确数字。&lt;/p&gt;&lt;p&gt;不过这不是简单的省钱，而是&lt;strong&gt;改变了AI编程工具的经济可行性&lt;/strong&gt;。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;但这里我要插一句重要的反方证据&lt;/strong&gt;：不是所有人都同意这个方向。《AI编程的效率幻觉》这篇文章提出了一个关键反驳：&lt;strong&gt;token成本降90%，很可能伴随输出质量下降或能力缩水&lt;/strong&gt;。压缩token消耗的代价可能是更短的输出、更保守的推理、或者更频繁的hallucination。压缩优化是有基本代价的：省掉计算，就是在省掉智能。&lt;/p&gt;&lt;p&gt;我的回应是：这个trade-off是真实的，但不是非此即彼。效率优化和质量压缩不完全是线性关系——用更好的架构，比如混合专家模型或者更聪明的prompt压缩，可以在降成本的同时维持输出质量。这条路有没有走通，&lt;strong&gt;6个月内会见分晓。这是我下的一个可证伪的判断：2026年11月之前，至少会有一个主流AI编程工具在保持输出质量的前提下把token成本降到原来的50%以下。如果做不到，我的判断就是错的。&lt;/strong&gt;&lt;/p&gt;
+</itunes:summary>
+			<itunes:explicit>false</itunes:explicit>
+			<itunes:duration>00:08:53</itunes:duration>
+			<itunes:image href="https://d3t3ozftmdmh3i.cloudfront.net/staging/podcast_uploaded_nologo/45967755/45967755-1778754024958-6d97e83284ae7.jpg"/>
+			<itunes:season>1</itunes:season>
+			<itunes:episode>8</itunes:episode>
+			<itunes:episodeType>full</itunes:episodeType>
+		</item>
+		<item>
+			<title><![CDATA[当机器开始"笨拙"——端侧AI与编译时安全的时代]]></title>
+			<description><![CDATA[<p>过去这三年，所有人都在说 AI 要更聪明、更强大、更全能。GPT-5 要来了、Claude 4 要来了、 Gemini 2.0 要上天了——好像 AI 越&quot;聪明&quot;越好，越&quot;全能&quot;越值钱。</p><p>但我最近看到几个信号，越来越觉得事情正在起变化。</p><p>我要说的观点可能会让一些人不太舒服：<strong>AI 的未来，可能是越来越&quot;笨&quot;的。</strong></p><p>别急着反驳。我说的这个&quot;笨&quot;，不是智障的笨，不是&quot;你好我是小爱同学请问有什么可以帮您&quot;的笨。我说的&quot;笨&quot;，是那种——陀思妥耶夫斯基说的——&quot;笨拙是简捷而朴质，聪明则是圆滑而又躲闪&quot;的笨。</p><p>是那种认准一条路、不绕弯子、不废话、说到做到、干就完了的笨。</p><p>那为什么我觉得 AI 的未来会往这个方向走？</p><p>因为最近，有三件事同时发生了。</p>
+]]></description>
+			<link>https://podcasters.spotify.com/pod/show/n0rvyn/episodes/AI-e3jir2t</link>
+			<guid isPermaLink="false">7c07703a-1d91-4ea4-8200-b7d5c05796b7</guid>
+			<dc:creator><![CDATA[Norvyn]]></dc:creator>
+			<pubDate>Tue, 19 May 2026 02:32:14 GMT</pubDate>
+			<enclosure url="https://anchor.fm/s/11295d0cc/podcast/play/120203805/https%3A%2F%2Fd3ctxlq1ktw2nl.cloudfront.net%2Fstaging%2F2026-4-19%2Fd879ac61-fb2f-cc03-dc35-99669da7ec8f.mp3" length="14440749" type="audio/mpeg"/>
+			<itunes:summary>&lt;p&gt;过去这三年，所有人都在说 AI 要更聪明、更强大、更全能。GPT-5 要来了、Claude 4 要来了、 Gemini 2.0 要上天了——好像 AI 越&amp;quot;聪明&amp;quot;越好，越&amp;quot;全能&amp;quot;越值钱。&lt;/p&gt;&lt;p&gt;但我最近看到几个信号，越来越觉得事情正在起变化。&lt;/p&gt;&lt;p&gt;我要说的观点可能会让一些人不太舒服：&lt;strong&gt;AI 的未来，可能是越来越&amp;quot;笨&amp;quot;的。&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;别急着反驳。我说的这个&amp;quot;笨&amp;quot;，不是智障的笨，不是&amp;quot;你好我是小爱同学请问有什么可以帮您&amp;quot;的笨。我说的&amp;quot;笨&amp;quot;，是那种——陀思妥耶夫斯基说的——&amp;quot;笨拙是简捷而朴质，聪明则是圆滑而又躲闪&amp;quot;的笨。&lt;/p&gt;&lt;p&gt;是那种认准一条路、不绕弯子、不废话、说到做到、干就完了的笨。&lt;/p&gt;&lt;p&gt;那为什么我觉得 AI 的未来会往这个方向走？&lt;/p&gt;&lt;p&gt;因为最近，有三件事同时发生了。&lt;/p&gt;
+</itunes:summary>
+			<itunes:explicit>false</itunes:explicit>
+			<itunes:duration>00:15:02</itunes:duration>
+			<itunes:image href="https://d3t3ozftmdmh3i.cloudfront.net/staging/podcast_uploaded_nologo/45967755/45967755-1778754024958-6d97e83284ae7.jpg"/>
+			<itunes:season>1</itunes:season>
+			<itunes:episode>5</itunes:episode>
+			<itunes:episodeType>full</itunes:episodeType>
+		</item>
+		<item>
+			<title><![CDATA[AI 与 iOS 开发的临界点]]></title>
+			<description><![CDATA[<p>我特别认同 Lattner 的一个观点：<strong>AI 的瓶颈已经不是模型本身了，而是系统效率。</strong>当我们在讨论哪个模型更好的时候，真正的机会在于如何让模型跑得更快、更省电、更便宜。这和我在前面提到的 on-device AI 效率突破是一致的。整个行业正在从追求更强的模型转向让现有的模型跑得更好。这个转向对独立开发者来说是个<strong>好消息</strong>。模型能力已经足够好了，好到可以放进你的口袋。你的 app 需要做的，不是接入最强大的云端模型，而是找到那个模型和你的用户场景之间的最优匹配。</p><p>我甚至觉得，这是我自己的判断，不一定对，<strong>未来的优秀 app，评判标准不是用了什么 AI，而是用了多聪明的方式让 AI 帮忙。</strong>这句话有点绕，但我相信你会理解的。</p><p>还有一个维度值得考虑：<strong>功耗。</strong>Apple 芯片的神经引擎已经非常强大了，但用户的电池续航是有限的。当 AI 功能变成常态化使用，功耗管理会成为新的挑战。谁能在这个约束下做到更好的体验，谁就能赢得用户。这个领域，Apple 有天然的优势。因为它同时控制硬件和软件。</p>
+]]></description>
+			<link>https://podcasters.spotify.com/pod/show/n0rvyn/episodes/AI--iOS-e3jeulb</link>
+			<guid isPermaLink="false">09c0a1ed-08d8-4d2c-bc4e-cfafb9aee6c3</guid>
+			<dc:creator><![CDATA[Norvyn]]></dc:creator>
+			<pubDate>Sat, 16 May 2026 11:00:01 GMT</pubDate>
+			<enclosure url="https://anchor.fm/s/11295d0cc/podcast/play/120076395/https%3A%2F%2Fd3ctxlq1ktw2nl.cloudfront.net%2Fstaging%2F2026-4-16%2Fb939e41f-ba50-3a2a-8865-db4bcdc468c4.mp3" length="20964717" type="audio/mpeg"/>
+			<itunes:summary>&lt;p&gt;我特别认同 Lattner 的一个观点：&lt;strong&gt;AI 的瓶颈已经不是模型本身了，而是系统效率。&lt;/strong&gt;当我们在讨论哪个模型更好的时候，真正的机会在于如何让模型跑得更快、更省电、更便宜。这和我在前面提到的 on-device AI 效率突破是一致的。整个行业正在从追求更强的模型转向让现有的模型跑得更好。这个转向对独立开发者来说是个&lt;strong&gt;好消息&lt;/strong&gt;。模型能力已经足够好了，好到可以放进你的口袋。你的 app 需要做的，不是接入最强大的云端模型，而是找到那个模型和你的用户场景之间的最优匹配。&lt;/p&gt;&lt;p&gt;我甚至觉得，这是我自己的判断，不一定对，&lt;strong&gt;未来的优秀 app，评判标准不是用了什么 AI，而是用了多聪明的方式让 AI 帮忙。&lt;/strong&gt;这句话有点绕，但我相信你会理解的。&lt;/p&gt;&lt;p&gt;还有一个维度值得考虑：&lt;strong&gt;功耗。&lt;/strong&gt;Apple 芯片的神经引擎已经非常强大了，但用户的电池续航是有限的。当 AI 功能变成常态化使用，功耗管理会成为新的挑战。谁能在这个约束下做到更好的体验，谁就能赢得用户。这个领域，Apple 有天然的优势。因为它同时控制硬件和软件。&lt;/p&gt;
+</itunes:summary>
+			<itunes:explicit>false</itunes:explicit>
+			<itunes:duration>00:21:50</itunes:duration>
+			<itunes:image href="https://d3t3ozftmdmh3i.cloudfront.net/staging/podcast_uploaded_nologo/45967755/45967755-1778754024958-6d97e83284ae7.jpg"/>
+			<itunes:season>1</itunes:season>
+			<itunes:episode>6</itunes:episode>
+			<itunes:episodeType>full</itunes:episodeType>
+		</item>
+		<item>
+			<title><![CDATA[端侧AI爆发——从实验到生产的临界点]]></title>
+			<description><![CDATA[<p>Anthropic 发布 Claude Design，想让设计师用自然语言做设计。另一边，开发者用 DeepSeek 给 Claude Code 做成本套利。这两件事放在一起——说明什么？</p><p>说明AI工具的价值正在分层。</p><p>顶层是&quot;AI做决策&quot;—— Claude Design 让 AI 来生成设计方案，Anthropic 显然认为 AI 可以在创意领域做主导。</p><p>底层是&quot;AI做执行&quot;——deepclaude 的开发者不在乎 AI 是什么，只在乎 AI 够不够便宜，能不能完成任务。</p><p>这两个方向都在增长，但它们面对的是完全不同的用户群。设计师群体愿意为&quot;AI帮我做创意决策&quot;付高价，开发者群体更在意&quot;AI帮我写代码，但成本要可控&quot;。</p><p>对独立开发者来说，这个分层很重要。你的产品定位，决定了你应该用哪种 AI 策略。你做的是创意工具，Claude Design 的模式值得研究。你做的是效率工具，deepclaude 的模式更有参考价值。</p><p>还有一个点——deepclaude 的本质是一个 API 代理，它证明了什么？它证明了 Claude Code 的核心价值在于用户体验和工作流设计，而不是模型本身的技术领先。DeepSeek 能替代 Claude 的推理能力，但替代不了 Claude Code 的 agent loop 和工具生态。</p><p>这个洞察很关键——它告诉我们，在 AI 时代，护城河可能不在模型本身，而在产品和体验层。</p>
+]]></description>
+			<link>https://podcasters.spotify.com/pod/show/n0rvyn/episodes/AI-e3jenh6</link>
+			<guid isPermaLink="false">cd57c25f-2852-4106-b741-e57de9ff026b</guid>
+			<dc:creator><![CDATA[Norvyn]]></dc:creator>
+			<pubDate>Sat, 16 May 2026 05:26:50 GMT</pubDate>
+			<enclosure url="https://anchor.fm/s/11295d0cc/podcast/play/120069094/https%3A%2F%2Fd3ctxlq1ktw2nl.cloudfront.net%2Fstaging%2F2026-4-16%2Fb612238e-da9e-5acf-ca6f-9557d780a0d3.mp3" length="12101805" type="audio/mpeg"/>
+			<itunes:summary>&lt;p&gt;Anthropic 发布 Claude Design，想让设计师用自然语言做设计。另一边，开发者用 DeepSeek 给 Claude Code 做成本套利。这两件事放在一起——说明什么？&lt;/p&gt;&lt;p&gt;说明AI工具的价值正在分层。&lt;/p&gt;&lt;p&gt;顶层是&amp;quot;AI做决策&amp;quot;—— Claude Design 让 AI 来生成设计方案，Anthropic 显然认为 AI 可以在创意领域做主导。&lt;/p&gt;&lt;p&gt;底层是&amp;quot;AI做执行&amp;quot;——deepclaude 的开发者不在乎 AI 是什么，只在乎 AI 够不够便宜，能不能完成任务。&lt;/p&gt;&lt;p&gt;这两个方向都在增长，但它们面对的是完全不同的用户群。设计师群体愿意为&amp;quot;AI帮我做创意决策&amp;quot;付高价，开发者群体更在意&amp;quot;AI帮我写代码，但成本要可控&amp;quot;。&lt;/p&gt;&lt;p&gt;对独立开发者来说，这个分层很重要。你的产品定位，决定了你应该用哪种 AI 策略。你做的是创意工具，Claude Design 的模式值得研究。你做的是效率工具，deepclaude 的模式更有参考价值。&lt;/p&gt;&lt;p&gt;还有一个点——deepclaude 的本质是一个 API 代理，它证明了什么？它证明了 Claude Code 的核心价值在于用户体验和工作流设计，而不是模型本身的技术领先。DeepSeek 能替代 Claude 的推理能力，但替代不了 Claude Code 的 agent loop 和工具生态。&lt;/p&gt;&lt;p&gt;这个洞察很关键——它告诉我们，在 AI 时代，护城河可能不在模型本身，而在产品和体验层。&lt;/p&gt;
+</itunes:summary>
+			<itunes:explicit>false</itunes:explicit>
+			<itunes:duration>00:12:36</itunes:duration>
+			<itunes:image href="https://d3t3ozftmdmh3i.cloudfront.net/staging/podcast_uploaded_nologo/45967755/45967755-1778754024958-6d97e83284ae7.jpg"/>
+			<itunes:season>1</itunes:season>
+			<itunes:episode>1</itunes:episode>
+			<itunes:episodeType>full</itunes:episodeType>
+		</item>
+		<item>
+			<title><![CDATA[加速时代的技术与沉思]]></title>
+			<description><![CDATA[<p><strong>我们正在进入一个 AI 能力大幅跃升的时代，但这个时代最稀缺的东西不是更强的模型，而是更好的判断力。</strong></p><p>更好的判断力来自哪里？来自沉思，来自对意义的持续追问，来自在加速的洪流里主动选择慢下来的能力。</p><p>工具变强了，人的功课其实更重了，而不是更轻了。</p><p>这让我想起陀思妥耶夫斯基那句话：到了五十岁，交游广阔的聪明人永远会越来越自信。</p><p>他在说人的自信会随着年龄增长，但这种自信跟智慧是两回事。我们积累的成就越多，听到的认同声音越多，就越容易活在自己的判断惯性里，越难停下来问自己一个简单的问题——</p><p><strong>这一切到底是为了什么？</strong></p>
+]]></description>
+			<link>https://podcasters.spotify.com/pod/show/n0rvyn/episodes/ep-e3jdfdi</link>
+			<guid isPermaLink="false">21361a05-1961-491c-8d4a-82813edfa7db</guid>
+			<dc:creator><![CDATA[Norvyn]]></dc:creator>
+			<pubDate>Fri, 15 May 2026 12:00:00 GMT</pubDate>
+			<enclosure url="https://anchor.fm/s/11295d0cc/podcast/play/120028018/https%3A%2F%2Fd3ctxlq1ktw2nl.cloudfront.net%2Fstaging%2F2026-4-15%2F8ec51aa0-1277-9c95-d3b4-57c8e683bbaa.mp3" length="17456301" type="audio/mpeg"/>
+			<itunes:summary>&lt;p&gt;&lt;strong&gt;我们正在进入一个 AI 能力大幅跃升的时代，但这个时代最稀缺的东西不是更强的模型，而是更好的判断力。&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;更好的判断力来自哪里？来自沉思，来自对意义的持续追问，来自在加速的洪流里主动选择慢下来的能力。&lt;/p&gt;&lt;p&gt;工具变强了，人的功课其实更重了，而不是更轻了。&lt;/p&gt;&lt;p&gt;这让我想起陀思妥耶夫斯基那句话：到了五十岁，交游广阔的聪明人永远会越来越自信。&lt;/p&gt;&lt;p&gt;他在说人的自信会随着年龄增长，但这种自信跟智慧是两回事。我们积累的成就越多，听到的认同声音越多，就越容易活在自己的判断惯性里，越难停下来问自己一个简单的问题——&lt;/p&gt;&lt;p&gt;&lt;strong&gt;这一切到底是为了什么？&lt;/strong&gt;&lt;/p&gt;
+</itunes:summary>
+			<itunes:explicit>false</itunes:explicit>
+			<itunes:duration>00:18:10</itunes:duration>
+			<itunes:image href="https://d3t3ozftmdmh3i.cloudfront.net/staging/podcast_uploaded_nologo/45967755/45967755-1778754024958-6d97e83284ae7.jpg"/>
+			<itunes:season>1</itunes:season>
+			<itunes:episode>4</itunes:episode>
+			<itunes:episodeType>full</itunes:episodeType>
+		</item>
+		<item>
+			<title><![CDATA[上下文治理能力将成为 AI 时代的核心竞争力]]></title>
+			<description><![CDATA[<p>谁能把正确的上下文，以更低的成本给到模型，谁就能在同等模型能力下，做出更好的产品。</p><p>这不是什么新观点。一条笔记，标题是&quot;AI 工程从提示到 harness engineering 的演化&quot;，里面写过一段话：驭控工程的核心，是把工具、记忆、权限、沙箱、会话日志、评测、观测、恢复、人类审查和多代理协作，组织成可控系统。</p><p>今天 Google ADK 的发布，某种意义上就是在做这件事的具体实现——</p><p><strong>不是优化提示词，是设计 runtime 控制层。</strong></p><p>这个趋势对实践的指导意义是什么？</p><p>对于正在做 AI 应用的团队，我的建议是：</p><p><strong>不要把所有资源都押在模型选型和 prompt 优化上。</strong></p><p>从今天开始，认真对待上下文治理这件事。</p><p>你的知识库结构、检索策略、session 管理、错误恢复机制——这些&quot;infra 层面的工作&quot;，正在变成真正的产品竞争力。</p><p>用一个可能不太准确的类比：</p><p>这就像 2000 年代服务器端开发的发展轨迹。</p><p>早期大家拼的是什么？硬件性能。谁的服务器快，谁就有优势。</p><p>后来硬件性能提升到一定程度，优化瓶颈转移了。转移到数据库设计、缓存策略、异步架构。</p><p>再后来，云计算把这些基础设施层面的工作，进一步商品化。竞争优势变成了什么？变成了理解业务场景和数据模型。</p>
+]]></description>
+			<link>https://podcasters.spotify.com/pod/show/n0rvyn/episodes/AI-e3jdcp8</link>
+			<guid isPermaLink="false">c3772154-3b3b-4ccc-87eb-6a1a2f361c4f</guid>
+			<dc:creator><![CDATA[Norvyn]]></dc:creator>
+			<pubDate>Fri, 15 May 2026 10:00:00 GMT</pubDate>
+			<enclosure url="https://anchor.fm/s/11295d0cc/podcast/play/120025320/https%3A%2F%2Fd3ctxlq1ktw2nl.cloudfront.net%2Fstaging%2F2026-4-15%2F52890cc5-8d5e-8365-4f53-b9383cf8db3c.m4a" length="6267638" type="audio/x-m4a"/>
+			<itunes:summary>&lt;p&gt;谁能把正确的上下文，以更低的成本给到模型，谁就能在同等模型能力下，做出更好的产品。&lt;/p&gt;&lt;p&gt;这不是什么新观点。一条笔记，标题是&amp;quot;AI 工程从提示到 harness engineering 的演化&amp;quot;，里面写过一段话：驭控工程的核心，是把工具、记忆、权限、沙箱、会话日志、评测、观测、恢复、人类审查和多代理协作，组织成可控系统。&lt;/p&gt;&lt;p&gt;今天 Google ADK 的发布，某种意义上就是在做这件事的具体实现——&lt;/p&gt;&lt;p&gt;&lt;strong&gt;不是优化提示词，是设计 runtime 控制层。&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;这个趋势对实践的指导意义是什么？&lt;/p&gt;&lt;p&gt;对于正在做 AI 应用的团队，我的建议是：&lt;/p&gt;&lt;p&gt;&lt;strong&gt;不要把所有资源都押在模型选型和 prompt 优化上。&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;从今天开始，认真对待上下文治理这件事。&lt;/p&gt;&lt;p&gt;你的知识库结构、检索策略、session 管理、错误恢复机制——这些&amp;quot;infra 层面的工作&amp;quot;，正在变成真正的产品竞争力。&lt;/p&gt;&lt;p&gt;用一个可能不太准确的类比：&lt;/p&gt;&lt;p&gt;这就像 2000 年代服务器端开发的发展轨迹。&lt;/p&gt;&lt;p&gt;早期大家拼的是什么？硬件性能。谁的服务器快，谁就有优势。&lt;/p&gt;&lt;p&gt;后来硬件性能提升到一定程度，优化瓶颈转移了。转移到数据库设计、缓存策略、异步架构。&lt;/p&gt;&lt;p&gt;再后来，云计算把这些基础设施层面的工作，进一步商品化。竞争优势变成了什么？变成了理解业务场景和数据模型。&lt;/p&gt;
+</itunes:summary>
+			<itunes:explicit>false</itunes:explicit>
+			<itunes:duration>00:17:19</itunes:duration>
+			<itunes:image href="https://d3t3ozftmdmh3i.cloudfront.net/staging/podcast_uploaded_nologo/45967755/45967755-1778754024958-6d97e83284ae7.jpg"/>
+			<itunes:season>1</itunes:season>
+			<itunes:episode>3</itunes:episode>
+			<itunes:episodeType>full</itunes:episodeType>
+		</item>
+		<item>
+			<title><![CDATA[NVIDIA把"自我改进的AI智能体"塞进了消费级显卡]]></title>
+			<description><![CDATA[<!DOCTYPE html><html><head>  <meta charset="UTF-8">    <style>        body {            font-family: -apple-system, "Segoe UI", sans-serif;            line-height: 1.6;            color: #333;            max-width: 800px;            margin: 40px auto;            padding: 0 20px;            background-color: #f9f9f9;        }        .container {            background: #fff;            padding: 30px;            border: 1px solid #ddd;            border-radius: 4px;        }        h2 {            border-bottom: 2px solid #2ecc71;            padding-bottom: 8px;            color: #2c3e50;        }        .comparison-table {            width: 100%;            border-collapse: collapse;            margin: 20px 0;        }        .comparison-table th, .comparison-table td {            border: 1px solid #eee;            padding: 12px;            text-align: left;        }        .comparison-table th {            background-color: #f8f9fa;        }        .highlight {            background: #fff3cd;            padding: 2px 4px;            font-weight: bold;        }        .conclusion {            margin-top: 25px;            padding: 15px;            background: #e8f5e9;            border-left: 5px solid #2ecc71;        }    </style></head><body><div class="container">    <h2>NVIDIA x Ineffable Intelligence: 本地强化学习突破</h2>    <p>NVIDIA 与 Ineffable Intelligence 合作，正式在 <span class="highlight">RTX 系列显卡</span>上实现了强化学习（RL）智能体的自我改进能力。这标志着 AI 从云端单向输出转向了本地闭环进化。</p>    <table class="comparison-table">        <thead>            <tr>                <th>维度</th>                <th>传统云端 AI (OpenAI/Anthropic)</th>                <th>本地 RTX RL 智能体</th>            </tr>        </thead>        <tbody>            <tr>                <td><strong>算力载体</strong></td>                <td>H100/H200 数据中心集群</td>                <td>消费级显卡 (如 RTX 5090)</td>            </tr>            <tr>                <td><strong>核心所有权</strong></td>                <td>使用权 (付费订阅服务)</td>                <td>所有权 (硬件即算力)</td>            </tr>            <tr>                <td><strong>进化逻辑</strong></td>                <td>静态模型推理，云端统一迭代</td>                <td>动态自我改进，本地策略优化</td>            </tr>        </tbody>    </table>    <h3>为什么这很重要？</h3>    <ul>        <li><strong>去中心化进化：</strong> 无需几十亿美元的投入，个人开发者即可运行具有“自我迭代”能力的智能体。</li>        <li><strong>端侧私有化：</strong> 所有的学习、试错和策略改进都在本地完成，无需上传敏感数据至云端。</li>        <li><strong>即时反馈：</strong> 针对特定任务（如机器人控制、代码优化）实现极低延迟的强化学习闭环。</li>    </ul>    <div class="conclusion">        <strong>核心影响：</strong> 算力不再是阶级鸿沟，AI 的“所有权”和“进化权”正式下放到桌面端。    </div></div></body></html>
+]]></description>
+			<link>https://podcasters.spotify.com/pod/show/n0rvyn/episodes/NVIDIAAI-e3jd2fs</link>
+			<guid isPermaLink="false">96ae84ab-4b9a-4687-b0b4-53b0c16bd2aa</guid>
+			<dc:creator><![CDATA[Norvyn]]></dc:creator>
+			<pubDate>Fri, 15 May 2026 01:08:08 GMT</pubDate>
+			<enclosure url="https://anchor.fm/s/11295d0cc/podcast/play/120014780/https%3A%2F%2Fd3ctxlq1ktw2nl.cloudfront.net%2Fstaging%2F2026-4-15%2F424186316-44100-2-d47c95df3136e.m4a" length="12018240" type="audio/x-m4a"/>
+			<itunes:summary>&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;  &lt;meta charset=&quot;UTF-8&quot;&gt;    &lt;style&gt;        body {            font-family: -apple-system, &quot;Segoe UI&quot;, sans-serif;            line-height: 1.6;            color: #333;            max-width: 800px;            margin: 40px auto;            padding: 0 20px;            background-color: #f9f9f9;        }        .container {            background: #fff;            padding: 30px;            border: 1px solid #ddd;            border-radius: 4px;        }        h2 {            border-bottom: 2px solid #2ecc71;            padding-bottom: 8px;            color: #2c3e50;        }        .comparison-table {            width: 100%;            border-collapse: collapse;            margin: 20px 0;        }        .comparison-table th, .comparison-table td {            border: 1px solid #eee;            padding: 12px;            text-align: left;        }        .comparison-table th {            background-color: #f8f9fa;        }        .highlight {            background: #fff3cd;            padding: 2px 4px;            font-weight: bold;        }        .conclusion {            margin-top: 25px;            padding: 15px;            background: #e8f5e9;            border-left: 5px solid #2ecc71;        }    &lt;/style&gt;&lt;/head&gt;&lt;body&gt;&lt;div class=&quot;container&quot;&gt;    &lt;h2&gt;NVIDIA x Ineffable Intelligence: 本地强化学习突破&lt;/h2&gt;    &lt;p&gt;NVIDIA 与 Ineffable Intelligence 合作，正式在 &lt;span class=&quot;highlight&quot;&gt;RTX 系列显卡&lt;/span&gt;上实现了强化学习（RL）智能体的自我改进能力。这标志着 AI 从云端单向输出转向了本地闭环进化。&lt;/p&gt;    &lt;table class=&quot;comparison-table&quot;&gt;        &lt;thead&gt;            &lt;tr&gt;                &lt;th&gt;维度&lt;/th&gt;                &lt;th&gt;传统云端 AI (OpenAI/Anthropic)&lt;/th&gt;                &lt;th&gt;本地 RTX RL 智能体&lt;/th&gt;            &lt;/tr&gt;        &lt;/thead&gt;        &lt;tbody&gt;            &lt;tr&gt;                &lt;td&gt;&lt;strong&gt;算力载体&lt;/strong&gt;&lt;/td&gt;                &lt;td&gt;H100/H200 数据中心集群&lt;/td&gt;                &lt;td&gt;消费级显卡 (如 RTX 5090)&lt;/td&gt;            &lt;/tr&gt;            &lt;tr&gt;                &lt;td&gt;&lt;strong&gt;核心所有权&lt;/strong&gt;&lt;/td&gt;                &lt;td&gt;使用权 (付费订阅服务)&lt;/td&gt;                &lt;td&gt;所有权 (硬件即算力)&lt;/td&gt;            &lt;/tr&gt;            &lt;tr&gt;                &lt;td&gt;&lt;strong&gt;进化逻辑&lt;/strong&gt;&lt;/td&gt;                &lt;td&gt;静态模型推理，云端统一迭代&lt;/td&gt;                &lt;td&gt;动态自我改进，本地策略优化&lt;/td&gt;            &lt;/tr&gt;        &lt;/tbody&gt;    &lt;/table&gt;    &lt;h3&gt;为什么这很重要？&lt;/h3&gt;    &lt;ul&gt;        &lt;li&gt;&lt;strong&gt;去中心化进化：&lt;/strong&gt; 无需几十亿美元的投入，个人开发者即可运行具有“自我迭代”能力的智能体。&lt;/li&gt;        &lt;li&gt;&lt;strong&gt;端侧私有化：&lt;/strong&gt; 所有的学习、试错和策略改进都在本地完成，无需上传敏感数据至云端。&lt;/li&gt;        &lt;li&gt;&lt;strong&gt;即时反馈：&lt;/strong&gt; 针对特定任务（如机器人控制、代码优化）实现极低延迟的强化学习闭环。&lt;/li&gt;    &lt;/ul&gt;    &lt;div class=&quot;conclusion&quot;&gt;        &lt;strong&gt;核心影响：&lt;/strong&gt; 算力不再是阶级鸿沟，AI 的“所有权”和“进化权”正式下放到桌面端。    &lt;/div&gt;&lt;/div&gt;&lt;/body&gt;&lt;/html&gt;
+</itunes:summary>
+			<itunes:explicit>false</itunes:explicit>
+			<itunes:duration>00:12:23</itunes:duration>
+			<itunes:image href="https://d3t3ozftmdmh3i.cloudfront.net/staging/podcast_uploaded_nologo/45967755/45967755-1778754024958-6d97e83284ae7.jpg"/>
+			<itunes:season>1</itunes:season>
+			<itunes:episode>2</itunes:episode>
+			<itunes:episodeType>full</itunes:episodeType>
+		</item>
+		<item>
+			<title><![CDATA[当算力战争蔓延到太空]]></title>
+			<description><![CDATA[<p>马斯克想把 OpenAI 的控制权交给自己的孩子——不是交给职业经理人，不是交给机构投资者，是交给自己的血脉。Google 在跟 SpaceX 谈太空数据中心，把服务器的算力节点部署到近地轨道上去。Anthropic 这家公司开始做 AI 法律服务，而一家叫 Vapi 的语音 AI 公司估值冲到了 5 亿美元。</p><p>这几件事单独看都是新闻，放在一起看，它们指向一个正在成型的格局：AI 军备竞赛进入了新阶段。这次不只是 GPU 堆叠了，而是从治理结构到能源基础设施的全面竞争。谁能拿到足够的电力，谁能建立让 AI 负责任扩张的框架，谁就能在这个时代占据真正的优势。</p>
+]]></description>
+			<link>https://podcasters.spotify.com/pod/show/n0rvyn/episodes/ep-e3jbomh</link>
+			<guid isPermaLink="false">28d63e1f-9592-4475-9c02-1456e019c101</guid>
+			<dc:creator><![CDATA[Norvyn]]></dc:creator>
+			<pubDate>Thu, 14 May 2026 08:26:37 GMT</pubDate>
+			<enclosure url="https://anchor.fm/s/11295d0cc/podcast/play/119971985/https%3A%2F%2Fd3ctxlq1ktw2nl.cloudfront.net%2Fstaging%2F2026-4-14%2F42c19056-2159-c325-7950-176836c480ac.mp3" length="13812525" type="audio/mpeg"/>
+			<itunes:summary>&lt;p&gt;马斯克想把 OpenAI 的控制权交给自己的孩子——不是交给职业经理人，不是交给机构投资者，是交给自己的血脉。Google 在跟 SpaceX 谈太空数据中心，把服务器的算力节点部署到近地轨道上去。Anthropic 这家公司开始做 AI 法律服务，而一家叫 Vapi 的语音 AI 公司估值冲到了 5 亿美元。&lt;/p&gt;&lt;p&gt;这几件事单独看都是新闻，放在一起看，它们指向一个正在成型的格局：AI 军备竞赛进入了新阶段。这次不只是 GPU 堆叠了，而是从治理结构到能源基础设施的全面竞争。谁能拿到足够的电力，谁能建立让 AI 负责任扩张的框架，谁就能在这个时代占据真正的优势。&lt;/p&gt;
+</itunes:summary>
+			<itunes:explicit>false</itunes:explicit>
+			<itunes:duration>00:14:23</itunes:duration>
+			<itunes:image href="https://d3t3ozftmdmh3i.cloudfront.net/staging/podcast_uploaded_nologo/45967755/45967755-1778754024958-6d97e83284ae7.jpg"/>
+			<itunes:season>1</itunes:season>
+			<itunes:episode>1</itunes:episode>
+			<itunes:episodeType>full</itunes:episodeType>
+		</item>
+	</channel>
+</rss>

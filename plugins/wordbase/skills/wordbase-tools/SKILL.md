@@ -5,13 +5,13 @@ description: Reference catalog of the WordBase MCP tools (blog, podcast, apps, p
 
 # WordBase MCP tool catalog
 
-The `wordbase` MCP server exposes **38 tools** across four groups. Each tool is scope-gated by the API key's permissions (`domain:read` / `domain:write`, or `*` for full access). A call made with an out-of-scope key returns a permission-denied error result.
+The `wordbase` MCP server exposes **42 tools** across four groups. Each tool is scope-gated by the API key's permissions (`domain:read` / `domain:write`, or `*` for full access). A call made with an out-of-scope key returns a permission-denied error result.
 
 ## Blog (18) — scopes: `posts:*`, `media:*`, `comments:*`, `analytics:read`, `build:*`, `redirects:write`
 `blog_list_posts` · `blog_get_post` · `blog_create_post` · `blog_update_post_meta` · `blog_list_media` · `blog_upload_media` · `blog_delete_media` · `blog_list_comments` · `blog_moderate_comment` · `blog_reply_comment` · `blog_delete_comment` · `blog_analytics_overview` · `blog_analytics_top_posts` · `blog_analytics_trends` · `blog_content_stats` · `blog_trigger_build` · `blog_build_status` · `blog_manage_redirects`
 
-## Podcast (7) — scopes: `podcasts:read` / `podcasts:write`
-`podcast_list_shows` · `podcast_create_show` · `podcast_publish_show` · `podcast_list_episodes` · `podcast_create_episode` · `podcast_upload_audio` · `podcast_publish_episode`
+## Podcast (11) — scopes: `podcasts:read` / `podcasts:write`
+`podcast_list_shows` · `podcast_create_show` · `podcast_update_show` · `podcast_publish_show` · `podcast_list_episodes` · `podcast_create_episode` · `podcast_update_episode` · `podcast_upload_audio` · `podcast_upload_audio_from_url` · `podcast_publish_episode` · `podcast_import_feed`
 
 ## Apps (7) — scopes: `apps:read` / `apps:write`
 `app_list` · `app_create` · `app_publish` · `app_update` · `app_discover` · `app_sync` · `app_sync_all`

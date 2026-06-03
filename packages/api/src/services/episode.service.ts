@@ -75,6 +75,7 @@ interface CreateEpisodeData {
   episodeType?: string;
   explicit?: number;
   status?: string;
+  publishedAt?: number;
   externalSource?: string;
   externalId?: string;
   meta?: string;
@@ -111,7 +112,9 @@ export async function createEpisode(podcastId: string, data: CreateEpisodeData) 
       episodeType: data.episodeType || 'full',
       explicit: data.explicit ?? null,
       status: data.status || 'draft',
-      publishedAt: null,
+      // Preserve an explicit pubDate (feed import passes the original date); else
+      // null until publishEpisode stamps it.
+      publishedAt: data.publishedAt ?? null,
       externalSource: data.externalSource ?? null,
       externalId: data.externalId ?? null,
       createdAt: now,
@@ -143,6 +146,7 @@ export async function updateEpisode(id: string, data: Partial<CreateEpisodeData>
   if (data.episodeType !== undefined) updateValues.episodeType = data.episodeType;
   if (data.explicit !== undefined) updateValues.explicit = data.explicit;
   if (data.status !== undefined) updateValues.status = data.status;
+  if (data.publishedAt !== undefined) updateValues.publishedAt = data.publishedAt;
   if (data.externalSource !== undefined) updateValues.externalSource = data.externalSource;
   if (data.externalId !== undefined) updateValues.externalId = data.externalId;
   if (data.meta !== undefined) updateValues.meta = data.meta;
@@ -166,9 +170,17 @@ export async function deleteEpisode(id: string) {
 
 export async function publishEpisode(id: string) {
   const now = Math.floor(Date.now() / 1000);
+  // Preserve an existing pubDate (e.g. an episode imported from another feed with
+  // its original date); only stamp now() the first time it goes live.
+  const [existing] = await db
+    .select({ publishedAt: podcastEpisodes.publishedAt })
+    .from(podcastEpisodes)
+    .where(eq(podcastEpisodes.id, id))
+    .limit(1);
+  if (!existing) return null;
   const [episode] = await db
     .update(podcastEpisodes)
-    .set({ status: 'published', publishedAt: now, updatedAt: now })
+    .set({ status: 'published', publishedAt: existing.publishedAt ?? now, updatedAt: now })
     .where(eq(podcastEpisodes.id, id))
     .returning();
   return episode || null;
