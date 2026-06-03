@@ -198,6 +198,21 @@ export function initializeDatabase() {
     CREATE UNIQUE INDEX IF NOT EXISTS ux_episode_external ON podcast_episodes(external_source, external_id);
     CREATE INDEX IF NOT EXISTS ix_episode_podcast ON podcast_episodes(podcast_id);
 
+    CREATE TABLE IF NOT EXISTS podcast_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_type TEXT NOT NULL,
+      podcast_id TEXT NOT NULL,
+      episode_id TEXT,
+      ip_hash TEXT,
+      user_agent TEXT,
+      referrer TEXT,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS ix_podcast_events_created ON podcast_events(created_at);
+    CREATE INDEX IF NOT EXISTS ix_podcast_events_episode ON podcast_events(event_type, episode_id, created_at);
+    CREATE INDEX IF NOT EXISTS ix_podcast_events_podcast ON podcast_events(event_type, podcast_id, created_at);
+
     CREATE TABLE IF NOT EXISTS apps (
       id TEXT PRIMARY KEY,
       slug TEXT UNIQUE NOT NULL,

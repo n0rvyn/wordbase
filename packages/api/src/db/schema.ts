@@ -235,6 +235,26 @@ export const apps = sqliteTable('apps', {
   appStoreIdUnique: uniqueIndex('ux_apps_app_store_id').on(t.appStoreId),
 }));
 
+// podcast_events table — one row per consumption signal (downloads + RSS feed polls).
+// Raw event stream: deduplication is computed at READ time (mirroring page_views),
+// so we keep every hit and report raw + deduped counts from the same data.
+//   download  → episodeId set; deduped per (ip_hash, episode_id, 30-min window)
+//   feed_poll → episodeId null; deduped per (ip_hash, podcast_id, 1-day window)
+export const podcastEvents = sqliteTable('podcast_events', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  eventType: text('event_type').notNull(), // 'download' | 'feed_poll'
+  podcastId: text('podcast_id').notNull(),
+  episodeId: text('episode_id'),
+  ipHash: text('ip_hash'),
+  userAgent: text('user_agent'),
+  referrer: text('referrer'),
+  createdAt: integer('created_at').notNull(),
+}, (t) => ({
+  createdIdx: index('ix_podcast_events_created').on(t.createdAt),
+  episodeIdx: index('ix_podcast_events_episode').on(t.eventType, t.episodeId, t.createdAt),
+  podcastIdx: index('ix_podcast_events_podcast').on(t.eventType, t.podcastId, t.createdAt),
+}));
+
 // Type exports for queries
 export type Post = typeof posts.$inferSelect;
 export type NewPost = typeof posts.$inferInsert;
@@ -253,4 +273,6 @@ export type NewPodcast = typeof podcasts.$inferInsert;
 export type PodcastEpisode = typeof podcastEpisodes.$inferSelect;
 export type NewPodcastEpisode = typeof podcastEpisodes.$inferInsert;
 export type App = typeof apps.$inferSelect;
+export type PodcastEvent = typeof podcastEvents.$inferSelect;
+export type NewPodcastEvent = typeof podcastEvents.$inferInsert;
 export type NewApp = typeof apps.$inferInsert;
