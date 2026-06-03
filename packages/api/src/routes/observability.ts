@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { authMiddleware, requireScope } from '../middleware/index.js';
 import * as analyticsService from '../services/analytics.service.js';
 import * as observabilityService from '../services/observability.service.js';
+import * as podcastAnalytics from '../services/podcast-analytics.service.js';
 import type { AppEnv } from '../types.js';
 
 // All observability endpoints are auth-protected — they power the admin panel,
@@ -54,4 +55,35 @@ observabilityRouter.get('/requests', async (c) => {
 // GET /system — runtime + database + ops (build / app sync / podcast / pending comments)
 observabilityRouter.get('/system', async (c) => {
   return c.json(observabilityService.getSystemStatus());
+});
+
+// ---- Podcast consumption analytics (downloads + RSS feed polls) ----
+
+// GET /podcast/summary?days=30 — total + windowed deduped downloads, subscriber estimate
+observabilityRouter.get('/podcast/summary', async (c) => {
+  const days = Math.max(1, Math.min(365, Number(c.req.query('days')) || 30));
+  return c.json(await podcastAnalytics.getPodcastSummary(days));
+});
+
+// GET /podcast/trends?period=daily|weekly|monthly — per-bucket deduped downloads + feed polls
+observabilityRouter.get('/podcast/trends', async (c) => {
+  const period = c.req.query('period') || 'daily';
+  return c.json(await podcastAnalytics.getPodcastTrends(period));
+});
+
+// GET /podcast/top-episodes?limit=10 — episodes ranked by deduped downloads
+observabilityRouter.get('/podcast/top-episodes', async (c) => {
+  const limit = Math.max(1, Math.min(50, Number(c.req.query('limit')) || 10));
+  return c.json(await podcastAnalytics.getTopEpisodes(limit));
+});
+
+// GET /podcast/episodes — every episode with deduped lifetime downloads + recent sparkline
+observabilityRouter.get('/podcast/episodes', async (c) => {
+  return c.json(await podcastAnalytics.getEpisodeDownloadTable());
+});
+
+// GET /podcast/clients?limit=10 — feed-poll user-agent → podcast client distribution
+observabilityRouter.get('/podcast/clients', async (c) => {
+  const limit = Math.max(1, Math.min(50, Number(c.req.query('limit')) || 10));
+  return c.json(await podcastAnalytics.getPodcastClients(limit));
 });
