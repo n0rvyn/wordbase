@@ -19,9 +19,25 @@ interface CreateTagData {
   slug?: string;
 }
 
+// Mirror post.service slugify: keep CJK so Chinese tag names get a stable,
+// non-empty slug (the old ASCII-only rule collapsed them to '' and collided on
+// the unique constraint for the second Chinese tag).
+function slugifyTag(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9一-鿿]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
 export async function createTag(data: CreateTagData) {
+  const slug = data.slug || slugifyTag(data.name) || data.name;
+  // Create-or-attach: if a tag with this slug already exists, return it instead
+  // of hitting the unique constraint. Lets the editor POST a tag by name
+  // idempotently (type-and-Enter reuses an existing tag, doesn't 500 on dupes).
+  const [existing] = await db.select().from(tags).where(eq(tags.slug, slug)).limit(1);
+  if (existing) return existing;
+
   const id = nanoid();
-  const slug = data.slug || data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const [tag] = await db.insert(tags).values({
     id,
     slug,

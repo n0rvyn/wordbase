@@ -30,19 +30,29 @@ postsRouter.get('/:idOrSlug', async (c) => {
 postsRouter.post('/', authMiddleware, requireScope('posts:write'), async (c) => {
   const body = await c.req.json();
   const post = await postService.createPost(body);
+  // A post created directly in the published state must regenerate the static site.
+  if (post.status === 'published') triggerBuild();
   return c.json(post, 201);
 });
 
 postsRouter.put('/:id', authMiddleware, requireScope('posts:write'), async (c) => {
   const body = await c.req.json();
+  const before = await postService.getPost(c.req.param('id'));
   const post = await postService.updatePost(c.req.param('id'), body);
   if (!post) return c.json({ error: { code: 'NOT_FOUND', message: 'Post not found' } }, 404);
+  // Rebuild whenever the change touches the public site: the post is (still)
+  // published, OR it was published and is now being unpublished/archived (so the
+  // static site drops it). Plain draft edits skip the 30s+ rebuild.
+  if (post.status === 'published' || before?.status === 'published') triggerBuild();
   return c.json(post);
 });
 
 postsRouter.delete('/:id', authMiddleware, requireScope('posts:write'), async (c) => {
+  const before = await postService.getPost(c.req.param('id'));
   const post = await postService.deletePost(c.req.param('id'));
   if (!post) return c.json({ error: { code: 'NOT_FOUND', message: 'Post not found' } }, 404);
+  // Deleting a published post must remove it from the static site.
+  if (before?.status === 'published') triggerBuild();
   return c.json({ success: true });
 });
 
@@ -54,7 +64,10 @@ postsRouter.post('/:id/publish', authMiddleware, requireScope('posts:write'), as
 });
 
 postsRouter.post('/:id/archive', authMiddleware, requireScope('posts:write'), async (c) => {
+  const before = await postService.getPost(c.req.param('id'));
   const post = await postService.archivePost(c.req.param('id'));
   if (!post) return c.json({ error: { code: 'NOT_FOUND', message: 'Post not found' } }, 404);
+  // Archiving a published post removes it from the public site.
+  if (before?.status === 'published') triggerBuild();
   return c.json(post);
 });

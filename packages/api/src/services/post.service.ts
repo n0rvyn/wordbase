@@ -98,6 +98,7 @@ export async function createPost(data: CreatePostData) {
     excerpt: data.excerpt ?? null,
     coverImage: data.coverImage ?? null,
     status: data.status || 'draft',
+    publishedAt: data.status === 'published' ? now : null,
     createdAt: now,
     updatedAt: now,
     meta: data.meta ?? null,
@@ -130,6 +131,12 @@ export async function updatePost(id: string, data: Partial<Omit<CreatePostData, 
   if (postData.coverImage !== undefined) updateValues.coverImage = postData.coverImage;
   if (postData.status !== undefined) updateValues.status = postData.status;
   if (postData.meta !== undefined) updateValues.meta = postData.meta;
+
+  // Stamp publishedAt the first time a post becomes published, without clobbering
+  // an existing timestamp on later edits (COALESCE keeps the original publish date).
+  if (postData.status === 'published') {
+    updateValues.publishedAt = sql`COALESCE(${posts.publishedAt}, ${now})`;
+  }
 
   const [post] = await db.update(posts).set(updateValues).where(eq(posts.id, id)).returning();
 

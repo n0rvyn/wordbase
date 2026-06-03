@@ -19,6 +19,7 @@ export default function PostEditor({ postId: propId }: Props) {
   const [tags, setTags] = useState<any[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -111,6 +112,35 @@ export default function PostEditor({ postId: propId }: Props) {
     }
   }
 
+  async function addTagByName(raw: string) {
+    const name = raw.trim();
+    if (!name) return;
+    // Reuse an already-loaded tag by case-insensitive name before creating one.
+    const existing = tags.find((t: any) => (t.name as string).toLowerCase() === name.toLowerCase());
+    if (existing) {
+      if (!selectedTags.includes(existing.id)) setSelectedTags([...selectedTags, existing.id]);
+      setTagInput('');
+      return;
+    }
+    try {
+      // Backend create-or-attach: returns an existing tag on slug match, else creates.
+      const created = await adminFetch<any>('/api/tags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      setTags((prev) => (prev.some((t: any) => t.id === created.id) ? prev : [...prev, created]));
+      setSelectedTags((prev) => (prev.includes(created.id) ? prev : [...prev, created.id]));
+      setTagInput('');
+    } catch (e: any) {
+      setMessage(`Error adding tag: ${e.message}`);
+    }
+  }
+
+  function removeTag(id: string) {
+    setSelectedTags(selectedTags.filter((t) => t !== id));
+  }
+
   const previewHtml = marked.parse(content || '');
 
   return (
@@ -128,7 +158,7 @@ export default function PostEditor({ postId: propId }: Props) {
             </button>
           )}
           <button onClick={() => setShowPreview(!showPreview)}
-            class="px-4 py-2 border rounded-lg hover:bg-gray-50 text-sm">
+            class="px-4 py-2 border rounded-lg hover:bg-gray-50 text-sm lg:hidden">
             {showPreview ? 'Edit' : 'Preview'}
           </button>
         </div>
@@ -148,15 +178,19 @@ export default function PostEditor({ postId: propId }: Props) {
             placeholder="URL slug (auto-generated if empty)" class="w-full px-4 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
 
-          {showPreview ? (
-            <div class="bg-white border rounded-lg p-6 prose prose-lg max-w-none min-h-[400px]" dangerouslySetInnerHTML={{ __html: previewHtml as string }} />
-          ) : (
+          {/* Live split: editor + rendered preview side by side on large screens.
+              On mobile the Edit/Preview toggle swaps which single pane shows. */}
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <textarea
               value={content} onInput={(e) => setContent((e.target as HTMLTextAreaElement).value)}
               placeholder="Write your post in Markdown..."
-              class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm min-h-[400px] resize-y"
+              class={`${showPreview ? 'hidden lg:block' : 'block'} w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm min-h-[400px] resize-y`}
             />
-          )}
+            <div
+              class={`${showPreview ? 'block' : 'hidden lg:block'} bg-white border rounded-lg p-6 prose prose-lg max-w-none min-h-[400px] overflow-auto`}
+              dangerouslySetInnerHTML={{ __html: previewHtml as string }}
+            />
+          </div>
 
           <textarea
             value={excerpt} onInput={(e) => setExcerpt((e.target as HTMLTextAreaElement).value)}
@@ -209,22 +243,32 @@ export default function PostEditor({ postId: propId }: Props) {
 
           <div class="bg-white border rounded-lg p-4">
             <label class="block text-sm font-medium text-gray-700 mb-2">Tags</label>
-            <div class="space-y-1 max-h-40 overflow-y-auto">
-              {tags.map((tag: any) => (
-                <label class="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={selectedTags.includes(tag.id)}
-                    onChange={(e) => {
-                      if ((e.target as HTMLInputElement).checked) {
-                        setSelectedTags([...selectedTags, tag.id]);
-                      } else {
-                        setSelectedTags(selectedTags.filter(id => id !== tag.id));
-                      }
-                    }} />
-                  {tag.name}
-                </label>
-              ))}
-              {tags.length === 0 && <p class="text-gray-500 text-xs">No tags</p>}
+            {/* Selected tags as removable chips */}
+            <div class="flex flex-wrap gap-1 mb-2">
+              {selectedTags.map((id) => {
+                const t = tags.find((x: any) => x.id === id);
+                return (
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs">
+                    {t ? t.name : id}
+                    <button type="button" onClick={() => removeTag(id)} class="hover:text-blue-950 leading-none">&times;</button>
+                  </span>
+                );
+              })}
+              {selectedTags.length === 0 && <span class="text-gray-400 text-xs">No tags yet</span>}
             </div>
+            {/* Free-text input: type a tag and press Enter to create or attach it.
+                The datalist offers existing tags as suggestions without limiting input. */}
+            <input
+              type="text" value={tagInput}
+              onInput={(e) => setTagInput((e.target as HTMLInputElement).value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTagByName(tagInput); } }}
+              list="tag-suggestions"
+              placeholder="Type a tag, press Enter"
+              class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <datalist id="tag-suggestions">
+              {tags.map((t: any) => <option value={t.name} />)}
+            </datalist>
           </div>
         </div>
       </div>
