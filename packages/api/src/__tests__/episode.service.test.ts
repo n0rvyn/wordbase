@@ -7,6 +7,7 @@ import {
   getEpisode,
   upsertEpisodeByExternal,
   publishEpisode,
+  updateEpisode,
   deleteEpisode,
 } from '../services/episode.service.js';
 
@@ -116,5 +117,46 @@ describe('episode service', () => {
     await deleteEpisode(ep.id);
     const found = await getEpisode(ep.id);
     expect(found).toBeNull();
+  });
+
+  it('createEpisode persists coverImage / transcript / audioType / episodeType / explicit / publishedAt round-trip', async () => {
+    const show = await createPodcast({ title: 'Test Show 8' });
+    const fixedPublishedAt = 1_780_000_000;
+    const ep = await createEpisode(show.id, {
+      title: 'Round-trip Episode',
+      audioUrl: '/uploads/ep.wav',
+      audioType: 'audio/wav',
+      coverImage: 'https://x/c.jpg',
+      transcript: 'T',
+      episodeType: 'bonus',
+      explicit: 1,
+      publishedAt: fixedPublishedAt,
+    });
+    expect(ep.coverImage).toBe('https://x/c.jpg');
+    expect(ep.transcript).toBe('T');
+    expect(ep.audioType).toBe('audio/wav');
+    expect(ep.audioType).not.toBe('audio/mpeg'); // not the default
+    expect(ep.episodeType).toBe('bonus');
+    expect(ep.explicit).toBe(1);
+    expect(ep.publishedAt).toBe(fixedPublishedAt);
+
+    // Read-back round-trip via getEpisode (different code path from create).
+    const refetched = await getEpisode(ep.id);
+    expect(refetched?.coverImage).toBe('https://x/c.jpg');
+    expect(refetched?.transcript).toBe('T');
+    expect(refetched?.audioType).toBe('audio/wav');
+    expect(refetched?.episodeType).toBe('bonus');
+    expect(refetched?.explicit).toBe(1);
+    expect(refetched?.publishedAt).toBe(fixedPublishedAt);
+  });
+
+  it('updateEpisode persists duration', async () => {
+    const show = await createPodcast({ title: 'Test Show 9' });
+    const ep = await createEpisode(show.id, {
+      title: 'Duration Episode',
+      audioUrl: '/uploads/ep.mp3',
+    });
+    const updated = await updateEpisode(ep.id, { duration: 743 });
+    expect(updated?.duration).toBe(743);
   });
 });

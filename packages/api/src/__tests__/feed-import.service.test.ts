@@ -30,6 +30,9 @@ describe('parseExternalFeed (Anchor/Spotify RSS)', () => {
       expect(typeof ep.episodeNumber).toBe('number');
       expect(typeof ep.duration).toBe('number');
       expect(typeof ep.publishedAt).toBe('number');
+      // every item in this fixture carries its own <itunes:image> — the
+      // per-episode cover must be parsed end-to-end, not just on synthetic XML
+      expect(ep.coverImage).toMatch(/^https?:\/\//);
     }
     // newest episode is #16 in this feed
     const numbers = episodes.map((e) => e.episodeNumber);
@@ -49,6 +52,30 @@ describe('parseExternalFeed (Anchor/Spotify RSS)', () => {
     const t = parsePubDate('Tue, 02 Jun 2026 12:06:56 GMT');
     expect(t).toBe(Math.floor(Date.parse('Tue, 02 Jun 2026 12:06:56 GMT') / 1000));
     expect(parsePubDate('not a date')).toBeUndefined();
+  });
+
+  it('parses per-episode <itunes:image> into coverImage (undefined when absent)', () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
+  <channel>
+    <title>Test Show</title>
+    <item>
+      <title>Ep with art</title>
+      <guid>ep-aaa</guid>
+      <enclosure url="https://cdn.example/ep1.mp3" type="audio/mpeg" length="12345" />
+      <itunes:image href="https://cdn.example/ep1.jpg" />
+    </item>
+    <item>
+      <title>Ep without art</title>
+      <guid>ep-bbb</guid>
+      <enclosure url="https://cdn.example/ep2.mp3" type="audio/mpeg" length="67890" />
+    </item>
+  </channel>
+</rss>`;
+    const { episodes } = parseExternalFeed(xml);
+    expect(episodes.length).toBe(2);
+    expect(episodes[0].coverImage).toBe('https://cdn.example/ep1.jpg');
+    expect(episodes[1].coverImage).toBeUndefined();
   });
 });
 

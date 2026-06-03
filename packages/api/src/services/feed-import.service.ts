@@ -22,6 +22,7 @@ export interface ParsedEpisode {
   title: string;
   summary?: string;
   showNotes?: string;
+  coverImage?: string;
   audioUrl: string;
   audioType?: string;
   audioSize?: number;
@@ -135,6 +136,7 @@ export function parseExternalFeed(xml: string): ParsedFeed {
       title: text(item.title) ?? '(untitled)',
       summary: stripTags(text(item['itunes:summary']) ?? html),
       showNotes: html,
+      coverImage: attr(item['itunes:image'], '@_href'),
       audioUrl,
       audioType: attr(enclosure, '@_type') ?? 'audio/mpeg',
       audioSize: intOrUndef(attr(enclosure, '@_length')),
