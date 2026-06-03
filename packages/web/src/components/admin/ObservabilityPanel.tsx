@@ -38,6 +38,17 @@ interface SystemStatus {
   };
 }
 
+interface PodcastSummary {
+  days: number;
+  totalDownloads: number;
+  windowDownloads: number;
+  subscriberEstimate: number;
+  subscriberWindowDays: number;
+}
+interface PodcastTrendPoint { period: string; downloads: number; feedPolls: number; }
+interface TopEpisode { episodeId: string; title: string; slug: string; downloads: number; }
+interface EpisodeDownloadRow { id: string; title: string; slug: string; episodeNumber: number | null; status: string; downloads: number; trend: number[]; }
+
 // daily trends span 30 days, weekly 12 weeks, monthly 12 months — keep the
 // summary window aligned with the chart so the headline numbers match the curve.
 const PERIOD_DAYS: Record<Period, number> = { daily: 30, weekly: 84, monthly: 365 };
@@ -59,6 +70,11 @@ export default function ObservabilityPanel() {
   const [devices, setDevices] = useState<DeviceRow[]>([]);
   const [requests, setRequests] = useState<RequestMetrics | null>(null);
   const [system, setSystem] = useState<SystemStatus | null>(null);
+  const [podSummary, setPodSummary] = useState<PodcastSummary | null>(null);
+  const [podTrends, setPodTrends] = useState<PodcastTrendPoint[]>([]);
+  const [topEpisodes, setTopEpisodes] = useState<TopEpisode[]>([]);
+  const [episodeTable, setEpisodeTable] = useState<EpisodeDownloadRow[]>([]);
+  const [podClients, setPodClients] = useState<DeviceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -68,7 +84,7 @@ export default function ObservabilityPanel() {
     setLoading(true);
     setError('');
     try {
-      const [sum, tr, tp, ref, dev, req, sys] = await Promise.all([
+      const [sum, tr, tp, ref, dev, req, sys, pSum, pTr, pTop, pEps, pCli] = await Promise.all([
         adminFetch<VisitorSummary>(`/api/observability/visits?days=${PERIOD_DAYS[p]}`),
         adminFetch<TrendPoint[]>(`/api/observability/trends?period=${p}`),
         adminFetch<TopPost[]>('/api/observability/top-posts?limit=10'),
@@ -76,8 +92,14 @@ export default function ObservabilityPanel() {
         adminFetch<DeviceRow[]>('/api/observability/devices'),
         adminFetch<RequestMetrics>('/api/observability/requests?hours=24'),
         adminFetch<SystemStatus>('/api/observability/system'),
+        adminFetch<PodcastSummary>(`/api/observability/podcast/summary?days=${PERIOD_DAYS[p]}`),
+        adminFetch<PodcastTrendPoint[]>(`/api/observability/podcast/trends?period=${p}`),
+        adminFetch<TopEpisode[]>('/api/observability/podcast/top-episodes?limit=10'),
+        adminFetch<EpisodeDownloadRow[]>('/api/observability/podcast/episodes'),
+        adminFetch<DeviceRow[]>('/api/observability/podcast/clients?limit=10'),
       ]);
       setSummary(sum); setTrends(tr); setTopPosts(tp); setReferrers(ref); setDevices(dev); setRequests(req); setSystem(sys);
+      setPodSummary(pSum); setPodTrends(pTr); setTopEpisodes(pTop); setEpisodeTable(pEps); setPodClients(pCli);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -156,6 +178,42 @@ export default function ObservabilityPanel() {
           </div>
 
           <DeviceBreakdown rows={devices} />
+
+          {/* ---- Podcast (downloads + RSS feed polls, distinct from page-view beacons) ---- */}
+          <div class="mt-10 mb-6">
+            <h2 class="text-xl font-semibold text-gray-900 tracking-tight">Podcast</h2>
+            <p class="text-sm text-gray-500 mt-0.5">Deduped episode downloads &amp; active-subscriber estimate · {PERIOD_LABEL[period]}</p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+            <SummaryCard
+              series={{ key: 'totalDownloads', label: 'Total downloads', color: '#8b5cf6' }}
+              value={podSummary ? podSummary.totalDownloads : 0}
+              trend={podTrends.map((t) => t.downloads)}
+            />
+            <SummaryCard
+              series={{ key: 'windowDownloads', label: `Downloads · ${PERIOD_LABEL[period].toLowerCase()}`, color: '#6366f1' }}
+              value={podSummary ? podSummary.windowDownloads : 0}
+              trend={podTrends.map((t) => t.downloads)}
+            />
+            <SummaryCard
+              series={{ key: 'subscriberEstimate', label: `Subscribers (est., ${podSummary?.subscriberWindowDays ?? 7}d)`, color: '#ec4899' }}
+              value={podSummary ? podSummary.subscriberEstimate : 0}
+              trend={podTrends.map((t) => t.feedPolls)}
+            />
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+            <BarList
+              title="Top episodes"
+              accent="#8b5cf6"
+              empty="No downloads recorded yet."
+              rows={topEpisodes.map((e) => ({ label: e.title, value: e.downloads }))}
+            />
+            <DeviceBreakdown title="Client distribution" meta={CLIENT_META} rows={podClients} />
+          </div>
+
+          <EpisodeTable rows={episodeTable} />
 
           {/* ---- API requests (server-side, distinct from the visit beacons above) ---- */}
           <div class="mt-10 mb-6">
@@ -410,7 +468,7 @@ function fmtMs(ms: number): string {
 
 /* ---------------- summary card ---------------- */
 
-function SummaryCard({ series, value, trend }: { series: { key: SeriesKey; label: string; color: string }; value: number; trend: number[] }) {
+function SummaryCard({ series, value, trend }: { series: { key: string; label: string; color: string }; value: number; trend: number[] }) {
   const delta = periodDelta(trend);
   return (
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
@@ -633,6 +691,56 @@ function BarList({ title, rows, empty, accent }: { title: string; rows: { label:
   );
 }
 
+/* ---------------- episode download table (per-episode detail) ---------------- */
+
+function EpisodeTable({ rows }: { rows: EpisodeDownloadRow[] }) {
+  return (
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div class="px-5 py-4 border-b border-gray-100">
+        <h3 class="font-semibold text-gray-900">Episodes</h3>
+      </div>
+      {rows.length === 0 ? (
+        <p class="text-gray-400 text-sm px-5 py-8 text-center">No episodes yet.</p>
+      ) : (
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-xs font-medium text-gray-400 border-b border-gray-100">
+                <th class="px-5 py-2.5 font-medium">Episode</th>
+                <th class="px-3 py-2.5 font-medium text-right tabular-nums">Downloads</th>
+                <th class="px-5 py-2.5 font-medium text-right">Last 14 days</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+              {rows.map((e) => (
+                <tr class="hover:bg-gray-50/60">
+                  <td class="px-5 py-2.5">
+                    <span class="flex items-center gap-2 min-w-0">
+                      {e.episodeNumber != null && (
+                        <span class="text-xs font-medium text-gray-300 tabular-nums shrink-0">EP.{e.episodeNumber}</span>
+                      )}
+                      <span class="text-gray-700 truncate">{e.title}</span>
+                      {e.status !== 'published' && (
+                        <span class="px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500 shrink-0">{e.status}</span>
+                      )}
+                    </span>
+                  </td>
+                  <td class="px-3 py-2.5 text-right tabular-nums font-semibold text-gray-900">{e.downloads.toLocaleString()}</td>
+                  <td class="px-5 py-2.5">
+                    <div class="flex justify-end">
+                      <Sparkline values={e.trend} color="#8b5cf6" />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ---------------- device breakdown ---------------- */
 
 const DEVICE_META: Record<string, { label: string; color: string }> = {
@@ -642,12 +750,26 @@ const DEVICE_META: Record<string, { label: string; color: string }> = {
   unknown: { label: 'Unknown', color: '#cbd5e1' },
 };
 
-function DeviceBreakdown({ rows }: { rows: DeviceRow[] }) {
+// Color palette for podcast client labels (feed-poll UA classification).
+const CLIENT_META: Record<string, { label: string; color: string }> = {
+  'Apple Podcasts': { label: 'Apple Podcasts', color: '#a855f7' },
+  Overcast: { label: 'Overcast', color: '#f59e0b' },
+  Spotify: { label: 'Spotify', color: '#10b981' },
+  'Pocket Casts': { label: 'Pocket Casts', color: '#ef4444' },
+  Castro: { label: 'Castro', color: '#14b8a6' },
+  '小宇宙': { label: '小宇宙', color: '#ec4899' },
+  AntennaPod: { label: 'AntennaPod', color: '#3b82f6' },
+  bot: { label: 'Bots / crawlers', color: '#94a3b8' },
+  Other: { label: 'Other', color: '#cbd5e1' },
+  unknown: { label: 'Unknown', color: '#cbd5e1' },
+};
+
+function DeviceBreakdown({ rows, title = 'Device breakdown', meta: metaMap = DEVICE_META }: { rows: DeviceRow[]; title?: string; meta?: Record<string, { label: string; color: string }> }) {
   const total = rows.reduce((s, r) => s + r.count, 0);
   return (
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
       <div class="px-5 py-4 border-b border-gray-100">
-        <h3 class="font-semibold text-gray-900">Device breakdown</h3>
+        <h3 class="font-semibold text-gray-900">{title}</h3>
       </div>
       <div class="p-5">
         {total === 0 ? (
@@ -656,13 +778,13 @@ function DeviceBreakdown({ rows }: { rows: DeviceRow[] }) {
           <>
             <div class="flex h-2.5 rounded-full overflow-hidden mb-4 gap-0.5">
               {rows.map((r) => {
-                const meta = DEVICE_META[r.type] ?? { label: r.type, color: '#cbd5e1' };
+                const meta = metaMap[r.type] ?? { label: r.type, color: '#cbd5e1' };
                 return <div style={{ width: `${(r.count / total) * 100}%`, backgroundColor: meta.color }} title={meta.label} />;
               })}
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {rows.map((r) => {
-                const meta = DEVICE_META[r.type] ?? { label: r.type, color: '#cbd5e1' };
+                const meta = metaMap[r.type] ?? { label: r.type, color: '#cbd5e1' };
                 const pct = ((r.count / total) * 100).toFixed(1);
                 return (
                   <div class="flex items-center gap-2.5">
