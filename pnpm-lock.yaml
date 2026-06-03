@@ -44,6 +44,9 @@ importers:
       turndown:
         specifier: ^7.2.0
         version: 7.2.2
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
     devDependencies:
       '@types/bcryptjs':
         specifier: ^2.4.0

@@ -22,7 +22,8 @@
     "jose": "^6.2.3",
     "mysql2": "^3.11.0",
     "nanoid": "^5.0.0",
-    "turndown": "^7.2.0"
+    "turndown": "^7.2.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.0",

@@ -10,6 +10,28 @@ import * as appService from '../services/app.service.js';
 import * as appSyncService from '../services/app-sync.service.js';
 import * as pageService from '../services/page.service.js';
 import { hasScope } from '../middleware/auth.js';
+import { z, type ZodTypeAny } from 'zod';
+
+// Each tool below declares its input schema as a plain { type, description } map.
+// The MCP SDK's tool() expects a Zod raw shape (values must be Zod types); when
+// it sees a non-Zod object it silently treats it as `annotations` instead — which
+// is what produced the `annotations.title` validation crash on the client for the
+// 5 tools that have a `title` field, and left every other tool with no advertised
+// parameters. Convert each descriptor to a Zod type centrally so the 38 call sites
+// stay declarative.
+type PropDescriptor = { type: 'string' | 'number'; description?: string };
+
+function toZodShape(shape: Record<string, PropDescriptor>): Record<string, ZodTypeAny> {
+  const out: Record<string, ZodTypeAny> = {};
+  for (const [key, def] of Object.entries(shape)) {
+    let zt: ZodTypeAny = def.type === 'number' ? z.number() : z.string();
+    if (def.description) zt = zt.describe(def.description);
+    // The original plain schemas carried no `required` list, so every field stays
+    // optional to preserve behavior; requiredness can be tightened per-tool later.
+    out[key] = zt.optional();
+  }
+  return out;
+}
 
 // Required scope per MCP tool — mirrors the REST route scopes. Before this, MCP
 // tools ran with zero scope checks (#6); the wrapper below enforces them.
@@ -61,6 +83,12 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
   const server = {
     tool(...args: any[]) {
       const name = args[0] as string;
+      // Convert the plain { type, description } input-schema map (3rd positional
+      // arg) into a Zod raw shape the SDK recognizes. Skip when there is no schema
+      // arg, or when it is already a function (3-arg overload).
+      if (args.length >= 4 && args[2] && typeof args[2] === 'object' && !Array.isArray(args[2])) {
+        args[2] = toZodShape(args[2] as Record<string, PropDescriptor>);
+      }
       const scope = TOOL_SCOPES[name];
       const handler = args[args.length - 1];
       if (scope && typeof handler === 'function') {

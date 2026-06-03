@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { registerTools } from '../mcp/tools.js';
 
 // ── Existing harness (names only, handlers discarded) ──────────────────────
@@ -161,6 +164,65 @@ describe('registerTools — tool name registration', () => {
     expect(names).toContain('page_publish');
     expect(names).toContain('app_update');
     expect(names).toContain('app_discover');
+  });
+});
+
+// Exercises the REAL SDK serialization path (the one the mocked harness above
+// never touches). The plain { type, description } input schemas used to be
+// misread by the SDK as `annotations`, which made tools/list emit an
+// `annotations.title` object and crash the client on the 5 title-bearing tools.
+// This block connects a real Client to a real McpServer over an in-memory
+// transport and asserts on the actual tools/list response.
+describe('registerTools — real tools/list serialization', () => {
+  async function listToolsViaRealSdk() {
+    const mcp = new McpServer({ name: 'wordbase-test', version: '0.0.0' });
+    registerTools(mcp);
+
+    const client = new Client({ name: 'test-client', version: '0.0.0' });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await Promise.all([mcp.connect(serverTransport), client.connect(clientTransport)]);
+
+    const { tools } = await client.listTools();
+    await client.close();
+    return tools;
+  }
+
+  // The 5 tools whose input schema carries a `title` field — the exact ones that
+  // previously produced the `annotations.title` invalid_type crash.
+  const TITLE_TOOLS = [
+    'blog_create_post',
+    'podcast_create_show',
+    'podcast_create_episode',
+    'page_create',
+    'page_update',
+  ];
+
+  it('tools/list succeeds and no tool emits an object-valued annotations.title', async () => {
+    const tools = await listToolsViaRealSdk();
+    expect(tools.length).toBeGreaterThan(30);
+    for (const t of tools) {
+      const title = t.annotations?.title;
+      // annotations.title, if present, must be a string — never the schema object.
+      expect(typeof title === 'undefined' || typeof title === 'string').toBe(true);
+    }
+  });
+
+  it('title-bearing tools advertise `title` as an input parameter, not an annotation', async () => {
+    const tools = await listToolsViaRealSdk();
+    for (const name of TITLE_TOOLS) {
+      const tool = tools.find((t) => t.name === name);
+      expect(tool, `tool ${name} should be listed`).toBeDefined();
+      expect(tool!.inputSchema.properties).toHaveProperty('title');
+      expect(tool!.annotations?.title).toBeUndefined();
+    }
+  });
+
+  it('input schema descriptions survive into the emitted JSON', async () => {
+    const tools = await listToolsViaRealSdk();
+    const createPost = tools.find((t) => t.name === 'blog_create_post')!;
+    const props = createPost.inputSchema.properties as Record<string, { description?: string }>;
+    expect(props.title.description).toBe('Post title');
+    expect(props.content.description).toBe('Post content in Markdown');
   });
 });
 
