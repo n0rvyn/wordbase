@@ -47,7 +47,7 @@ const host = podcast?.author ?? podcast?.ownerName ?? null;
       </div>
       <h1>{showTitle}</h1>
       <p class="lede">
-        {podcast?.description ? stripMarkdown(podcast.description, 160) : '一档慢节奏的播客。'}
+        {podcast?.description ? stripMarkdown(podcast.description, podcast.description.length) : '一档慢节奏的播客。'}
       </p>
       {feedHref && (
         <div class="subscribe">
