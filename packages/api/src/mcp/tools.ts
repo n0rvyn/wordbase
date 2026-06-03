@@ -10,6 +10,7 @@ import * as appService from '../services/app.service.js';
 import * as appSyncService from '../services/app-sync.service.js';
 import * as pageService from '../services/page.service.js';
 import * as feedImportService from '../services/feed-import.service.js';
+import { safeFetch } from '../lib/safe-fetch.js';
 import { hasScope } from '../middleware/auth.js';
 import { z, type ZodTypeAny } from 'zod';
 
@@ -663,20 +664,22 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
 
   server.tool(
     'podcast_import_feed',
-    'Import an external podcast RSS feed (e.g. Anchor/Spotify): updates or creates the show and upserts every episode (idempotent by guid). Keeps the original audio URLs and publish dates. Episodes import as draft unless status=published.',
+    'Import an external podcast RSS feed (e.g. Anchor/Spotify): upserts every episode (idempotent by guid), keeping the original audio URLs and publish dates. Episodes import as draft unless status=published. When importing into an EXISTING show, the show\'s own metadata (title/cover/owner/etc.) is left untouched unless syncShow=1.',
     {
       feedUrl: { type: 'string', description: 'URL of the external RSS feed' },
-      podcastId: { type: 'string', description: 'Target show ID to import into; if omitted, a new show is created' },
+      podcastId: { type: 'string', description: 'Target show ID to import into; if omitted, a new show is created from the feed' },
       externalSource: { type: 'string', description: 'Label stored on each episode for idempotent re-import (default: rss)' },
       status: { type: 'string', description: 'Status to import episodes as: draft (default) or published' },
+      syncShow: { type: 'number', description: 'When importing into an existing show, set 1 to also overwrite the show metadata from the feed (cover, owner, category, ...). Default 0 = episodes only.' },
     },
     async (args: Record<string, unknown>) => {
       const feedUrl = args.feedUrl as string;
       const externalSource = (args.externalSource as string) || 'rss';
       const status = (args.status as string) || 'draft';
+      const syncShow = Boolean(args.syncShow);
       let xml: string;
       try {
-        const resp = await fetch(feedUrl);
+        const resp = await safeFetch(feedUrl);
         if (!resp.ok) {
           return { content: [{ type: 'text' as const, text: `Fetch failed: ${resp.status} ${resp.statusText}` }], isError: true };
         }
@@ -690,8 +693,12 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
 
       let podcastId = args.podcastId as string | undefined;
       if (podcastId) {
-        const updated = await podcastService.updatePodcast(podcastId, { ...show });
-        if (!updated) return { content: [{ type: 'text' as const, text: 'Target podcast not found' }], isError: true };
+        // Importing into an existing show: by default touch ONLY episodes, so a
+        // deliberately-chosen cover/owner/title is never clobbered by the feed.
+        const target = await podcastService.getPodcast(podcastId);
+        if (!target) return { content: [{ type: 'text' as const, text: 'Target podcast not found' }], isError: true };
+        podcastId = target.id;
+        if (syncShow) await podcastService.updatePodcast(podcastId, { ...show });
       } else {
         const created = await podcastService.createPodcast({ ...show, title: show.title || 'Imported Podcast' });
         podcastId = created.id;
@@ -728,7 +735,7 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
     async (args: Record<string, unknown>) => {
       const url = args.url as string;
       try {
-        const resp = await fetch(url);
+        const resp = await safeFetch(url);
         if (!resp.ok) {
           return { content: [{ type: 'text' as const, text: `Fetch failed: ${resp.status} ${resp.statusText}` }], isError: true };
         }

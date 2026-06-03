@@ -98,6 +98,7 @@ vi.mock('../services/redirect.service.js', () => ({
 
 vi.mock('../services/podcast.service.js', () => ({
   listPodcasts: vi.fn(async () => ({ data: [], total: 0 })),
+  getPodcast: vi.fn(async () => null),
   createPodcast: vi.fn(async (data: Record<string, unknown>) => ({ id: 'pod1', ...data })),
   updatePodcast: vi.fn(async () => null),
   publishPodcast: vi.fn(async () => null),
@@ -110,6 +111,23 @@ vi.mock('../services/episode.service.js', () => ({
   upsertEpisodeByExternal: vi.fn(async (data: Record<string, unknown>) => ({ id: 'ep1', ...data })),
   publishEpisode: vi.fn(async () => null),
   uploadEpisodeAudio: vi.fn(async () => ({ url: 'http://example.com/audio.mp3' })),
+}));
+
+vi.mock('../services/feed-import.service.js', () => ({
+  parseExternalFeed: vi.fn(() => ({
+    show: { title: 'Feed Show', coverImage: 'http://cdn/feed.jpg', ownerEmail: 'feed@x.com' },
+    episodes: [{ guid: 'g1', title: 'E1', audioUrl: 'http://cdn/a.mp3' }],
+  })),
+}));
+
+vi.mock('../lib/safe-fetch.js', () => ({
+  safeFetch: vi.fn(async () => ({
+    ok: true,
+    status: 200,
+    statusText: 'OK',
+    text: async () => '<rss/>',
+    arrayBuffer: async () => new ArrayBuffer(0),
+  })),
 }));
 
 vi.mock('../services/app-sync.service.js', () => ({
@@ -387,5 +405,42 @@ describe('registerTools — MCP publish triggers a rebuild (parity with REST)', 
     (updateEpisode as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: 'e1', status: 'published' });
     await server.getHandler('podcast_update_episode')!({ id: 'e1', summary: 's2' });
     expect(triggerBuild).toHaveBeenCalledOnce();
+  });
+});
+
+describe('podcast_import_feed — show-metadata overwrite protection', () => {
+  let server: ReturnType<typeof buildCapturingServer>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    server = buildCapturingServer();
+    registerTools(server);
+  });
+
+  it('importing into an existing show does NOT overwrite show metadata by default', async () => {
+    const { getPodcast, updatePodcast } = await import('../services/podcast.service.js');
+    const { upsertEpisodeByExternal } = await import('../services/episode.service.js');
+    (getPodcast as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: 'p1', title: '拾余光' });
+
+    await server.getHandler('podcast_import_feed')!({ feedUrl: 'http://x/rss', podcastId: 'p1' });
+
+    expect(getPodcast).toHaveBeenCalledWith('p1');
+    expect(updatePodcast).not.toHaveBeenCalled(); // cover/owner preserved
+    expect(upsertEpisodeByExternal).toHaveBeenCalledTimes(1);
+  });
+
+  it('syncShow=1 overwrites the show metadata from the feed', async () => {
+    const { getPodcast, updatePodcast } = await import('../services/podcast.service.js');
+    (getPodcast as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: 'p1' });
+
+    await server.getHandler('podcast_import_feed')!({ feedUrl: 'http://x/rss', podcastId: 'p1', syncShow: 1 });
+
+    expect(updatePodcast).toHaveBeenCalledWith('p1', expect.objectContaining({ ownerEmail: 'feed@x.com' }));
+  });
+
+  it('without a podcastId, creates a new show from the feed', async () => {
+    const { createPodcast } = await import('../services/podcast.service.js');
+    await server.getHandler('podcast_import_feed')!({ feedUrl: 'http://x/rss' });
+    expect(createPodcast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Feed Show' }));
   });
 });
