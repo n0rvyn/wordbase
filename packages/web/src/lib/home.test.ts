@@ -104,6 +104,7 @@ function makeEpisode(partial: Partial<Episode> & { id: string }): Episode {
     episodeType: 'full',
     explicit: null,
     status: 'published',
+    publishedAt: null,
     createdAt: 1700000000,
     updatedAt: 1700000000,
     ...partial,

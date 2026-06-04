@@ -287,6 +287,7 @@ export interface Episode {
   episodeType: string;
   explicit: number | null;
   status: string;
+  publishedAt: number | null;
   createdAt: number;
   updatedAt: number;
 }
