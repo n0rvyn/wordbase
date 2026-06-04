@@ -92,6 +92,51 @@ export async function getTopPosts(limit: number = 10) {
   return topPosts;
 }
 
+// Friendly labels for known static (non-post) pages so the Top pages widget
+// shows "About" instead of a bare "/about". Anything not listed and not a post
+// falls back to its raw path.
+const STATIC_PAGE_LABELS: Record<string, string> = {
+  '/': 'Home',
+  '/about': 'About',
+  '/apps': 'Apps',
+  '/podcast': 'Podcast',
+  '/writing': 'Writing',
+  '/archives': 'Archives',
+};
+
+// Unlike getTopPosts (which the blog_analytics_top_posts MCP tool consumes and
+// must stay post-only), this ranks ALL visited pages for the admin Observability
+// widget: posts resolve to their title, known static pages get a friendly label,
+// everything else shows its raw path. Admin/api paths are excluded defensively
+// (admin uses AdminLayout, which sends no pageview beacon, so they shouldn't be
+// in page_views anyway).
+export async function getTopPages(limit: number = 10) {
+  const results = await db.select({
+    path: pageViews.path,
+    count: sql<number>`count(*)`,
+  }).from(pageViews)
+    .where(and(
+      sql`${pageViews.path} NOT LIKE '/admin/%'`,
+      sql`${pageViews.path} NOT LIKE '/api/%'`,
+    ))
+    .groupBy(pageViews.path)
+    .orderBy(desc(sql`count(*)`))
+    .limit(limit);
+
+  const allPosts = await db.select().from(posts).where(eq(posts.status, 'published'));
+  const postsBySlug = new Map(allPosts.map(p => [p.slug, p]));
+
+  return results.map(row => {
+    const segments = row.path.split('/').filter(Boolean);
+    const slug = segments[segments.length - 1];
+    const post = slug ? postsBySlug.get(slug) : undefined;
+    const label = post
+      ? post.title
+      : (STATIC_PAGE_LABELS[row.path] ?? row.path);
+    return { path: row.path, label, views: row.count };
+  });
+}
+
 export async function getTrends(period: string = 'daily') {
   let groupFormat: string;
   let groupCount: number;

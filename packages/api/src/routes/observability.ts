@@ -30,6 +30,13 @@ observabilityRouter.get('/top-posts', async (c) => {
   return c.json(await analyticsService.getTopPosts(limit));
 });
 
+// GET /top-pages?limit=10 — ALL visited pages (posts + static + raw paths),
+// unlike /top-posts which stays post-only for the MCP analytics tool.
+observabilityRouter.get('/top-pages', async (c) => {
+  const limit = Math.max(1, Math.min(50, Number(c.req.query('limit')) || 10));
+  return c.json(await analyticsService.getTopPages(limit));
+});
+
 // GET /referrers?limit=10 — top traffic sources, collapsed to host
 observabilityRouter.get('/referrers', async (c) => {
   const limit = Math.max(1, Math.min(50, Number(c.req.query('limit')) || 10));

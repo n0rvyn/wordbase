@@ -1,0 +1,73 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import { db } from '../db/index.js';
+import { pageViews, posts } from '../db/schema.js';
+import { getTopPages, getTopPosts } from '../services/analytics.service.js';
+
+const now = Math.floor(Date.now() / 1000);
+
+function view(path: string, n: number) {
+  return Array.from({ length: n }, () => ({
+    path, referrer: null, userAgent: null, ipHash: null, createdAt: now,
+  }));
+}
+
+beforeEach(async () => {
+  await db.delete(pageViews);
+  await db.delete(posts);
+  await db.insert(posts).values({
+    id: 'p1', slug: 'hello-world', title: 'Hello World', content: '#',
+    status: 'published', createdAt: now, updatedAt: now,
+  });
+});
+
+describe('getTopPages — all visited pages', () => {
+  beforeEach(async () => {
+    await db.insert(pageViews).values([
+      ...view('/posts/hello-world', 5), // post → title
+      ...view('/about', 4),             // known static → friendly label
+      ...view('/tags/swift', 3),        // unknown path → raw
+      ...view('/', 2),                  // home → friendly label
+    ]);
+  });
+
+  it('ranks ALL pages by views desc, including non-post pages', async () => {
+    const rows = await getTopPages(10);
+    expect(rows.map(r => r.path)).toEqual(['/posts/hello-world', '/about', '/tags/swift', '/']);
+    expect(rows.map(r => r.views)).toEqual([5, 4, 3, 2]);
+  });
+
+  it('labels: post→title, known static→friendly, unknown→raw path', async () => {
+    const byPath = Object.fromEntries((await getTopPages(10)).map(r => [r.path, r.label]));
+    expect(byPath['/posts/hello-world']).toBe('Hello World');
+    expect(byPath['/about']).toBe('About');
+    expect(byPath['/']).toBe('Home');
+    expect(byPath['/tags/swift']).toBe('/tags/swift');
+  });
+
+  it('excludes /admin/* and /api/* paths', async () => {
+    await db.insert(pageViews).values([
+      ...view('/admin/posts', 99),
+      ...view('/api/mcp', 88),
+    ]);
+    const paths = (await getTopPages(10)).map(r => r.path);
+    expect(paths).not.toContain('/admin/posts');
+    expect(paths).not.toContain('/api/mcp');
+  });
+
+  it('respects the limit', async () => {
+    expect(await getTopPages(2)).toHaveLength(2);
+  });
+});
+
+describe('getTopPosts — unchanged, post-only (MCP regression guard)', () => {
+  it('returns only paths that resolve to a published post', async () => {
+    await db.insert(pageViews).values([
+      ...view('/posts/hello-world', 5),
+      ...view('/about', 99),       // not a post → must be excluded
+      ...view('/tags/swift', 99),  // not a post → must be excluded
+    ]);
+    const rows = await getTopPosts(10);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ slug: 'hello-world', title: 'Hello World', views: 5 });
+  });
+});
