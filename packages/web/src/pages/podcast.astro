@@ -126,7 +126,8 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
               ))}
               <button type="button" class="ep-fb-say">说一句</button>
             </div>
-            <input class="ep-fb-note msg-hidden" type="text" maxlength="200" placeholder="一句话（可选），再选一个" />
+            <input class="ep-fb-note msg-hidden" type="text" maxlength="200" placeholder="一句话（可选）" />
+            <p class="ep-fb-hint msg-hidden">写完，点上面任一个表情发出去</p>
             <p class="ep-fb-msg msg-hidden"></p>
             <p class="ep-fb-thanks msg-hidden">已收到 · 谢谢</p>
           </div>
@@ -159,7 +160,8 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
                 ))}
                 <button type="button" class="ep-fb-say">说一句</button>
               </div>
-              <input class="ep-fb-note msg-hidden" type="text" maxlength="200" placeholder="一句话（可选），再选一个" />
+              <input class="ep-fb-note msg-hidden" type="text" maxlength="200" placeholder="一句话（可选）" />
+              <p class="ep-fb-hint msg-hidden">写完，点上面任一个表情发出去</p>
               <p class="ep-fb-msg msg-hidden"></p>
               <p class="ep-fb-thanks msg-hidden">已收到 · 谢谢</p>
             </div>
@@ -214,7 +216,7 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
   // match on a data-astro-cid attribute only present on build-time elements —
   // actually apply to it. Injecting it at runtime silently dropped the styling.
   function showThanks(root: HTMLElement): void {
-    root.querySelectorAll<HTMLElement>('.ep-fb-chips, .ep-fb-note, .ep-fb-msg')
+    root.querySelectorAll<HTMLElement>('.ep-fb-chips, .ep-fb-note, .ep-fb-hint, .ep-fb-msg')
       .forEach((el) => el.classList.add('msg-hidden'));
     const thanks = root.querySelector<HTMLElement>('.ep-fb-thanks');
     if (!thanks) { hide(root); return; }
@@ -245,6 +247,9 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
     // step, with whatever note has been typed (empty if never revealed).
     sayBtn.addEventListener('click', () => {
       noteInput.classList.remove('msg-hidden');
+      // Persistent send hint — the placeholder vanishes on input, so a standing
+      // line tells the listener a chip tap (above) is what sends the note.
+      root.querySelector<HTMLElement>('.ep-fb-hint')?.classList.remove('msg-hidden');
       sayBtn.classList.add('msg-hidden');
       noteInput.focus();
     });
@@ -406,6 +411,12 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
     transition: border-color .2s;
   }
   .ep-fb-note:focus { border-color: var(--accent); }
+  /* Standing send hint shown while the note is open (the placeholder vanishes
+     on input, so this carries the "tap a chip to send" cue persistently). */
+  .ep-fb-hint {
+    font-family: var(--font-ui); font-size: 12px;
+    color: var(--ink-3); margin: 0; margin-top: -2px;
+  }
   .ep-fb-msg {
     font-family: var(--font-read); font-size: 13px;
     color: var(--ink-3); margin: 0;
