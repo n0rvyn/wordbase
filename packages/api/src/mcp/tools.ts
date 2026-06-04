@@ -7,6 +7,7 @@ import * as redirectService from '../services/redirect.service.js';
 import * as podcastService from '../services/podcast.service.js';
 import * as episodeService from '../services/episode.service.js';
 import * as podcastAnalytics from '../services/podcast-analytics.service.js';
+import * as feedbackService from '../services/feedback.service.js';
 import * as appService from '../services/app.service.js';
 import * as appSyncService from '../services/app-sync.service.js';
 import * as pageService from '../services/page.service.js';
@@ -68,6 +69,7 @@ const TOOL_SCOPES: Record<string, string> = {
   podcast_upload_audio_from_url: 'podcasts:write',
   podcast_publish_episode: 'podcasts:write',
   podcast_import_feed: 'podcasts:write',
+  podcast_get_feedback: 'podcasts:read',
   // Mirrors the REST gate: the identical analytics service calls are served by
   // /api/observability/podcast/* under 'observability:read'. Gating the MCP tool
   // with 'podcasts:read' would let a podcast-CRUD key read analytics it's denied
@@ -522,6 +524,27 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
         podcastAnalytics.getPodcastClients(limit),
       ]);
       return { content: [{ type: 'text' as const, text: JSON.stringify({ summary, topEpisodes, clients }, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'podcast_get_feedback',
+    'Get recent listener feedback (reaction + category + note) across episodes, for podcast topic-reward and viewpoint-falsification signals. Read-only.',
+    {
+      days: { type: 'number', description: 'Look back this many days (default: 7). Ignored if `since` is given.' },
+      since: { type: 'number', description: 'Unix epoch seconds; return feedback created at or after this time.' },
+      episodeId: { type: 'string', description: 'Filter to a single episode id.' },
+      limit: { type: 'number', description: 'Max rows (default: 200, max: 1000).' },
+    },
+    async (args: Record<string, unknown>) => {
+      const days = (args.days as number | undefined) ?? 7;
+      const since = (args.since as number | undefined)
+        ?? Math.floor(Date.now() / 1000) - days * 86400;
+      const rows = await feedbackService.listFeedbackSince(since, {
+        episodeId: args.episodeId as string | undefined,
+        limit: args.limit as number | undefined,
+      });
+      return { content: [{ type: 'text' as const, text: JSON.stringify(rows, null, 2) }] };
     }
   );
 

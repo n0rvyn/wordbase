@@ -4,6 +4,7 @@ import * as podcastService from '../services/podcast.service.js';
 import * as episodeService from '../services/episode.service.js';
 import * as feedService from '../services/feed.service.js';
 import * as podcastAnalytics from '../services/podcast-analytics.service.js';
+import * as feedbackService from '../services/feedback.service.js';
 import { triggerBuild } from '../services/build.service.js';
 import type { AppEnv } from '../types.js';
 
@@ -72,6 +73,55 @@ podcastsRouter.get('/episodes/:idOrSlug/download', async (c) => {
   const siteUrl = (process.env.SITE_URL || 'https://norvyn.com').replace(/\/$/, '');
   const target = /^https?:\/\//.test(episode.audioUrl) ? episode.audioUrl : `${siteUrl}${episode.audioUrl}`;
   return c.redirect(target, 302);
+});
+
+// Per-episode listener feedback (public submit, no auth — DP-1 A).
+// WordBase only collects/exposes; consumption logic lives in Adam.
+podcastsRouter.post('/episodes/:idOrSlug/feedback', async (c) => {
+  const ep = await episodeService.getEpisode(c.req.param('idOrSlug'));
+  if (!ep) return c.json({ error: { code: 'NOT_FOUND', message: 'Episode not found' } }, 404);
+  const body = await c.req.json().catch(() => ({}));
+  const ip = c.req.header('x-forwarded-for')?.split(',')[0]?.trim()
+           || c.req.header('x-real-ip') || undefined;
+  try {
+    const row = await feedbackService.createFeedback(ep.id, {
+      reaction: body.reaction,
+      category: body.category,
+      note: body.note,
+      listener: body.listener,
+      ipAddress: ip,
+    });
+    return c.json(row, 201);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Invalid feedback';
+    const code = msg.includes('not found') ? 404 : 400;
+    return c.json({ error: { code: code === 404 ? 'NOT_FOUND' : 'INVALID', message: msg } }, code as 400 | 404);
+  }
+});
+
+// Collection read for Adam: /api/podcasts/feedback?since=0&episodeId=&limit=
+// MUST be registered before GET /:slug so the static segment wins.
+podcastsRouter.get('/feedback', authMiddleware, requireScope('podcasts:read'), async (c) => {
+  const since = c.req.query('since');
+  const limit = c.req.query('limit');
+  const episodeId = c.req.query('episodeId');
+  const rows = await feedbackService.listFeedbackSince(
+    since ? parseInt(since) : undefined,
+    { episodeId, limit: limit ? parseInt(limit) : undefined },
+  );
+  return c.json(rows);
+});
+
+// Single-episode scoped read: GET /api/podcasts/episodes/:idOrSlug/feedback
+// Suffix keeps it distinct from the public GET /episodes/:idOrSlug above.
+podcastsRouter.get('/episodes/:idOrSlug/feedback', authMiddleware, requireScope('podcasts:read'), async (c) => {
+  const ep = await episodeService.getEpisode(c.req.param('idOrSlug'));
+  if (!ep) return c.json({ error: { code: 'NOT_FOUND', message: 'Episode not found' } }, 404);
+  const limit = c.req.query('limit');
+  const rows = await feedbackService.listFeedbackByEpisode(ep.id, {
+    limit: limit ? parseInt(limit) : undefined,
+  });
+  return c.json(rows);
 });
 
 podcastsRouter.get('/:slug', async (c) => {

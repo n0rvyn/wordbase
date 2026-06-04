@@ -1,7 +1,7 @@
 import { sql, gte, eq, desc, and } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { podcastEvents, podcastEpisodes } from '../db/schema.js';
-import { createHash } from 'crypto';
+import { hashIp } from '../lib/hash-ip.js';
 
 // Podcast consumption analytics. Same philosophy as analytics.service.ts: the
 // podcast_events table keeps the raw hit stream untouched and every count here is
@@ -16,10 +16,6 @@ const DOWNLOAD_WINDOW_SECONDS = 1800; // 30 min
 const FEED_WINDOW_SECONDS = 86400; // 1 day
 const FEED_RETENTION_DAYS = 90; // feed_poll is high-volume; subscriber estimate only needs a recent window
 const SUBSCRIBER_WINDOW_DAYS = 7; // distinct feed-poll endpoints over the last week
-
-function hashIp(ip: string): string {
-  return createHash('sha256').update(ip).digest('hex').slice(0, 16);
-}
 
 // Per-row dedup fingerprints. ip_hash may be null (unknown IP); SQLite skips null
 // keys in COUNT(DISTINCT), so an unidentifiable hit is not a countable download/endpoint.

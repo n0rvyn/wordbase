@@ -8,6 +8,9 @@ import {
 } from '../lib/api';
 import { selectFeaturedEpisode, decodeEntities } from '../lib/home';
 import { selectShow, sortEpisodes, episodeMeta } from '../lib/podcast';
+import { FEEDBACK_CHIPS } from '../lib/feedback';
+
+const apiUrl = (import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4100').replace(/\/$/, '');
 
 const { data: podcasts } = await getPodcasts({ status: 'published' });
 const podcast = selectShow(podcasts);
@@ -116,6 +119,15 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
           <h3 class="ep-title">{featuredEp.title}</h3>
           {epBlurb(featuredEp) && <p class="ep-sum">{epBlurb(featuredEp)}</p>}
           <audio controls preload="none" src={`/api/podcasts/episodes/${encodeURIComponent(featuredEp.slug)}/download`}></audio>
+          <div class="ep-fb" data-slug={featuredEp.slug} data-api-url={apiUrl}>
+            <div class="ep-fb-chips">
+              {FEEDBACK_CHIPS.map((chip) => (
+                <button type="button" class="ep-fb-chip" data-category={chip.category}>{chip.label}</button>
+              ))}
+            </div>
+            <input class="ep-fb-note" type="text" maxlength="200" placeholder="说一句（可选）" />
+            <p class="ep-fb-msg msg-hidden"></p>
+          </div>
         </article>
       </div>
     </div>
@@ -138,6 +150,15 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
             <h3 class="ep-title">{ep.title}</h3>
             {epBlurb(ep) && <p class="ep-sum">{epBlurb(ep)}</p>}
             <audio controls preload="none" src={`/api/podcasts/episodes/${encodeURIComponent(ep.slug)}/download`}></audio>
+            <div class="ep-fb" data-slug={ep.slug} data-api-url={apiUrl}>
+              <div class="ep-fb-chips">
+                {FEEDBACK_CHIPS.map((chip) => (
+                  <button type="button" class="ep-fb-chip" data-category={chip.category}>{chip.label}</button>
+                ))}
+              </div>
+              <input class="ep-fb-note" type="text" maxlength="200" placeholder="说一句（可选）" />
+              <p class="ep-fb-msg msg-hidden"></p>
+            </div>
           </article>
         ))}
       </div>
@@ -146,6 +167,51 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
 )}
 
 </BaseLayout>
+
+<script>
+  import { categoryToReaction } from '../lib/feedback';
+
+  function wireFeedback(root: HTMLElement) {
+    const slug = root.dataset.slug;
+    const apiUrl = root.dataset.apiUrl;
+    if (!slug || !apiUrl) return;
+    const noteInput = root.querySelector<HTMLInputElement>('.ep-fb-note')!;
+    const msgEl = root.querySelector<HTMLElement>('.ep-fb-msg')!;
+    const chips = root.querySelectorAll<HTMLButtonElement>('.ep-fb-chip');
+
+    chips.forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const category = btn.dataset.category!;
+        const reaction = categoryToReaction(category as Parameters<typeof categoryToReaction>[0]);
+        const note = noteInput.value.trim() || undefined;
+        chips.forEach((b) => (b.disabled = true));
+        noteInput.disabled = true;
+        try {
+          const res = await fetch(
+            `${apiUrl}/api/podcasts/episodes/${encodeURIComponent(slug)}/feedback`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ reaction, category, note }),
+            },
+          );
+          if (res.ok) {
+            root.innerHTML = '<p class="ep-fb-thanks">已收到 · 谢谢</p>';
+          } else {
+            throw new Error('non-ok');
+          }
+        } catch {
+          msgEl.textContent = '提交失败，稍后再试';
+          msgEl.classList.remove('msg-hidden');
+          chips.forEach((b) => (b.disabled = false));
+          noteInput.disabled = false;
+        }
+      });
+    });
+  }
+
+  document.querySelectorAll<HTMLElement>('.ep-fb').forEach(wireFeedback);
+</script>
 
 <style>
   /* ── Sections ─────────────────────────────────────────────────────────────── */
@@ -230,6 +296,39 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
     overflow: hidden;
   }
   audio { width: 100%; max-width: 480px; margin-top: 6px; }
+
+  /* ── Episode feedback (per-episode listener feedback chip control) ────────── */
+  .ep-fb {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+    width: 100%; max-width: 480px; margin-top: 4px;
+  }
+  .ep-fb-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ep-fb-chip {
+    font-family: var(--font-ui); font-size: 13.5px; font-weight: 500;
+    color: var(--ink-2); background: var(--surface);
+    border: 1px solid var(--line-2); border-radius: 99px;
+    padding: 6px 14px; cursor: pointer;
+    transition: border-color .2s, color .2s, background .2s;
+  }
+  .ep-fb-chip:hover { border-color: var(--ink-3); color: var(--ink); }
+  .ep-fb-chip:disabled { opacity: .5; cursor: not-allowed; }
+  .ep-fb-note {
+    font-family: var(--font-ui); font-size: 13.5px;
+    color: var(--ink); background: var(--surface);
+    border: 1px solid var(--line); border-radius: 8px;
+    padding: 8px 12px; outline: none; width: 100%; box-sizing: border-box;
+    transition: border-color .2s;
+  }
+  .ep-fb-note:focus { border-color: var(--accent); }
+  .ep-fb-msg {
+    font-family: var(--font-read); font-size: 13px;
+    color: var(--ink-3); margin: 0;
+  }
+  .ep-fb-thanks {
+    font-family: var(--font-read); font-size: 14px;
+    color: var(--ink-2); margin: 0;
+  }
+  .msg-hidden { display: none; }
 
   /* ── Empty state ──────────────────────────────────────────────────────────── */
   .empty {

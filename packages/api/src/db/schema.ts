@@ -194,6 +194,23 @@ export const podcastEpisodes = sqliteTable('podcast_episodes', {
   podcastIdx: index('ix_episode_podcast').on(t.podcastId),
 }));
 
+// episode_feedback table — per-episode listener feedback channel (issue #17).
+// reaction ∈ {up, down, null}; category ∈ {repetitive, disagree, boring, shallow, great, other}.
+// Append-only history; double-click dedup computed at write time.
+export const episodeFeedback = sqliteTable('episode_feedback', {
+  id: text('id').primaryKey(),
+  episodeId: text('episode_id').notNull(),
+  reaction: text('reaction'),
+  category: text('category').notNull(),
+  note: text('note'),
+  listener: text('listener'),
+  ipHash: text('ip_hash'),
+  createdAt: integer('created_at').notNull(),
+}, (t) => ({
+  episodeIdx: index('ix_feedback_episode').on(t.episodeId),
+  createdIdx: index('ix_feedback_created').on(t.createdAt),
+}));
+
 // apps table
 export const apps = sqliteTable('apps', {
   id: text('id').primaryKey(),
@@ -273,6 +290,8 @@ export type NewPodcast = typeof podcasts.$inferInsert;
 export type PodcastEpisode = typeof podcastEpisodes.$inferSelect;
 export type NewPodcastEpisode = typeof podcastEpisodes.$inferInsert;
 export type App = typeof apps.$inferSelect;
+export type EpisodeFeedback = typeof episodeFeedback.$inferSelect;
+export type NewEpisodeFeedback = typeof episodeFeedback.$inferInsert;
 export type PodcastEvent = typeof podcastEvents.$inferSelect;
 export type NewPodcastEvent = typeof podcastEvents.$inferInsert;
 export type NewApp = typeof apps.$inferInsert;

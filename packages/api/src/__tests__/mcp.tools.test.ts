@@ -119,6 +119,12 @@ vi.mock('../services/podcast-analytics.service.js', () => ({
   getPodcastClients: vi.fn(async () => [{ type: 'Overcast', count: 2 }]),
 }));
 
+vi.mock('../services/feedback.service.js', () => ({
+  listFeedbackSince: vi.fn(async () => []),
+  createFeedback: vi.fn(async () => ({ id: 'fb1' })),
+  listFeedbackByEpisode: vi.fn(async () => ({ data: [], page: 1, limit: 50 })),
+}));
+
 vi.mock('../services/feed-import.service.js', () => ({
   parseExternalFeed: vi.fn(() => ({
     show: { title: 'Feed Show', coverImage: 'http://cdn/feed.jpg', ownerEmail: 'feed@x.com' },
@@ -349,6 +355,26 @@ describe('registerTools — handler behavior (Phase 8)', () => {
     expect(publishPage).toHaveBeenCalledOnce();
     expect(updatePage).not.toHaveBeenCalled();
     expect(result.isError).toBe(true);
+  });
+
+  it('podcast_get_feedback is registered and reachable (full-admin scope)', async () => {
+    const server = buildCapturingServer();
+    registerTools(server, ['*']);
+    expect(server.getNames()).toContain('podcast_get_feedback');
+    const handler = server.getHandler('podcast_get_feedback')!;
+    const result = await handler({}) as { isError?: boolean; content: { text: string }[] };
+    expect(result.isError).toBeFalsy();
+    // default returns an empty array (mock) → JSON-stringified
+    expect(JSON.parse(result.content[0].text)).toEqual([]);
+  });
+
+  it('podcast_get_feedback is scope-gated to podcasts:read (denies a posts-only key)', async () => {
+    const server = buildCapturingServer();
+    registerTools(server, ['posts:write']); // no podcasts:read
+    const handler = server.getHandler('podcast_get_feedback')!;
+    const result = await handler({}) as { isError?: boolean; content: { text: string }[] };
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toMatch(/Permission denied/i);
   });
 });
 

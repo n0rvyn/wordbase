@@ -213,6 +213,20 @@ export function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS ix_podcast_events_episode ON podcast_events(event_type, episode_id, created_at);
     CREATE INDEX IF NOT EXISTS ix_podcast_events_podcast ON podcast_events(event_type, podcast_id, created_at);
 
+    CREATE TABLE IF NOT EXISTS episode_feedback (
+      id TEXT PRIMARY KEY,
+      episode_id TEXT NOT NULL REFERENCES podcast_episodes(id) ON DELETE CASCADE,
+      reaction TEXT,
+      category TEXT NOT NULL,
+      note TEXT,
+      listener TEXT,
+      ip_hash TEXT,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS ix_feedback_episode ON episode_feedback(episode_id);
+    CREATE INDEX IF NOT EXISTS ix_feedback_created ON episode_feedback(created_at);
+
     CREATE TABLE IF NOT EXISTS apps (
       id TEXT PRIMARY KEY,
       slug TEXT UNIQUE NOT NULL,

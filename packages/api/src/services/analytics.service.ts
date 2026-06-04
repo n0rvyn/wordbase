@@ -1,17 +1,13 @@
 import { eq, desc, sql, and, gte } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { pageViews, posts, postTags, tags } from '../db/schema.js';
-import { createHash } from 'crypto';
+import { hashIp } from '../lib/hash-ip.js';
 
 export interface RecordPageViewInput {
   path: string;
   referrer?: string;
   userAgent?: string;
   ipAddress?: string;
-}
-
-function hashIp(ip: string): string {
-  return createHash('sha256').update(ip).digest('hex').slice(0, 16);
 }
 
 function getTodayStart(): number {
