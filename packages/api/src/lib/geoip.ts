@@ -15,7 +15,10 @@ import { REPO_ROOT } from '../paths.js';
 
 type CountryReader = { get(ip: string): CountryResponse | null };
 
-const DOWNLOAD_DIR = resolve(REPO_ROOT, 'data/geoip');
+// Must sit inside the API data dir (alongside blog.db): on prod that's the only
+// path the systemd sandbox (ProtectSystem=strict) makes writable. geolite2-redist
+// also mkdtemp's a SIBLING temp dir, so the parent (packages/api/data) must be RW.
+const DOWNLOAD_DIR = resolve(REPO_ROOT, 'packages/api/data/geoip');
 
 let reader: CountryReader | null = null;
 
