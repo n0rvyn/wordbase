@@ -10,6 +10,7 @@ interface Props {
 const { title, description = 'A personal blog powered by Wordbase', ogImage } = Astro.props;
 const siteTitle = 'norvyn';
 const fullTitle = title === siteTitle ? title : `${title} — ${siteTitle}`;
+const apiUrl = (import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4100').replace(/\/$/, '');
 const currentPath = Astro.url.pathname;
 const ogImageUrl = new URL(ogImage ?? '/og-image.png', Astro.site).href;
 const canonicalUrl = new URL(currentPath, Astro.site).href;
@@ -64,7 +65,7 @@ const navItems = [
       })();
     </script>
   </head>
-  <body>
+  <body data-api-url={apiUrl}>
     <nav class="nav" id="nav">
       <div class="wrap nav-in">
         <a class="brand" href="/">
@@ -155,6 +156,25 @@ const navItems = [
           localStorage.setItem(THEME_LS_KEY, JSON.stringify(mergePrefs(prefs, { theme, accent })));
           applyToDom(theme, accent);
         });
+      }
+    </script>
+
+    <!-- Pageview beacon. Fires once per page load (MPA, no view transitions) and
+         records a visit via the public analytics endpoint. Admin pages use a
+         separate layout (AdminLayout), so backend traffic is excluded by design.
+         Fire-and-forget: failures must never affect the page. -->
+    <script>
+      const apiUrl = document.body.dataset.apiUrl;
+      if (apiUrl) {
+        fetch(`${apiUrl}/api/analytics/pageview`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            path: location.pathname,
+            referrer: document.referrer || undefined,
+          }),
+          keepalive: true,
+        }).catch(() => {});
       }
     </script>
   </body>
