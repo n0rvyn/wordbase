@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'preact/hooks';
 import { adminFetch } from '../../lib/admin-api';
+import WorldMap from './WorldMap';
 
 type Period = 'daily' | 'weekly' | 'monthly';
 
@@ -15,8 +16,10 @@ interface TrendPoint {
   uniqueVisitors: number;
   sessions: number;
 }
-interface TopPost { postId: string; title: string; slug: string; views: number; }
+interface TopPage { path: string; label: string; views: number; }
 interface Referrer { host: string; count: number; }
+interface ShareStats { days: number; byTarget: { target: string; count: number }[]; byPage: { path: string; count: number }[]; }
+interface Region { country: string; count: number; }
 interface DeviceRow { type: string; count: number; }
 interface EndpointStat { method: string; route: string; count: number; avgMs: number; p50Ms: number; p95Ms: number; errorRate: number; }
 interface RequestMetrics {
@@ -46,11 +49,29 @@ interface PodcastSummary {
   subscriberWindowDays: number;
 }
 interface PodcastTrendPoint { period: string; downloads: number; feedPolls: number; }
-interface TopEpisode { episodeId: string; title: string; slug: string; downloads: number; }
 interface EpisodeDownloadRow { id: string; title: string; slug: string; episodeNumber: number | null; status: string; downloads: number; trend: number[]; }
 
 // daily trends span 30 days, weekly 12 weeks, monthly 12 months — keep the
 // summary window aligned with the chart so the headline numbers match the curve.
+// Shares-by-channel rendered as a horizontal strip (reuses DeviceBreakdown).
+const SHARE_META: Record<string, { label: string; color: string }> = {
+  x: { label: 'X', color: '#6366f1' },
+  native: { label: '系统分享', color: '#10b981' },
+  copy: { label: '复制链接', color: '#f59e0b' },
+  wechat: { label: '微信', color: '#22c55e' },
+};
+const TOP_DIMS = [
+  { key: 'pages', label: 'Pages' },
+  { key: 'referrers', label: 'Referrers' },
+  { key: 'countries', label: 'Countries' },
+] as const;
+type TopDim = (typeof TOP_DIMS)[number]['key'];
+
+// alpha-2 → flag emoji (regional indicator symbols).
+function countryFlag(cc: string): string {
+  if (!/^[A-Za-z]{2}$/.test(cc)) return '🏳️';
+  return String.fromCodePoint(...[...cc.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
+}
 const PERIOD_DAYS: Record<Period, number> = { daily: 30, weekly: 84, monthly: 365 };
 const PERIOD_LABEL: Record<Period, string> = { daily: 'Last 30 days', weekly: 'Last 12 weeks', monthly: 'Last 12 months' };
 
@@ -65,14 +86,16 @@ export default function ObservabilityPanel() {
   const [period, setPeriod] = useState<Period>('daily');
   const [summary, setSummary] = useState<VisitorSummary | null>(null);
   const [trends, setTrends] = useState<TrendPoint[]>([]);
-  const [topPosts, setTopPosts] = useState<TopPost[]>([]);
+  const [topPages, setTopPages] = useState<TopPage[]>([]);
   const [referrers, setReferrers] = useState<Referrer[]>([]);
+  const [shareStats, setShareStats] = useState<ShareStats | null>(null);
+  const [regions, setRegions] = useState<Region[]>([]);
+  const [topDim, setTopDim] = useState<TopDim>('pages');
   const [devices, setDevices] = useState<DeviceRow[]>([]);
   const [requests, setRequests] = useState<RequestMetrics | null>(null);
   const [system, setSystem] = useState<SystemStatus | null>(null);
   const [podSummary, setPodSummary] = useState<PodcastSummary | null>(null);
   const [podTrends, setPodTrends] = useState<PodcastTrendPoint[]>([]);
-  const [topEpisodes, setTopEpisodes] = useState<TopEpisode[]>([]);
   const [episodeTable, setEpisodeTable] = useState<EpisodeDownloadRow[]>([]);
   const [podClients, setPodClients] = useState<DeviceRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,28 +107,36 @@ export default function ObservabilityPanel() {
     setLoading(true);
     setError('');
     try {
-      const [sum, tr, tp, ref, dev, req, sys, pSum, pTr, pTop, pEps, pCli] = await Promise.all([
+      const [sum, tr, tp, ref, shr, reg, dev, req, sys, pSum, pTr, pEps, pCli] = await Promise.all([
         adminFetch<VisitorSummary>(`/api/observability/visits?days=${PERIOD_DAYS[p]}`),
         adminFetch<TrendPoint[]>(`/api/observability/trends?period=${p}`),
-        adminFetch<TopPost[]>('/api/observability/top-posts?limit=10'),
+        adminFetch<TopPage[]>('/api/observability/top-pages?limit=10'),
         adminFetch<Referrer[]>('/api/observability/referrers?limit=10'),
+        adminFetch<ShareStats>(`/api/observability/shares?days=${PERIOD_DAYS[p]}`),
+        adminFetch<Region[]>(`/api/observability/regions?days=${PERIOD_DAYS[p]}`),
         adminFetch<DeviceRow[]>('/api/observability/devices'),
         adminFetch<RequestMetrics>('/api/observability/requests?hours=24'),
         adminFetch<SystemStatus>('/api/observability/system'),
         adminFetch<PodcastSummary>(`/api/observability/podcast/summary?days=${PERIOD_DAYS[p]}`),
         adminFetch<PodcastTrendPoint[]>(`/api/observability/podcast/trends?period=${p}`),
-        adminFetch<TopEpisode[]>('/api/observability/podcast/top-episodes?limit=10'),
         adminFetch<EpisodeDownloadRow[]>('/api/observability/podcast/episodes'),
         adminFetch<DeviceRow[]>('/api/observability/podcast/clients?limit=10'),
       ]);
-      setSummary(sum); setTrends(tr); setTopPosts(tp); setReferrers(ref); setDevices(dev); setRequests(req); setSystem(sys);
-      setPodSummary(pSum); setPodTrends(pTr); setTopEpisodes(pTop); setEpisodeTable(pEps); setPodClients(pCli);
+      setSummary(sum); setTrends(tr); setTopPages(tp); setReferrers(ref); setShareStats(shr); setRegions(reg); setDevices(dev); setRequests(req); setSystem(sys);
+      setPodSummary(pSum); setPodTrends(pTr); setEpisodeTable(pEps); setPodClients(pCli);
     } catch (e: any) {
       setError(e.message);
     } finally {
       setLoading(false);
     }
   }
+
+  // Merged "Top" card — one ranked list, switchable across incoming-traffic dims.
+  const topConfig = {
+    pages: { accent: '#4f46e5', empty: 'No page views yet.', rows: topPages.map((p) => ({ label: p.label || p.path, value: p.views })) },
+    referrers: { accent: '#10b981', empty: 'No referrers recorded — traffic is direct.', rows: referrers.map((r) => ({ label: r.host, value: r.count })) },
+    countries: { accent: '#6366f1', empty: 'No geolocated visits yet.', rows: regions.map((r) => ({ label: `${countryFlag(r.country)} ${r.country}`, value: r.count })) },
+  }[topDim];
 
   return (
     <div>
@@ -161,23 +192,37 @@ export default function ObservabilityPanel() {
             <TrendChart data={trends} period={period} />
           </div>
 
-          {/* Top pages + referrers */}
+          {/* Top (pages/referrers/countries) + regions map */}
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
             <BarList
-              title="Top pages"
-              accent="#4f46e5"
-              empty="No page views yet."
-              rows={topPosts.map((p) => ({ label: p.title || p.slug, value: p.views, href: `/admin/posts/edit?id=${p.postId}` }))}
+              title="Top"
+              accent={topConfig.accent}
+              empty={topConfig.empty}
+              rows={topConfig.rows}
+              tabs={TOP_DIMS.map((d) => ({ key: d.key, label: d.label }))}
+              activeTab={topDim}
+              onTab={(k) => setTopDim(k as TopDim)}
             />
-            <BarList
-              title="Top referrers"
-              accent="#10b981"
-              empty="No referrers recorded — traffic is direct."
-              rows={referrers.map((r) => ({ label: r.host, value: r.count }))}
+            <WorldMap regions={regions} />
+          </div>
+
+          {/* Engagement strips: devices + share channels */}
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+            <DeviceBreakdown rows={devices} />
+            <DeviceBreakdown
+              title="Shares by channel"
+              meta={SHARE_META}
+              rows={(shareStats?.byTarget ?? []).map((s) => ({ type: s.target, count: s.count }))}
             />
           </div>
 
-          <DeviceBreakdown rows={devices} />
+          {/* Shares by page — full width */}
+          <BarList
+            title="Shares by page"
+            accent="#f59e0b"
+            empty="No shares recorded yet."
+            rows={(shareStats?.byPage ?? []).map((s) => ({ label: s.path, value: s.count }))}
+          />
 
           {/* ---- Podcast (downloads + RSS feed polls, distinct from page-view beacons) ---- */}
           <div class="mt-10 mb-6">
@@ -203,17 +248,12 @@ export default function ObservabilityPanel() {
             />
           </div>
 
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
-            <BarList
-              title="Top episodes"
-              accent="#8b5cf6"
-              empty="No downloads recorded yet."
-              rows={topEpisodes.map((e) => ({ label: e.title, value: e.downloads }))}
-            />
+          <div class="mb-5">
             <DeviceBreakdown title="Client distribution" meta={CLIENT_META} rows={podClients} />
           </div>
 
-          <EpisodeTable rows={episodeTable} />
+          {/* Episodes sorted by downloads — doubles as the top-episodes ranking */}
+          <EpisodeTable rows={[...episodeTable].sort((a, b) => b.downloads - a.downloads)} />
 
           {/* ---- API requests (server-side, distinct from the visit beacons above) ---- */}
           <div class="mt-10 mb-6">
@@ -658,12 +698,34 @@ function TrendChart({ data, period }: { data: TrendPoint[]; period: Period }) {
 
 /* ---------------- bar list ---------------- */
 
-function BarList({ title, rows, empty, accent }: { title: string; rows: { label: string; value: number; href?: string }[]; empty: string; accent: string }) {
+function BarList({ title, rows, empty, accent, tabs, activeTab, onTab }: {
+  title: string;
+  rows: { label: string; value: number; href?: string }[];
+  empty: string;
+  accent: string;
+  tabs?: { key: string; label: string }[];
+  activeTab?: string;
+  onTab?: (key: string) => void;
+}) {
   const max = Math.max(1, ...rows.map((r) => r.value));
   return (
     <div class="bg-surface rounded-xl border border-line shadow-sm">
-      <div class="px-5 py-4 border-b border-line">
+      <div class="px-5 py-4 border-b border-line flex items-center justify-between gap-3">
         <h3 class="font-semibold text-ink">{title}</h3>
+        {tabs && (
+          <div class="inline-flex rounded-lg bg-surface-2 p-0.5">
+            {tabs.map((t) => (
+              <button
+                onClick={() => onTab?.(t.key)}
+                class={`px-2.5 py-1 text-xs font-medium rounded-md transition-all ${
+                  activeTab === t.key ? 'bg-surface text-ink shadow-sm' : 'text-ink-3 hover:text-ink'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       <div class="p-3 space-y-0.5">
         {rows.length === 0 ? (
@@ -850,7 +912,7 @@ function abbrev(n: number): string {
   return String(n);
 }
 
-function shortLabel(period: string, mode: Period): string {
+function shortLabel(period: string, _mode: Period): string {
   if (/^\d{4}-\d{2}-\d{2}$/.test(period)) return period.slice(5); // 06-01
   if (/^\d{4}-W\d+$/.test(period)) return 'W' + period.slice(6);
   if (/^\d{4}-\d{2}$/.test(period)) return period; // 2026-06
