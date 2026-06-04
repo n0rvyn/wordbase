@@ -124,8 +124,9 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
               {FEEDBACK_CHIPS.map((chip) => (
                 <button type="button" class="ep-fb-chip" data-category={chip.category}>{chip.label}</button>
               ))}
+              <button type="button" class="ep-fb-say">说一句</button>
             </div>
-            <input class="ep-fb-note" type="text" maxlength="200" placeholder="说一句（可选）" />
+            <input class="ep-fb-note msg-hidden" type="text" maxlength="200" placeholder="一句话（可选），再选一个" />
             <p class="ep-fb-msg msg-hidden"></p>
           </div>
         </article>
@@ -155,8 +156,9 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
                 {FEEDBACK_CHIPS.map((chip) => (
                   <button type="button" class="ep-fb-chip" data-category={chip.category}>{chip.label}</button>
                 ))}
+                <button type="button" class="ep-fb-say">说一句</button>
               </div>
-              <input class="ep-fb-note" type="text" maxlength="200" placeholder="说一句（可选）" />
+              <input class="ep-fb-note msg-hidden" type="text" maxlength="200" placeholder="一句话（可选），再选一个" />
               <p class="ep-fb-msg msg-hidden"></p>
             </div>
           </article>
@@ -171,13 +173,58 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
 <script>
   import { categoryToReaction } from '../lib/feedback';
 
+  // A submission locks this episode's control on THIS browser for 24h. After that
+  // the chips return, so a re-listen the next day can leave fresh feedback.
+  const FB_TTL_MS = 24 * 60 * 60 * 1000;
+  const fbKey = (slug: string) => `wb_ep_fb_${slug}`;
+
+  function alreadyGiven(slug: string): boolean {
+    try {
+      const raw = localStorage.getItem(fbKey(slug));
+      if (!raw) return false;
+      const { ts } = JSON.parse(raw) as { ts?: number };
+      if (typeof ts !== 'number' || Date.now() - ts >= FB_TTL_MS) {
+        localStorage.removeItem(fbKey(slug));
+        return false;
+      }
+      return true;
+    } catch {
+      return false; // private mode / storage disabled → degrade to no memory
+    }
+  }
+
+  function remember(slug: string, category: string): void {
+    try {
+      localStorage.setItem(fbKey(slug), JSON.stringify({ ts: Date.now(), category }));
+    } catch { /* storage unavailable — nothing to persist, server dedup still guards */ }
+  }
+
+  function showThanks(root: HTMLElement): void {
+    root.innerHTML = '<p class="ep-fb-thanks">已收到 · 谢谢</p>';
+  }
+
   function wireFeedback(root: HTMLElement) {
     const slug = root.dataset.slug;
     const apiUrl = root.dataset.apiUrl;
     if (!slug || !apiUrl) return;
+
+    // Within the 24h window this browser already gave feedback → show the
+    // settled state, do not re-offer the control.
+    if (alreadyGiven(slug)) { showThanks(root); return; }
+
     const noteInput = root.querySelector<HTMLInputElement>('.ep-fb-note')!;
+    const sayBtn = root.querySelector<HTMLButtonElement>('.ep-fb-say')!;
     const msgEl = root.querySelector<HTMLElement>('.ep-fb-msg')!;
     const chips = root.querySelectorAll<HTMLButtonElement>('.ep-fb-chip');
+
+    // Optional note stays collapsed until the listener opts in — keeps the
+    // resting state to a quiet row of chips. Tapping a chip still submits in one
+    // step, with whatever note has been typed (empty if never revealed).
+    sayBtn.addEventListener('click', () => {
+      noteInput.classList.remove('msg-hidden');
+      sayBtn.classList.add('msg-hidden');
+      noteInput.focus();
+    });
 
     chips.forEach((btn) => {
       btn.addEventListener('click', async () => {
@@ -186,6 +233,7 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
         const note = noteInput.value.trim() || undefined;
         chips.forEach((b) => (b.disabled = true));
         noteInput.disabled = true;
+        sayBtn.disabled = true;
         try {
           const res = await fetch(
             `${apiUrl}/api/podcasts/episodes/${encodeURIComponent(slug)}/feedback`,
@@ -196,7 +244,8 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
             },
           );
           if (res.ok) {
-            root.innerHTML = '<p class="ep-fb-thanks">已收到 · 谢谢</p>';
+            remember(slug, category);
+            showThanks(root);
           } else {
             throw new Error('non-ok');
           }
@@ -205,6 +254,7 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
           msgEl.classList.remove('msg-hidden');
           chips.forEach((b) => (b.disabled = false));
           noteInput.disabled = false;
+          sayBtn.disabled = false;
         }
       });
     });
@@ -297,26 +347,37 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
   }
   audio { width: 100%; max-width: 480px; margin-top: 6px; }
 
-  /* ── Episode feedback (per-episode listener feedback chip control) ────────── */
+  /* ── Episode feedback (per-episode listener feedback chip control) ──────────
+     Subordinate to the blurb + player: ghost chips at rest (no border/fill),
+     chrome only appears on hover; the note field stays collapsed until opted in. */
   .ep-fb {
-    display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
-    width: 100%; max-width: 480px; margin-top: 4px;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+    width: 100%; max-width: 480px; margin-top: 14px;
   }
-  .ep-fb-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ep-fb-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
   .ep-fb-chip {
-    font-family: var(--font-ui); font-size: 13.5px; font-weight: 500;
-    color: var(--ink-2); background: var(--surface);
-    border: 1px solid var(--line-2); border-radius: 99px;
-    padding: 6px 14px; cursor: pointer;
-    transition: border-color .2s, color .2s, background .2s;
+    font-family: var(--font-ui); font-size: 13px; font-weight: 500;
+    color: var(--ink-3); background: transparent;
+    border: 1px solid transparent; border-radius: 99px;
+    padding: 4px 10px; cursor: pointer;
+    transition: border-color .18s, color .18s, background .18s;
   }
-  .ep-fb-chip:hover { border-color: var(--ink-3); color: var(--ink); }
-  .ep-fb-chip:disabled { opacity: .5; cursor: not-allowed; }
+  .ep-fb-chip:hover { color: var(--ink); border-color: var(--line-2); background: var(--surface); }
+  .ep-fb-chip:disabled { opacity: .4; cursor: default; }
+  .ep-fb-say {
+    font-family: var(--font-ui); font-size: 12.5px;
+    color: var(--ink-3); background: none; border: none;
+    padding: 4px 6px; margin-left: 2px; cursor: pointer;
+    text-decoration: underline; text-underline-offset: 2px;
+    text-decoration-color: var(--line-2);
+  }
+  .ep-fb-say:hover { color: var(--ink-2); }
+  .ep-fb-say:disabled { opacity: .4; cursor: default; }
   .ep-fb-note {
-    font-family: var(--font-ui); font-size: 13.5px;
+    font-family: var(--font-ui); font-size: 13px;
     color: var(--ink); background: var(--surface);
     border: 1px solid var(--line); border-radius: 8px;
-    padding: 8px 12px; outline: none; width: 100%; box-sizing: border-box;
+    padding: 7px 11px; outline: none; width: 100%; box-sizing: border-box;
     transition: border-color .2s;
   }
   .ep-fb-note:focus { border-color: var(--accent); }
@@ -325,8 +386,8 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
     color: var(--ink-3); margin: 0;
   }
   .ep-fb-thanks {
-    font-family: var(--font-read); font-size: 14px;
-    color: var(--ink-2); margin: 0;
+    font-family: var(--font-read); font-size: 13.5px;
+    color: var(--ink-3); margin: 0;
   }
   .msg-hidden { display: none; }
 
