@@ -176,6 +176,9 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
   // A submission locks this episode's control on THIS browser for 24h. After that
   // the chips return, so a re-listen the next day can leave fresh feedback.
   const FB_TTL_MS = 24 * 60 * 60 * 1000;
+  // The "已收到 · 谢谢" acknowledgment is transient: it confirms the submit, then
+  // fades away — the feedback is recorded, so the line need not linger.
+  const FB_DISMISS_MS = 30 * 1000;
   const fbKey = (slug: string) => `wb_ep_fb_${slug}`;
 
   function alreadyGiven(slug: string): boolean {
@@ -199,8 +202,19 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
     } catch { /* storage unavailable — nothing to persist, server dedup still guards */ }
   }
 
+  function hide(root: HTMLElement): void {
+    root.style.display = 'none';
+  }
+
+  // Show the acknowledgment, then fade it out and collapse the control.
   function showThanks(root: HTMLElement): void {
     root.innerHTML = '<p class="ep-fb-thanks">已收到 · 谢谢</p>';
+    const thanks = root.querySelector<HTMLElement>('.ep-fb-thanks');
+    window.setTimeout(() => {
+      if (!thanks) { hide(root); return; }
+      thanks.classList.add('ep-fb-thanks--out');
+      window.setTimeout(() => hide(root), 400);
+    }, FB_DISMISS_MS);
   }
 
   function wireFeedback(root: HTMLElement) {
@@ -208,9 +222,10 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
     const apiUrl = root.dataset.apiUrl;
     if (!slug || !apiUrl) return;
 
-    // Within the 24h window this browser already gave feedback → show the
-    // settled state, do not re-offer the control.
-    if (alreadyGiven(slug)) { showThanks(root); return; }
+    // Within the 24h window this browser already gave feedback → hide the
+    // control entirely. The acknowledgment was transient; on reload there is
+    // nothing to show until the window lapses and the chips return.
+    if (alreadyGiven(slug)) { hide(root); return; }
 
     const noteInput = root.querySelector<HTMLInputElement>('.ep-fb-note')!;
     const sayBtn = root.querySelector<HTMLButtonElement>('.ep-fb-say')!;
@@ -393,7 +408,9 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
     font-family: var(--font-ui); font-size: 13px;
     color: var(--ink-3); margin: 0;
     animation: ep-fb-in .25s ease both;
+    transition: opacity .4s ease;
   }
+  .ep-fb-thanks--out { opacity: 0; }
   @keyframes ep-fb-in { from { opacity: 0; } to { opacity: 1; } }
   .msg-hidden { display: none; }
 
