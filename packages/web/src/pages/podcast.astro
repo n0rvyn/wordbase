@@ -354,7 +354,9 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
     display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
     width: 100%; max-width: 480px; margin-top: 14px;
   }
-  .ep-fb-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+  /* Pull the row left by the chip's own left padding so the first chip's text
+     edge (not its hover box) lines up with the title and blurb above. */
+  .ep-fb-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-left: -10px; }
   .ep-fb-chip {
     font-family: var(--font-ui); font-size: 13px; font-weight: 500;
     color: var(--ink-3); background: transparent;
@@ -385,10 +387,14 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
     font-family: var(--font-read); font-size: 13px;
     color: var(--ink-3); margin: 0;
   }
+  /* Settled state matches the chips' weight (same UI font + muted ink) and
+     fades in, so replacing the control doesn't pop abruptly. */
   .ep-fb-thanks {
-    font-family: var(--font-read); font-size: 13.5px;
+    font-family: var(--font-ui); font-size: 13px;
     color: var(--ink-3); margin: 0;
+    animation: ep-fb-in .25s ease both;
   }
+  @keyframes ep-fb-in { from { opacity: 0; } to { opacity: 1; } }
   .msg-hidden { display: none; }
 
   /* ── Empty state ──────────────────────────────────────────────────────────── */
