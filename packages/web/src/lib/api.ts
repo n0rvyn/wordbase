@@ -1,3 +1,5 @@
+import { stripInlineMarkdown } from './markdown.js';
+
 // Build-time only (page frontmatter + sitemap run on the server during the
 // static build). Talks to the LOCAL API directly — never the public origin.
 const API_URL = import.meta.env.API_URL || 'http://localhost:4100';
@@ -167,16 +169,7 @@ export function getApiUrl(): string {
 }
 
 export function stripMarkdown(md: string, maxLength = 200): string {
-  return md
-    .replace(/^#{1,6}\s+/gm, '')           // headings
-    .replace(/!\[.*?\]\(.*?\)/g, '')        // images
-    .replace(/\[([^\]]*)\]\(.*?\)/g, '$1')  // links → text
-    .replace(/(\*\*|__)(.*?)\1/g, '$2')     // bold
-    .replace(/(\*|_)(.*?)\1/g, '$2')        // italic
-    .replace(/`{1,3}[^`]*`{1,3}/g, '')     // inline/block code
-    .replace(/^[-*+]\s+/gm, '')             // list markers
-    .replace(/^\d+\.\s+/gm, '')             // numbered lists
-    .replace(/^>\s+/gm, '')                 // blockquotes
+  return stripInlineMarkdown(md)            // code:'drop' → identical to the prior inline chain
     .replace(/\n{2,}/g, ' ')                // collapse newlines
     .replace(/\n/g, ' ')
     .replace(/\s+/g, ' ')

@@ -119,6 +119,14 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
           <h3 class="ep-title">{featuredEp.title}</h3>
           {epBlurb(featuredEp) && <p class="ep-sum">{epBlurb(featuredEp)}</p>}
           <audio controls preload="none" src={`/api/podcasts/episodes/${encodeURIComponent(featuredEp.slug)}/download`}></audio>
+          {featuredEp.transcript && (
+            <div class="tx" data-slug={featuredEp.slug} data-api-url={apiUrl}>
+              <button type="button" class="tx-toggle" aria-expanded="false">逐字稿<span class="tx-caret">▾</span></button>
+              <div class="tx-panel" hidden>
+                <div class="tx-body"></div>
+              </div>
+            </div>
+          )}
           <div class="ep-fb" data-slug={featuredEp.slug} data-api-url={apiUrl}>
             <div class="ep-fb-chips">
               {FEEDBACK_CHIPS.map((chip) => (
@@ -153,6 +161,14 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
             <h3 class="ep-title">{ep.title}</h3>
             {epBlurb(ep) && <p class="ep-sum">{epBlurb(ep)}</p>}
             <audio controls preload="none" src={`/api/podcasts/episodes/${encodeURIComponent(ep.slug)}/download`}></audio>
+            {ep.transcript && (
+              <div class="tx" data-slug={ep.slug} data-api-url={apiUrl}>
+                <button type="button" class="tx-toggle" aria-expanded="false">逐字稿<span class="tx-caret">▾</span></button>
+                <div class="tx-panel" hidden>
+                  <div class="tx-body"></div>
+                </div>
+              </div>
+            )}
             <div class="ep-fb" data-slug={ep.slug} data-api-url={apiUrl}>
               <div class="ep-fb-chips">
                 {FEEDBACK_CHIPS.map((chip) => (
@@ -176,6 +192,7 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
 
 <script>
   import { categoryToReaction } from '../lib/feedback';
+  import { segmentTranscript, blockAtProgress, type TxBlock } from '../lib/transcript';
 
   // A submission locks this episode's control on THIS browser for 24h. After that
   // the chips return, so a re-listen the next day can leave fresh feedback.
@@ -288,7 +305,113 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
     });
   }
 
+  // Transcript wiring: per-episode expand/fetch/highlight/scroll/seek.
+  // Independent of wireFeedback — preserves `<audio preload="none">` (download
+  // counting depends on it) and never touches `.ep-fb*` elements.
+  const TX_SCROLL_PAUSE_MS = 4000; // user manual scroll pauses auto-scroll for this long
+
+  async function wireTranscript(root: HTMLElement) {
+    const slug = root.dataset.slug;
+    const apiUrl = root.dataset.apiUrl;
+    if (!slug || !apiUrl) return;
+    const toggle = root.querySelector<HTMLButtonElement>('.tx-toggle')!;
+    const panel = root.querySelector<HTMLDivElement>('.tx-panel')!;
+    const body = root.querySelector<HTMLDivElement>('.tx-body')!;
+    const audio = root.closest('.ep-item')?.querySelector<HTMLAudioElement>('audio');
+    if (!audio) return;
+
+    let blocks: TxBlock[] = [];
+    let lineEls: HTMLElement[] = [];
+    let loaded = false;
+    let inFlight = false; // a fetch is in-flight — guards concurrent re-entry without latching on error
+    let activeIdx = -1;
+    let userScrolledAt = 0;
+    let suppressScrollUntil = 0; // scroll events fired before this timestamp are treated as program-initiated and ignored
+
+    toggle.addEventListener('click', async () => {
+      const open = panel.hasAttribute('hidden');
+      if (open) {
+        panel.removeAttribute('hidden');
+        toggle.setAttribute('aria-expanded', 'true');
+        if (!loaded && !inFlight) await load();
+      } else {
+        panel.setAttribute('hidden', '');
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    async function load() {
+      inFlight = true;
+      try {
+        const res = await fetch(`${apiUrl}/api/podcasts/episodes/${encodeURIComponent(slug!)}/transcript.txt`);
+        if (!res.ok) throw new Error('non-ok');
+        blocks = segmentTranscript(await res.text());
+        body.innerHTML = ''; // injected .tx-line nodes lack data-astro-cid → :global styles (Pre-flight risk)
+        lineEls = blocks.map((b, i) => {
+          const p = document.createElement('p');
+          p.className = 'tx-line' + (b.isHeading ? ' tx-line--h' : '');
+          p.textContent = b.text;
+          p.dataset.i = String(i);
+          p.addEventListener('click', () => seekTo(i));
+          body.appendChild(p);
+          return p;
+        });
+        loaded = true; // latch only on success — an error leaves loaded=false so a re-expand retries
+      } catch {
+        body.innerHTML = '<p class="tx-empty">逐字稿加载失败</p>';
+      } finally {
+        inFlight = false;
+      }
+    }
+
+    function seekTo(i: number) {
+      const ratio = blocks[i]?.startRatio ?? 0;
+      const apply = () => { if (isFinite(audio!.duration)) audio!.currentTime = ratio * audio!.duration; };
+      if (isFinite(audio!.duration) && audio!.duration > 0) {
+        apply(); audio!.play().catch(() => {});
+      } else {
+        audio!.addEventListener('loadedmetadata', apply, { once: true });
+        audio!.play().catch(() => {}); // preload=none: play() triggers load — equivalent to a user press, legitimate /download hit
+      }
+    }
+
+    audio.addEventListener('timeupdate', () => {
+      if (panel.hasAttribute('hidden') || !loaded || lineEls.length === 0) return;
+      if (!isFinite(audio.duration) || audio.duration <= 0) return;
+      const idx = blockAtProgress(blocks, audio.currentTime / audio.duration);
+      if (idx === activeIdx) return;
+      if (activeIdx >= 0) lineEls[activeIdx]?.classList.remove('is-active');
+      activeIdx = idx;
+      const el = lineEls[idx];
+      if (!el) return;
+      el.classList.add('is-active');
+      if (Date.now() - userScrolledAt > TX_SCROLL_PAUSE_MS) {
+        suppressScrollUntil = Date.now() + 250; // program-initiated scroll event falls in this window
+        // Center the active line. Use getBoundingClientRect deltas, not el.offsetTop —
+        // offsetTop is relative to the offsetParent (the panel is not positioned, so
+        // that's <body>), which would scroll to a wildly wrong, page-relative position.
+        const elRect = el.getBoundingClientRect();
+        const panelRect = panel.getBoundingClientRect();
+        panel.scrollTop += (elRect.top - panelRect.top) - (panel.clientHeight - el.clientHeight) / 2;
+      }
+    });
+
+    // Time-window approach for distinguishing program vs. user scrolls: the
+    // assignment above opens a 250ms suppression window during which all scroll
+    // events are ignored; events outside the window are user-initiated → pause
+    // auto-scroll for TX_SCROLL_PAUSE_MS. The window covers both failure modes
+    // of a boolean pair: (a) assignment leaves scrollTop unchanged → no scroll
+    // event (window expires harmlessly); (b) hypothetical smooth scrolling would
+    // fire multiple events (all swallowed inside the window — smooth disabled
+    // above regardless).
+    panel.addEventListener('scroll', () => {
+      if (Date.now() < suppressScrollUntil) return;
+      userScrolledAt = Date.now();
+    });
+  }
+
   document.querySelectorAll<HTMLElement>('.ep-fb').forEach(wireFeedback);
+  document.querySelectorAll<HTMLElement>('.tx').forEach((el) => { void wireTranscript(el); });
 </script>
 
 <style>
@@ -374,6 +497,39 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
     overflow: hidden;
   }
   audio { width: 100%; max-width: 480px; margin-top: 6px; }
+
+  /* ── Transcript (per-episode transcript toggle + scrolling panel) ──────────
+     Container, toggle and panel are build-time elements — scoped styles apply.
+     The .tx-line <p> rows are runtime-injected (innerHTML/createElement) and
+     carry no data-astro-cid, so they must be styled via :global(...) below. */
+  .tx { width: 100%; max-width: 480px; margin-top: 10px; }
+  .tx-toggle {
+    font-family: var(--font-ui); font-size: 13px; color: var(--ink-3);
+    background: none; border: none; padding: 4px 0; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .tx-toggle:hover { color: var(--ink); }
+  .tx-caret { transition: transform .2s var(--ease); font-size: 10px; }
+  .tx-toggle[aria-expanded="true"] .tx-caret { transform: rotate(180deg); }
+  .tx-panel {
+    margin-top: 8px; max-height: 320px; overflow-y: auto;
+    border-left: 2px solid var(--line); padding-left: 14px;
+  }
+  /* No scroll-behavior: smooth — a smooth scroll fires multiple scroll events
+     that the 250ms time window can't fully swallow, so we'd lose the ability
+     to distinguish program vs. user scrolling. Program scroll is an instant
+     scrollTop assignment (single event); the visual gap is acceptable. */
+  /* Runtime-injected rows (innerHTML) — :global because Astro's scoped
+     data-astro-cid attribute is absent on elements created in the client. */
+  :global(.tx-line) {
+    font-family: var(--font-read); font-size: 14.5px; line-height: 1.7;
+    color: var(--ink-3); margin: 0 0 10px; padding: 2px 6px; border-radius: 6px;
+    cursor: pointer; transition: color .2s, background .2s;
+  }
+  :global(.tx-line:hover) { color: var(--ink-2); }
+  :global(.tx-line--h) { font-weight: 600; color: var(--ink-2); margin-top: 14px; }
+  :global(.tx-line.is-active) { color: var(--ink); background: var(--surface-2); }
+  :global(.tx-empty) { font-family: var(--font-read); font-size: 13px; color: var(--ink-3); }
 
   /* ── Episode feedback (per-episode listener feedback chip control) ──────────
      Subordinate to the blurb + player: ghost chips at rest (no border/fill),
