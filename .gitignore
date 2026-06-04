@@ -10,6 +10,9 @@ dist/
 packages/api/data/uploads/*
 !packages/api/data/uploads/.gitkeep
 
+# Content-republish trigger marker (transient runtime artifact)
+packages/api/data/.rebuild-request
+
 # IDE
 .idea/
 .vscode/
