@@ -48,14 +48,14 @@ export default function SettingsForm() {
     }
   }
 
-  if (loading) return <p class="text-gray-500">Loading...</p>;
+  if (loading) return <p class="text-ink-3">Loading...</p>;
 
   return (
     <div class="max-w-2xl">
-      <div class="bg-white border rounded-lg p-6 space-y-4">
+      <div class="bg-surface border rounded-lg p-6 space-y-4">
         {SETTINGS_FIELDS.map(field => (
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">{field.label}</label>
+            <label class="block text-sm font-medium text-ink-2 mb-1">{field.label}</label>
             {field.type === 'select' && 'options' in field ? (
               <select
                 value={values[field.key] || (field as any).options[0]}
@@ -85,7 +85,7 @@ export default function SettingsForm() {
 
         <div class="flex items-center gap-4 pt-4">
           <button onClick={handleSave} disabled={saving}
-            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm">
+            class="px-6 py-2 bg-accent text-on-accent rounded-lg hover:opacity-90 disabled:opacity-50 text-sm">
             {saving ? 'Saving...' : 'Save Settings'}
           </button>
           {message && <p class={`text-sm ${message.startsWith('Error') ? 'text-red-600' : 'text-green-600'}`}>{message}</p>}

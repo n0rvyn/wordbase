@@ -48,40 +48,40 @@ export default function CommentModeration() {
       <div class="flex gap-2 mb-6">
         {['pending', 'approved', 'spam'].map(s => (
           <button onClick={() => setStatusFilter(s)}
-            class={`px-3 py-1 text-sm rounded ${statusFilter === s ? 'bg-blue-600 text-white' : 'bg-white border hover:bg-gray-50'}`}>
+            class={`px-3 py-1 text-sm rounded ${statusFilter === s ? 'bg-accent text-on-accent' : 'bg-surface border hover:bg-surface-2'}`}>
             {s.charAt(0).toUpperCase() + s.slice(1)}
           </button>
         ))}
       </div>
 
-      {loading ? <p class="text-gray-500">Loading...</p> :
-       comments.length === 0 ? <p class="text-gray-500">No {statusFilter} comments.</p> :
+      {loading ? <p class="text-ink-3">Loading...</p> :
+       comments.length === 0 ? <p class="text-ink-3">No {statusFilter} comments.</p> :
         <div class="space-y-4">
           {comments.map((c: any) => (
-            <div class="bg-white border rounded-lg p-4">
+            <div class="bg-surface border rounded-lg p-4">
               <div class="flex items-start justify-between">
                 <div>
                   <p class="font-medium">{c.authorName}</p>
-                  <p class="text-sm text-gray-500">
+                  <p class="text-sm text-ink-3">
                     {c.authorEmail && <span>{c.authorEmail} &middot; </span>}
                     {new Date(c.createdAt * 1000).toLocaleString()} &middot;
-                    on <span class="text-blue-600">{c.postTitle}</span>
+                    on <span class="text-accent">{c.postTitle}</span>
                   </p>
                 </div>
                 <div class="flex gap-2">
                   {statusFilter !== 'approved' && (
                     <button onClick={() => moderate(c.id, 'approve')}
-                      class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200">Approve</button>
+                      class="px-2 py-1 text-xs bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-500/25">Approve</button>
                   )}
                   {statusFilter !== 'spam' && (
                     <button onClick={() => moderate(c.id, 'spam')}
-                      class="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200">Spam</button>
+                      class="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300 rounded hover:bg-yellow-200 dark:hover:bg-yellow-500/25">Spam</button>
                   )}
                   <button onClick={() => deleteComment(c.id)}
-                    class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200">Delete</button>
+                    class="px-2 py-1 text-xs bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-500/25">Delete</button>
                 </div>
               </div>
-              <p class="mt-2 text-gray-700">{c.content}</p>
+              <p class="mt-2 text-ink-2">{c.content}</p>
             </div>
           ))}
         </div>

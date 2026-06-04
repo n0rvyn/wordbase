@@ -112,15 +112,15 @@ export default function ObservabilityPanel() {
       {/* Header + period selector */}
       <div class="flex flex-wrap items-end justify-between gap-3 mb-6">
         <div>
-          <h2 class="text-xl font-semibold text-gray-900 tracking-tight">Visit analytics</h2>
-          <p class="text-sm text-gray-500 mt-0.5">Site traffic from the page-view beacon · {PERIOD_LABEL[period]}</p>
+          <h2 class="text-xl font-semibold text-ink tracking-tight">Visit analytics</h2>
+          <p class="text-sm text-ink-3 mt-0.5">Site traffic from the page-view beacon · {PERIOD_LABEL[period]}</p>
         </div>
-        <div class="inline-flex rounded-lg bg-gray-100 p-1">
+        <div class="inline-flex rounded-lg bg-surface-2 p-1">
           {(['daily', 'weekly', 'monthly'] as Period[]).map((p) => (
             <button
               onClick={() => setPeriod(p)}
               class={`px-3.5 py-1.5 text-sm font-medium rounded-md transition-all ${
-                period === p ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-800'
+                period === p ? 'bg-surface text-ink shadow-sm' : 'text-ink-3 hover:text-ink'
               }`}
             >
               {p === 'daily' ? 'Daily' : p === 'weekly' ? 'Weekly' : 'Monthly'}
@@ -146,12 +146,12 @@ export default function ObservabilityPanel() {
           </div>
 
           {/* Trend chart */}
-          <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 sm:p-6 mb-5">
+          <div class="bg-surface rounded-xl border border-line shadow-sm p-5 sm:p-6 mb-5">
             <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
-              <h3 class="font-semibold text-gray-900">Trend</h3>
+              <h3 class="font-semibold text-ink">Trend</h3>
               <div class="flex flex-wrap gap-x-4 gap-y-1">
                 {SERIES.map((s) => (
-                  <span class="flex items-center gap-1.5 text-xs font-medium text-gray-500">
+                  <span class="flex items-center gap-1.5 text-xs font-medium text-ink-3">
                     <span class="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }} />
                     {s.label}
                   </span>
@@ -181,8 +181,8 @@ export default function ObservabilityPanel() {
 
           {/* ---- Podcast (downloads + RSS feed polls, distinct from page-view beacons) ---- */}
           <div class="mt-10 mb-6">
-            <h2 class="text-xl font-semibold text-gray-900 tracking-tight">Podcast</h2>
-            <p class="text-sm text-gray-500 mt-0.5">Deduped episode downloads &amp; active-subscriber estimate · {PERIOD_LABEL[period]}</p>
+            <h2 class="text-xl font-semibold text-ink tracking-tight">Podcast</h2>
+            <p class="text-sm text-ink-3 mt-0.5">Deduped episode downloads &amp; active-subscriber estimate · {PERIOD_LABEL[period]}</p>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
@@ -217,15 +217,15 @@ export default function ObservabilityPanel() {
 
           {/* ---- API requests (server-side, distinct from the visit beacons above) ---- */}
           <div class="mt-10 mb-6">
-            <h2 class="text-xl font-semibold text-gray-900 tracking-tight">API requests</h2>
-            <p class="text-sm text-gray-500 mt-0.5">Server-side request timing · last 24 hours · separate from the visit beacons above</p>
+            <h2 class="text-xl font-semibold text-ink tracking-tight">API requests</h2>
+            <p class="text-sm text-ink-3 mt-0.5">Server-side request timing · last 24 hours · separate from the visit beacons above</p>
           </div>
           <RequestSection data={requests} />
 
           {/* ---- System & operations ---- */}
           <div class="mt-10 mb-6">
-            <h2 class="text-xl font-semibold text-gray-900 tracking-tight">System &amp; operations</h2>
-            <p class="text-sm text-gray-500 mt-0.5">Process, database, and content-pipeline status · read-only</p>
+            <h2 class="text-xl font-semibold text-ink tracking-tight">System &amp; operations</h2>
+            <p class="text-sm text-ink-3 mt-0.5">Process, database, and content-pipeline status · read-only</p>
           </div>
           <SystemSection data={system} />
         </>
@@ -237,15 +237,15 @@ export default function ObservabilityPanel() {
 /* ---------------- system & operations ---------------- */
 
 const BUILD_META: Record<string, { label: string; dot: string; text: string }> = {
-  idle: { label: 'Idle', dot: '#94a3b8', text: 'text-gray-600' },
-  requested: { label: 'Requested', dot: '#3b82f6', text: 'text-blue-600' },
+  idle: { label: 'Idle', dot: '#94a3b8', text: 'text-ink-2' },
+  requested: { label: 'Requested', dot: '#3b82f6', text: 'text-accent' },
   building: { label: 'Building', dot: '#f59e0b', text: 'text-amber-600' },
   success: { label: 'Success', dot: '#10b981', text: 'text-emerald-600' },
   failed: { label: 'Failed', dot: '#ef4444', text: 'text-rose-600' },
 };
 
 function SystemSection({ data }: { data: SystemStatus | null }) {
-  if (!data) return <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center text-sm text-gray-400">No system data.</div>;
+  if (!data) return <div class="bg-surface rounded-xl border border-line shadow-sm p-8 text-center text-sm text-ink-3">No system data.</div>;
   const { runtime, database, ops } = data;
   const build = BUILD_META[ops.build.status] ?? BUILD_META.idle;
 
@@ -264,10 +264,10 @@ function SystemSection({ data }: { data: SystemStatus | null }) {
         <Row label="Size" value={`${fmtBytes(database.sizeBytes)}${database.walBytes ? ` (+${fmtBytes(database.walBytes)} WAL)` : ''}`} />
         <Row label="Journal mode" value={database.journalMode.toUpperCase()} />
         <Row label="Pages" value={`${database.pageCount.toLocaleString()} × ${fmtBytes(database.pageSize)}`} />
-        <div class="pt-2 mt-1 border-t border-gray-50">
-          <div class="flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-gray-500">
+        <div class="pt-2 mt-1 border-t border-line">
+          <div class="flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-ink-3">
             {Object.entries(database.tableRows).map(([t, n]) => (
-              <span><span class="text-gray-400">{t}</span> <span class="font-semibold text-gray-700 tabular-nums">{n.toLocaleString()}</span></span>
+              <span><span class="text-ink-3">{t}</span> <span class="font-semibold text-ink-2 tabular-nums">{n.toLocaleString()}</span></span>
             ))}
           </div>
         </div>
@@ -276,7 +276,7 @@ function SystemSection({ data }: { data: SystemStatus | null }) {
       {/* Build / deploy */}
       <Panel title="Build & deploy">
         <div class="flex items-center justify-between py-1.5">
-          <span class="text-sm text-gray-500">Status</span>
+          <span class="text-sm text-ink-3">Status</span>
           <span class={`flex items-center gap-2 text-sm font-medium ${build.text}`}>
             <span class="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: build.dot }} />
             {build.label}
@@ -294,11 +294,11 @@ function SystemSection({ data }: { data: SystemStatus | null }) {
         <Row label="Podcast" value={`${ops.podcast.episodesPublished}/${ops.podcast.episodes} episodes · ${ops.podcast.showsPublished} shows`} />
         <Row label="Last episode" value={ops.podcast.lastPublishedAt ? timeAgo(ops.podcast.lastPublishedAt) : '—'} />
         <div class="flex items-center justify-between py-1.5">
-          <span class="text-sm text-gray-500">Pending comments</span>
+          <span class="text-sm text-ink-3">Pending comments</span>
           {ops.pendingComments > 0 ? (
             <a href="/admin/comments" class="text-sm font-semibold text-amber-600 hover:underline tabular-nums">{ops.pendingComments} →</a>
           ) : (
-            <span class="text-sm font-semibold text-gray-400 tabular-nums">0</span>
+            <span class="text-sm font-semibold text-ink-3 tabular-nums">0</span>
           )}
         </div>
       </Panel>
@@ -308,8 +308,8 @@ function SystemSection({ data }: { data: SystemStatus | null }) {
 
 function Panel({ title, children }: { title: string; children: any }) {
   return (
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
-      <div class="px-5 py-4 border-b border-gray-100"><h3 class="font-semibold text-gray-900">{title}</h3></div>
+    <div class="bg-surface rounded-xl border border-line shadow-sm">
+      <div class="px-5 py-4 border-b border-line"><h3 class="font-semibold text-ink">{title}</h3></div>
       <div class="px-5 py-3">{children}</div>
     </div>
   );
@@ -318,8 +318,8 @@ function Panel({ title, children }: { title: string; children: any }) {
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div class="flex items-center justify-between py-1.5 gap-4">
-      <span class="text-sm text-gray-500 shrink-0">{label}</span>
-      <span class="text-sm font-medium text-gray-900 tabular-nums truncate text-right">{value}</span>
+      <span class="text-sm text-ink-3 shrink-0">{label}</span>
+      <span class="text-sm font-medium text-ink tabular-nums truncate text-right">{value}</span>
     </div>
   );
 }
@@ -357,18 +357,18 @@ const STATUS_META: Record<string, { label: string; color: string }> = {
 };
 
 const METHOD_COLOR: Record<string, string> = {
-  GET: 'bg-emerald-50 text-emerald-700',
-  POST: 'bg-blue-50 text-blue-700',
-  PUT: 'bg-amber-50 text-amber-700',
-  PATCH: 'bg-amber-50 text-amber-700',
-  DELETE: 'bg-rose-50 text-rose-700',
+  GET: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
+  POST: 'bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',
+  PUT: 'bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
+  PATCH: 'bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
+  DELETE: 'bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',
 };
 
 function RequestSection({ data }: { data: RequestMetrics | null }) {
   if (!data || data.totalRequests === 0) {
     return (
-      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center">
-        <p class="text-sm text-gray-400">No API requests recorded in the last 24 hours.</p>
+      <div class="bg-surface rounded-xl border border-line shadow-sm p-8 text-center">
+        <p class="text-sm text-ink-3">No API requests recorded in the last 24 hours.</p>
       </div>
     );
   }
@@ -382,25 +382,25 @@ function RequestSection({ data }: { data: RequestMetrics | null }) {
   return (
     <>
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-          <p class="text-sm font-medium text-gray-500">Total requests</p>
-          <p class="text-3xl font-bold text-gray-900 tabular-nums mt-2 leading-none">{data.totalRequests.toLocaleString()}</p>
+        <div class="bg-surface rounded-xl border border-line shadow-sm p-5">
+          <p class="text-sm font-medium text-ink-3">Total requests</p>
+          <p class="text-3xl font-bold text-ink tabular-nums mt-2 leading-none">{data.totalRequests.toLocaleString()}</p>
         </div>
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-          <p class="text-sm font-medium text-gray-500">Error rate</p>
-          <p class={`text-3xl font-bold tabular-nums mt-2 leading-none ${data.errorRate > 0 ? 'text-rose-500' : 'text-gray-900'}`}>
+        <div class="bg-surface rounded-xl border border-line shadow-sm p-5">
+          <p class="text-sm font-medium text-ink-3">Error rate</p>
+          <p class={`text-3xl font-bold tabular-nums mt-2 leading-none ${data.errorRate > 0 ? 'text-rose-500' : 'text-ink'}`}>
             {data.errorRate}%
           </p>
         </div>
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-          <p class="text-sm font-medium text-gray-500">Avg latency</p>
-          <p class="text-3xl font-bold text-gray-900 tabular-nums mt-2 leading-none">{fmtMs(avgAll)}</p>
+        <div class="bg-surface rounded-xl border border-line shadow-sm p-5">
+          <p class="text-sm font-medium text-ink-3">Avg latency</p>
+          <p class="text-3xl font-bold text-ink tabular-nums mt-2 leading-none">{fmtMs(avgAll)}</p>
         </div>
       </div>
 
       {/* status distribution */}
-      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-5">
-        <h3 class="font-semibold text-gray-900 mb-4">Status distribution</h3>
+      <div class="bg-surface rounded-xl border border-line shadow-sm p-5 mb-5">
+        <h3 class="font-semibold text-ink mb-4">Status distribution</h3>
         <div class="flex h-2.5 rounded-full overflow-hidden mb-4 gap-0.5">
           {statusEntries.map(([cls, v]) => {
             const meta = STATUS_META[cls] ?? { label: cls, color: '#cbd5e1' };
@@ -413,8 +413,8 @@ function RequestSection({ data }: { data: RequestMetrics | null }) {
             return (
               <span class="flex items-center gap-2 text-sm">
                 <span class="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: meta.color }} />
-                <span class="text-gray-600">{meta.label}</span>
-                <span class="font-semibold text-gray-900 tabular-nums">{v.toLocaleString()}</span>
+                <span class="text-ink-2">{meta.label}</span>
+                <span class="font-semibold text-ink tabular-nums">{v.toLocaleString()}</span>
               </span>
             );
           })}
@@ -422,14 +422,14 @@ function RequestSection({ data }: { data: RequestMetrics | null }) {
       </div>
 
       {/* endpoint table */}
-      <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div class="px-5 py-4 border-b border-gray-100">
-          <h3 class="font-semibold text-gray-900">Endpoints</h3>
+      <div class="bg-surface rounded-xl border border-line shadow-sm overflow-hidden">
+        <div class="px-5 py-4 border-b border-line">
+          <h3 class="font-semibold text-ink">Endpoints</h3>
         </div>
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="text-left text-xs font-medium text-gray-400 border-b border-gray-100">
+              <tr class="text-left text-xs font-medium text-ink-3 border-b border-line">
                 <th class="px-5 py-2.5 font-medium">Endpoint</th>
                 <th class="px-3 py-2.5 font-medium text-right tabular-nums">Requests</th>
                 <th class="px-3 py-2.5 font-medium text-right tabular-nums">p50</th>
@@ -437,19 +437,19 @@ function RequestSection({ data }: { data: RequestMetrics | null }) {
                 <th class="px-5 py-2.5 font-medium text-right tabular-nums">Errors</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="divide-y divide-line">
               {data.endpoints.map((e) => (
-                <tr class="hover:bg-gray-50/60">
+                <tr class="hover:bg-surface-2">
                   <td class="px-5 py-2.5">
                     <span class="inline-flex items-center gap-2 min-w-0">
-                      <span class={`px-1.5 py-0.5 rounded text-xs font-semibold ${METHOD_COLOR[e.method] ?? 'bg-gray-100 text-gray-600'}`}>{e.method}</span>
-                      <code class="text-gray-700 truncate">{e.route}</code>
+                      <span class={`px-1.5 py-0.5 rounded text-xs font-semibold ${METHOD_COLOR[e.method] ?? 'bg-surface-2 text-ink-2'}`}>{e.method}</span>
+                      <code class="text-ink-2 truncate">{e.route}</code>
                     </span>
                   </td>
-                  <td class="px-3 py-2.5 text-right tabular-nums text-gray-700">{e.count.toLocaleString()}</td>
-                  <td class="px-3 py-2.5 text-right tabular-nums text-gray-700">{fmtMs(e.p50Ms)}</td>
-                  <td class={`px-3 py-2.5 text-right tabular-nums ${e.p95Ms > 500 ? 'text-amber-600 font-medium' : 'text-gray-700'}`}>{fmtMs(e.p95Ms)}</td>
-                  <td class={`px-5 py-2.5 text-right tabular-nums ${e.errorRate > 0 ? 'text-rose-500 font-medium' : 'text-gray-300'}`}>{e.errorRate}%</td>
+                  <td class="px-3 py-2.5 text-right tabular-nums text-ink-2">{e.count.toLocaleString()}</td>
+                  <td class="px-3 py-2.5 text-right tabular-nums text-ink-2">{fmtMs(e.p50Ms)}</td>
+                  <td class={`px-3 py-2.5 text-right tabular-nums ${e.p95Ms > 500 ? 'text-amber-600 font-medium' : 'text-ink-2'}`}>{fmtMs(e.p95Ms)}</td>
+                  <td class={`px-5 py-2.5 text-right tabular-nums ${e.errorRate > 0 ? 'text-rose-500 font-medium' : 'text-ink-4'}`}>{e.errorRate}%</td>
                 </tr>
               ))}
             </tbody>
@@ -471,11 +471,11 @@ function fmtMs(ms: number): string {
 function SummaryCard({ series, value, trend }: { series: { key: string; label: string; color: string }; value: number; trend: number[] }) {
   const delta = periodDelta(trend);
   return (
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+    <div class="bg-surface rounded-xl border border-line shadow-sm p-5">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <span class="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: series.color }} />
-          <p class="text-sm font-medium text-gray-500">{series.label}</p>
+          <p class="text-sm font-medium text-ink-3">{series.label}</p>
         </div>
         {delta !== null && (
           <span class={`text-xs font-semibold tabular-nums ${delta >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
@@ -484,7 +484,7 @@ function SummaryCard({ series, value, trend }: { series: { key: string; label: s
         )}
       </div>
       <div class="flex items-end justify-between mt-2 gap-3">
-        <p class="text-3xl font-bold text-gray-900 tabular-nums leading-none">{value.toLocaleString()}</p>
+        <p class="text-3xl font-bold text-ink tabular-nums leading-none">{value.toLocaleString()}</p>
         <Sparkline values={trend} color={series.color} />
       </div>
     </div>
@@ -548,7 +548,7 @@ function TrendChart({ data, period }: { data: TrendPoint[]; period: Period }) {
 
   if (data.length === 0) {
     return (
-      <div ref={wrapRef} class="flex items-center justify-center text-sm text-gray-400" style={{ height: `${H}px` }}>
+      <div ref={wrapRef} class="flex items-center justify-center text-sm text-ink-3" style={{ height: `${H}px` }}>
         No data in this window.
       </div>
     );
@@ -591,8 +591,8 @@ function TrendChart({ data, period }: { data: TrendPoint[]; period: Period }) {
         {/* gridlines + y labels */}
         {ticks.map((t) => (
           <g>
-            <line x1={PAD.left} y1={yAt(t)} x2={w - PAD.right} y2={yAt(t)} stroke="#f1f5f9" stroke-width="1" />
-            <text x={PAD.left - 8} y={yAt(t) + 3.5} text-anchor="end" font-size="10.5" fill="#9ca3af" class="tabular-nums">
+            <line x1={PAD.left} y1={yAt(t)} x2={w - PAD.right} y2={yAt(t)} style={{ stroke: 'var(--line)' }} stroke-width="1" />
+            <text x={PAD.left - 8} y={yAt(t) + 3.5} text-anchor="end" font-size="10.5" style={{ fill: 'var(--ink-3)' }} class="tabular-nums">
               {abbrev(t)}
             </text>
           </g>
@@ -601,7 +601,7 @@ function TrendChart({ data, period }: { data: TrendPoint[]; period: Period }) {
         {/* x labels */}
         {data.map((d, i) =>
           i % labelStep === 0 || i === n - 1 ? (
-            <text x={xAt(i)} y={H - 8} text-anchor="middle" font-size="10" fill="#9ca3af">{shortLabel(d.period, period)}</text>
+            <text x={xAt(i)} y={H - 8} text-anchor="middle" font-size="10" style={{ fill: 'var(--ink-3)' }}>{shortLabel(d.period, period)}</text>
           ) : null
         )}
 
@@ -626,9 +626,9 @@ function TrendChart({ data, period }: { data: TrendPoint[]; period: Period }) {
         {/* hover crosshair + dots */}
         {hp && (
           <g>
-            <line x1={hx} y1={PAD.top} x2={hx} y2={PAD.top + innerH} stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 3" />
+            <line x1={hx} y1={PAD.top} x2={hx} y2={PAD.top + innerH} style={{ stroke: 'var(--line-2)' }} stroke-width="1" stroke-dasharray="3 3" />
             {SERIES.map((s) => (
-              <circle cx={hx} cy={yAt(hp[s.key])} r="3.5" fill="#fff" stroke={s.color} stroke-width="2" />
+              <circle cx={hx} cy={yAt(hp[s.key])} r="3.5" style={{ fill: 'var(--surface)' }} stroke={s.color} stroke-width="2" />
             ))}
           </g>
         )}
@@ -637,17 +637,17 @@ function TrendChart({ data, period }: { data: TrendPoint[]; period: Period }) {
       {/* tooltip */}
       {hp && (
         <div
-          class="pointer-events-none absolute top-1 z-10 rounded-lg border border-gray-200 bg-white/95 backdrop-blur px-3 py-2 shadow-lg"
+          class="pointer-events-none absolute top-1 z-10 rounded-lg border border-line bg-surface backdrop-blur px-3 py-2 shadow-lg"
           style={{ left: `${tooltipLeft}px`, width: '150px' }}
         >
-          <p class="text-xs font-semibold text-gray-700 mb-1">{fullLabel(hp.period, period)}</p>
+          <p class="text-xs font-semibold text-ink-2 mb-1">{fullLabel(hp.period, period)}</p>
           {SERIES.map((s) => (
             <div class="flex items-center justify-between text-xs py-0.5">
-              <span class="flex items-center gap-1.5 text-gray-500">
+              <span class="flex items-center gap-1.5 text-ink-3">
                 <span class="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
                 {s.label}
               </span>
-              <span class="font-semibold text-gray-900 tabular-nums">{hp[s.key].toLocaleString()}</span>
+              <span class="font-semibold text-ink tabular-nums">{hp[s.key].toLocaleString()}</span>
             </div>
           ))}
         </div>
@@ -661,27 +661,27 @@ function TrendChart({ data, period }: { data: TrendPoint[]; period: Period }) {
 function BarList({ title, rows, empty, accent }: { title: string; rows: { label: string; value: number; href?: string }[]; empty: string; accent: string }) {
   const max = Math.max(1, ...rows.map((r) => r.value));
   return (
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
-      <div class="px-5 py-4 border-b border-gray-100">
-        <h3 class="font-semibold text-gray-900">{title}</h3>
+    <div class="bg-surface rounded-xl border border-line shadow-sm">
+      <div class="px-5 py-4 border-b border-line">
+        <h3 class="font-semibold text-ink">{title}</h3>
       </div>
       <div class="p-3 space-y-0.5">
         {rows.length === 0 ? (
-          <p class="text-gray-400 text-sm px-2 py-3">{empty}</p>
+          <p class="text-ink-3 text-sm px-2 py-3">{empty}</p>
         ) : (
           rows.map((r, i) => (
-            <div class="group relative px-3 py-2 rounded-lg overflow-hidden hover:bg-gray-50/60">
+            <div class="group relative px-3 py-2 rounded-lg overflow-hidden hover:bg-surface-2">
               <div class="absolute inset-y-0 left-0 rounded-lg opacity-[0.10]" style={{ width: `${(r.value / max) * 100}%`, backgroundColor: accent }} />
               <div class="relative flex items-center justify-between gap-3 text-sm">
                 <span class="flex items-center gap-2.5 min-w-0">
-                  <span class="text-xs font-medium text-gray-300 tabular-nums w-4 shrink-0">{i + 1}</span>
+                  <span class="text-xs font-medium text-ink-4 tabular-nums w-4 shrink-0">{i + 1}</span>
                   {r.href ? (
-                    <a href={r.href} class="text-gray-700 hover:text-indigo-600 truncate">{r.label}</a>
+                    <a href={r.href} class="text-ink-2 hover:text-accent truncate">{r.label}</a>
                   ) : (
-                    <span class="text-gray-700 truncate">{r.label}</span>
+                    <span class="text-ink-2 truncate">{r.label}</span>
                   )}
                 </span>
-                <span class="font-semibold text-gray-900 tabular-nums shrink-0">{r.value.toLocaleString()}</span>
+                <span class="font-semibold text-ink tabular-nums shrink-0">{r.value.toLocaleString()}</span>
               </div>
             </div>
           ))
@@ -695,37 +695,37 @@ function BarList({ title, rows, empty, accent }: { title: string; rows: { label:
 
 function EpisodeTable({ rows }: { rows: EpisodeDownloadRow[] }) {
   return (
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-      <div class="px-5 py-4 border-b border-gray-100">
-        <h3 class="font-semibold text-gray-900">Episodes</h3>
+    <div class="bg-surface rounded-xl border border-line shadow-sm overflow-hidden">
+      <div class="px-5 py-4 border-b border-line">
+        <h3 class="font-semibold text-ink">Episodes</h3>
       </div>
       {rows.length === 0 ? (
-        <p class="text-gray-400 text-sm px-5 py-8 text-center">No episodes yet.</p>
+        <p class="text-ink-3 text-sm px-5 py-8 text-center">No episodes yet.</p>
       ) : (
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="text-left text-xs font-medium text-gray-400 border-b border-gray-100">
+              <tr class="text-left text-xs font-medium text-ink-3 border-b border-line">
                 <th class="px-5 py-2.5 font-medium">Episode</th>
                 <th class="px-3 py-2.5 font-medium text-right tabular-nums">Downloads</th>
                 <th class="px-5 py-2.5 font-medium text-right">Last 14 days</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="divide-y divide-line">
               {rows.map((e) => (
-                <tr class="hover:bg-gray-50/60">
+                <tr class="hover:bg-surface-2">
                   <td class="px-5 py-2.5">
                     <span class="flex items-center gap-2 min-w-0">
                       {e.episodeNumber != null && (
-                        <span class="text-xs font-medium text-gray-300 tabular-nums shrink-0">EP.{e.episodeNumber}</span>
+                        <span class="text-xs font-medium text-ink-4 tabular-nums shrink-0">EP.{e.episodeNumber}</span>
                       )}
-                      <span class="text-gray-700 truncate">{e.title}</span>
+                      <span class="text-ink-2 truncate">{e.title}</span>
                       {e.status !== 'published' && (
-                        <span class="px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500 shrink-0">{e.status}</span>
+                        <span class="px-1.5 py-0.5 rounded text-xs font-medium bg-surface-2 text-ink-3 shrink-0">{e.status}</span>
                       )}
                     </span>
                   </td>
-                  <td class="px-3 py-2.5 text-right tabular-nums font-semibold text-gray-900">{e.downloads.toLocaleString()}</td>
+                  <td class="px-3 py-2.5 text-right tabular-nums font-semibold text-ink">{e.downloads.toLocaleString()}</td>
                   <td class="px-5 py-2.5">
                     <div class="flex justify-end">
                       <Sparkline values={e.trend} color="#8b5cf6" />
@@ -767,13 +767,13 @@ const CLIENT_META: Record<string, { label: string; color: string }> = {
 function DeviceBreakdown({ rows, title = 'Device breakdown', meta: metaMap = DEVICE_META }: { rows: DeviceRow[]; title?: string; meta?: Record<string, { label: string; color: string }> }) {
   const total = rows.reduce((s, r) => s + r.count, 0);
   return (
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
-      <div class="px-5 py-4 border-b border-gray-100">
-        <h3 class="font-semibold text-gray-900">{title}</h3>
+    <div class="bg-surface rounded-xl border border-line shadow-sm">
+      <div class="px-5 py-4 border-b border-line">
+        <h3 class="font-semibold text-ink">{title}</h3>
       </div>
       <div class="p-5">
         {total === 0 ? (
-          <p class="text-gray-400 text-sm">No user-agent data yet.</p>
+          <p class="text-ink-3 text-sm">No user-agent data yet.</p>
         ) : (
           <>
             <div class="flex h-2.5 rounded-full overflow-hidden mb-4 gap-0.5">
@@ -790,8 +790,8 @@ function DeviceBreakdown({ rows, title = 'Device breakdown', meta: metaMap = DEV
                   <div class="flex items-center gap-2.5">
                     <span class="inline-block w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: meta.color }} />
                     <div class="min-w-0">
-                      <p class="text-sm text-gray-700 truncate">{meta.label}</p>
-                      <p class="text-xs text-gray-400 tabular-nums">{r.count.toLocaleString()} · {pct}%</p>
+                      <p class="text-sm text-ink-2 truncate">{meta.label}</p>
+                      <p class="text-xs text-ink-3 tabular-nums">{r.count.toLocaleString()} · {pct}%</p>
                     </div>
                   </div>
                 );
@@ -810,9 +810,9 @@ function ChartSkeleton() {
   return (
     <div class="animate-pulse">
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
-        {[0, 1, 2].map(() => <div class="h-24 bg-gray-100 rounded-xl" />)}
+        {[0, 1, 2].map(() => <div class="h-24 bg-surface-2 rounded-xl" />)}
       </div>
-      <div class="h-72 bg-gray-100 rounded-xl" />
+      <div class="h-72 bg-surface-2 rounded-xl" />
     </div>
   );
 }

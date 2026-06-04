@@ -42,11 +42,11 @@ export default function CategoryManager() {
     setEditId(item.id); setName(item.name); setSlug(item.slug); setDescription(item.description || '');
   }
 
-  if (loading) return <p class="text-gray-500">Loading...</p>;
+  if (loading) return <p class="text-ink-3">Loading...</p>;
 
   return (
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div class="bg-white border rounded-lg p-6">
+      <div class="bg-surface border rounded-lg p-6">
         <h2 class="font-semibold mb-4">{editId ? 'Edit' : 'Add'} Category</h2>
         <div class="space-y-3">
           <input value={name} onInput={(e) => setName((e.target as HTMLInputElement).value)}
@@ -56,23 +56,23 @@ export default function CategoryManager() {
           <textarea value={description} onInput={(e) => setDescription((e.target as HTMLTextAreaElement).value)}
             placeholder="Description" rows={2} class="w-full px-3 py-2 border rounded-md text-sm" />
           <div class="flex gap-2">
-            <button onClick={handleSave} class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700">Save</button>
+            <button onClick={handleSave} class="px-4 py-2 bg-accent text-on-accent rounded-md text-sm hover:opacity-90">Save</button>
             {editId && <button onClick={() => { setEditId(null); setName(''); setSlug(''); setDescription(''); }}
-              class="px-4 py-2 border rounded-md text-sm hover:bg-gray-50">Cancel</button>}
+              class="px-4 py-2 border rounded-md text-sm hover:bg-surface-2">Cancel</button>}
           </div>
         </div>
       </div>
 
-      <div class="bg-white border rounded-lg divide-y">
-        {items.length === 0 ? <p class="p-6 text-gray-500">No categories.</p> :
+      <div class="bg-surface border rounded-lg divide-y">
+        {items.length === 0 ? <p class="p-6 text-ink-3">No categories.</p> :
           items.map((item: any) => (
             <div class="px-6 py-3 flex items-center justify-between">
               <div>
                 <span class="font-medium">{item.name}</span>
-                <span class="text-sm text-gray-500 ml-2">/{item.slug}</span>
+                <span class="text-sm text-ink-3 ml-2">/{item.slug}</span>
               </div>
               <div class="flex gap-2">
-                <button onClick={() => startEdit(item)} class="text-sm text-blue-600 hover:underline">Edit</button>
+                <button onClick={() => startEdit(item)} class="text-sm text-accent hover:underline">Edit</button>
                 <button onClick={() => handleDelete(item.id)} class="text-sm text-red-600 hover:underline">Delete</button>
               </div>
             </div>

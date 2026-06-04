@@ -1,13 +1,32 @@
 ---
+import '../../styles/tokens.css';
 import LoginForm from '../../components/admin/LoginForm.tsx';
 ---
 
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Login | Wordbase Admin</title>
     <meta name="robots" content="noindex, nofollow" />
+    <!-- FOUC-prevention bootstrap: read localStorage['norvyn-v2'] before paint.
+         Mirrors BaseLayout/AdminLayout so the login screen honors the stored theme. -->
+    <script is:inline>
+      (function() {
+        var LS = 'norvyn-v2';
+        var DEFAULT_THEME = 'light';
+        var DEFAULT_ACCENT = '#3457B6';
+        try {
+          var stored = JSON.parse(localStorage.getItem(LS) || '{}');
+          var theme = stored.theme || DEFAULT_THEME;
+          var accent = stored.accent || DEFAULT_ACCENT;
+          document.documentElement.setAttribute('data-theme', theme);
+          document.documentElement.style.setProperty('--accent', accent);
+        } catch(e) {
+          document.documentElement.setAttribute('data-theme', DEFAULT_THEME);
+        }
+      })();
+    </script>
   </head>
   <body>
     <LoginForm client:load />

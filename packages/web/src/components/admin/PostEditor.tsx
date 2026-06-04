@@ -148,7 +148,7 @@ export default function PostEditor({ postId: propId }: Props) {
       <div class="flex items-center justify-between mb-6">
         <div class="flex gap-2">
           <button onClick={handleSave} disabled={saving}
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm">
+            class="px-4 py-2 bg-accent text-on-accent rounded-lg hover:opacity-90 disabled:opacity-50 text-sm">
             {saving ? 'Saving...' : 'Save'}
           </button>
           {postId && status !== 'published' && (
@@ -158,7 +158,7 @@ export default function PostEditor({ postId: propId }: Props) {
             </button>
           )}
           <button onClick={() => setShowPreview(!showPreview)}
-            class="px-4 py-2 border rounded-lg hover:bg-gray-50 text-sm lg:hidden">
+            class="px-4 py-2 border rounded-lg hover:bg-surface-2 text-sm lg:hidden">
             {showPreview ? 'Edit' : 'Preview'}
           </button>
         </div>
@@ -187,7 +187,7 @@ export default function PostEditor({ postId: propId }: Props) {
               class={`${showPreview ? 'hidden lg:block' : 'block'} w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm min-h-[400px] resize-y`}
             />
             <div
-              class={`${showPreview ? 'block' : 'hidden lg:block'} bg-white border rounded-lg p-6 prose prose-lg max-w-none min-h-[400px] overflow-auto`}
+              class={`${showPreview ? 'block' : 'hidden lg:block'} bg-surface border rounded-lg p-6 prose prose-lg max-w-none min-h-[400px] overflow-auto`}
               dangerouslySetInnerHTML={{ __html: previewHtml as string }}
             />
           </div>
@@ -201,8 +201,8 @@ export default function PostEditor({ postId: propId }: Props) {
 
         {/* Sidebar */}
         <div class="space-y-4">
-          <div class="bg-white border rounded-lg p-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Cover Image</label>
+          <div class="bg-surface border rounded-lg p-4">
+            <label class="block text-sm font-medium text-ink-2 mb-2">Cover Image</label>
             <input
               type="text" value={coverImage} onInput={(e) => setCoverImage((e.target as HTMLInputElement).value)}
               placeholder="Image URL (e.g. /uploads/2026/03/image.png)"
@@ -211,8 +211,8 @@ export default function PostEditor({ postId: propId }: Props) {
             {coverImage && <img src={coverImage} alt="Cover preview" class="mt-2 w-full h-24 object-cover rounded" />}
           </div>
 
-          <div class="bg-white border rounded-lg p-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+          <div class="bg-surface border rounded-lg p-4">
+            <label class="block text-sm font-medium text-ink-2 mb-2">Status</label>
             <select value={status} onChange={(e) => setStatus((e.target as HTMLSelectElement).value)}
               class="w-full px-3 py-2 border rounded-md text-sm">
               <option value="draft">Draft</option>
@@ -221,8 +221,8 @@ export default function PostEditor({ postId: propId }: Props) {
             </select>
           </div>
 
-          <div class="bg-white border rounded-lg p-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Categories</label>
+          <div class="bg-surface border rounded-lg p-4">
+            <label class="block text-sm font-medium text-ink-2 mb-2">Categories</label>
             <div class="space-y-1 max-h-40 overflow-y-auto">
               {categories.map((cat: any) => (
                 <label class="flex items-center gap-2 text-sm">
@@ -237,24 +237,24 @@ export default function PostEditor({ postId: propId }: Props) {
                   {cat.name}
                 </label>
               ))}
-              {categories.length === 0 && <p class="text-gray-500 text-xs">No categories</p>}
+              {categories.length === 0 && <p class="text-ink-3 text-xs">No categories</p>}
             </div>
           </div>
 
-          <div class="bg-white border rounded-lg p-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Tags</label>
+          <div class="bg-surface border rounded-lg p-4">
+            <label class="block text-sm font-medium text-ink-2 mb-2">Tags</label>
             {/* Selected tags as removable chips */}
             <div class="flex flex-wrap gap-1 mb-2">
               {selectedTags.map((id) => {
                 const t = tags.find((x: any) => x.id === id);
                 return (
-                  <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs">
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-surface-2 text-ink-2 rounded-full text-xs">
                     {t ? t.name : id}
-                    <button type="button" onClick={() => removeTag(id)} class="hover:text-blue-950 leading-none">&times;</button>
+                    <button type="button" onClick={() => removeTag(id)} class="hover:text-ink leading-none">&times;</button>
                   </span>
                 );
               })}
-              {selectedTags.length === 0 && <span class="text-gray-400 text-xs">No tags yet</span>}
+              {selectedTags.length === 0 && <span class="text-ink-3 text-xs">No tags yet</span>}
             </div>
             {/* Free-text input: type a tag and press Enter to create or attach it.
                 The datalist offers existing tags as suggestions without limiting input. */}
