@@ -2,28 +2,41 @@
 interface Props {
   title: string;
   url: string;
+  /** Smaller, lighter buttons — for refined/mono layouts (e.g. the App detail page). */
+  compact?: boolean;
 }
 
-const { title, url } = Astro.props;
+const { title, url, compact = false } = Astro.props;
 const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`;
+// Page identity for share analytics — the URL's path (+ fragment for per-episode
+// anchors), NOT location.pathname, so distinct targets stay distinct rows.
+let sharePath = url;
+try { const u = new URL(url); sharePath = u.pathname + u.hash; } catch { /* keep raw */ }
 ---
 
-<div class="share">
-  <a href={twitterUrl} target="_blank" rel="noopener noreferrer" class="share-btn" title="Twitter">
+<div class:list={["share", { compact }]} data-share-path={sharePath} data-share-title={title} data-share-url={url}>
+  <a href={twitterUrl} target="_blank" rel="noopener noreferrer" class="share-btn" data-share="x" title="Twitter">
     <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
       <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
     </svg>
   </a>
-  <button id="wechat-share" class="share-btn" title="WeChat" data-url={url}>
+  <button id="wechat-share" class="share-btn" data-share="wechat" title="WeChat" data-url={url}>
     <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
       <path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178A1.17 1.17 0 0 1 4.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178 1.17 1.17 0 0 1-1.162-1.178c0-.651.52-1.18 1.162-1.18z"/>
       <path d="M23.02 14.658c0-3.408-3.347-6.17-7.477-6.17-4.13 0-7.477 2.762-7.477 6.17s3.347 6.17 7.477 6.17c.86 0 1.69-.125 2.468-.354a.73.73 0 0 1 .606.083l1.607.94a.275.275 0 0 0 .14.046.25.25 0 0 0 .245-.25c0-.06-.024-.12-.04-.178l-.33-1.25a.502.502 0 0 1 .178-.557C22.12 18.39 23.02 16.618 23.02 14.658z"/>
     </svg>
   </button>
-  <button id="copy-link" class="share-btn" title="复制链接" data-url={url}>
+  <button id="copy-link" class="share-btn" data-share="copy" title="复制链接" data-url={url}>
     <svg id="copy-icon" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/>
       <path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>
+    </svg>
+  </button>
+  <button id="native-share" class="share-btn" data-share="native" title="分享" data-url={url} hidden>
+    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 16V4"/>
+      <path d="m8 8 4-4 4 4"/>
+      <path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>
     </svg>
   </button>
 </div>
@@ -58,12 +71,48 @@ const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(t
     width: 14px;
     height: 14px;
   }
+
+  /* Compact variant — lighter footprint for mono/refined layouts (App detail). */
+  .share.compact { gap: 7px; }
+  .share.compact .share-btn { width: 27px; height: 27px; }
+  .share.compact .share-btn svg { width: 12px; height: 12px; }
 </style>
 
 <script>
+  const shareEl = document.querySelector('.share') as HTMLElement | null;
+  const sharePath = shareEl?.dataset.sharePath || location.pathname;
+  const shareTitle = shareEl?.dataset.shareTitle || document.title;
+  const shareUrl = shareEl?.dataset.shareUrl || location.href;
+
+  // Fire-and-forget share-click beacon (mirrors the pageview beacon source).
+  function trackShare(target: string) {
+    const apiUrl = document.body.dataset.apiUrl;
+    if (!apiUrl) return;
+    fetch(`${apiUrl}/api/analytics/share`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: sharePath, target }),
+      keepalive: true,
+    }).catch(() => {});
+  }
+
+  // X opens in a new tab via the <a> href; just record the click.
+  document.querySelector('.share [data-share="x"]')?.addEventListener('click', () => trackShare('x'));
+
+  // System share sheet — only available on supporting browsers (mostly mobile).
+  const nativeBtn = document.getElementById('native-share') as HTMLButtonElement | null;
+  if (nativeBtn && typeof navigator.share === 'function') {
+    nativeBtn.hidden = false;
+    nativeBtn.addEventListener('click', () => {
+      trackShare('native');
+      navigator.share({ title: shareTitle, url: shareUrl }).catch(() => {});
+    });
+  }
+
   document.getElementById('copy-link')?.addEventListener('click', async (e) => {
     const btn = e.currentTarget as HTMLButtonElement;
     const url = btn.dataset.url || window.location.href;
+    trackShare('copy');
 
     try {
       await navigator.clipboard.writeText(url);
@@ -103,6 +152,7 @@ const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(t
   document.getElementById('wechat-share')?.addEventListener('click', (e) => {
     const btn = e.currentTarget as HTMLButtonElement;
     const url = btn.dataset.url || window.location.href;
+    trackShare('wechat');
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
 
     const overlay = document.createElement('div');

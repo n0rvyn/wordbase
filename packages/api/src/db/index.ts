@@ -114,6 +114,7 @@ export function initializeDatabase() {
       referrer TEXT,
       user_agent TEXT,
       ip_hash TEXT,
+      country TEXT,
       created_at INTEGER NOT NULL
     );
 
@@ -213,6 +214,17 @@ export function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS ix_podcast_events_episode ON podcast_events(event_type, episode_id, created_at);
     CREATE INDEX IF NOT EXISTS ix_podcast_events_podcast ON podcast_events(event_type, podcast_id, created_at);
 
+    CREATE TABLE IF NOT EXISTS share_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      path TEXT NOT NULL,
+      target TEXT NOT NULL,
+      ip_hash TEXT,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS ix_share_events_created ON share_events(created_at);
+    CREATE INDEX IF NOT EXISTS ix_share_events_target ON share_events(target, created_at);
+
     CREATE TABLE IF NOT EXISTS episode_feedback (
       id TEXT PRIMARY KEY,
       episode_id TEXT NOT NULL REFERENCES podcast_episodes(id) ON DELETE CASCADE,
@@ -279,6 +291,14 @@ export function initializeDatabase() {
   addCol('whats_new', 'whats_new TEXT');
   addCol('featured', 'featured INTEGER NOT NULL DEFAULT 0');
   addCol('last_synced_at', 'last_synced_at INTEGER');
+
+  // Idempotent ALTER for page_views.country (existing prod tables predate geo).
+  const pageViewCols = new Set(
+    (sqlite.prepare("PRAGMA table_info(page_views)").all() as { name: string }[]).map(c => c.name)
+  );
+  if (!pageViewCols.has('country')) {
+    sqlite.exec('ALTER TABLE page_views ADD COLUMN country TEXT;');
+  }
 
   // Issue #2: enforce App Store ID uniqueness so concurrent /discover cannot
   // SELECT-miss then both INSERT a duplicate app row. SQLite treats NULLs as

@@ -43,6 +43,18 @@ observabilityRouter.get('/referrers', async (c) => {
   return c.json(await analyticsService.getReferrers(limit));
 });
 
+// GET /shares?days=30 — share-button clicks grouped by channel and by page
+observabilityRouter.get('/shares', async (c) => {
+  const days = Math.max(1, Math.min(365, Number(c.req.query('days')) || 30));
+  return c.json(await analyticsService.getShareStats(days));
+});
+
+// GET /regions?days=30 — visitor counts by country (ISO alpha-2)
+observabilityRouter.get('/regions', async (c) => {
+  const days = Math.max(1, Math.min(365, Number(c.req.query('days')) || 30));
+  return c.json(await analyticsService.getRegions(days));
+});
+
 // GET /devices — bot / mobile / desktop / unknown breakdown
 observabilityRouter.get('/devices', async (c) => {
   return c.json(await analyticsService.getDeviceBreakdown());

@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import ShareButtons from '../../components/ShareButtons.astro';
 import { getApps, type App } from '../../lib/api';
 import { formatMonoDate } from '../../lib/home';
 import {
@@ -42,6 +43,9 @@ const paras = descriptionParagraphs(app.description);
 
 // App Store URL (construct fallback from appStoreId)
 const appStoreHref = app.appStoreUrl ?? (app.appStoreId ? `https://apps.apple.com/app/id${app.appStoreId}` : '#');
+
+// Canonical page URL for sharing
+const shareUrl = new URL(`/apps/${app.slug}`, Astro.site).href;
 ---
 
 <BaseLayout title={`${app.name} — norvyn`} description={app.tagline ?? ''}>
@@ -206,6 +210,10 @@ const appStoreHref = app.appStoreUrl ?? (app.appStoreId ? `https://apps.apple.co
               <span>最近更新 {formatMonoDate(app.currentVersionReleaseDate)}</span>
             )}
             <span>开发者 norvyn</span>
+          </div>
+          <div class="ad-share">
+            <span class="ad-share-label">分享</span>
+            <ShareButtons title={app.name} url={shareUrl} compact />
           </div>
         </div>
       </div>

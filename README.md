@@ -143,8 +143,10 @@ All endpoints at `/api/*`. Auth via `Authorization: Bearer <api-key>`.
 | `/api/posts/:id/comments` | POST | No | Submit comment (pending) |
 | `/api/comments/:id/approve` | POST | Yes | Approve comment |
 | `/api/comments/:id/spam` | POST | Yes | Mark spam |
-| `/api/analytics/pageview` | POST | No | Record page view |
+| `/api/analytics/pageview` | POST | No | Record page view (auto geo-tags visitor country via GeoLite2) |
+| `/api/analytics/share` | POST | No | Record a share-button click (`{ path, target }`, target ∈ x/wechat/copy/native) |
 | `/api/analytics/overview` | GET | Yes | Traffic overview |
+| `/api/observability/*` | GET | Yes | Admin panel data — `visits` · `trends` · `top-pages` · `referrers` · `shares` · `regions` · `devices` · `requests` · `system` (all `observability:read`) |
 | `/api/settings` | GET/PUT | Yes | Site settings |
 | `/api/build/trigger` | POST | Yes | Trigger Astro rebuild |
 | `/api/build/status` | GET | Yes | Build status |

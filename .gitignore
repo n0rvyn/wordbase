@@ -23,6 +23,11 @@ Thumbs.db
 asc_keys/
 *.p8
 
+# GeoIP databases (auto-downloaded by geolite2-redist into data/geoip) — but
+# keep the committed test fixture
+*.mmdb
+!packages/api/src/__tests__/fixtures/*.mmdb
+
 # Claude
 .claude/dev-workflow-state.yml
 .claude/reviews/

@@ -112,11 +112,18 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
         <span class="note">最新一期。</span>
       </div>
       <div class="ep-list">
-        <article class="ep-item ep-item--feature">
+        <article class="ep-item ep-item--feature" id={`ep-${featuredEp.slug}`}>
           <span class="ep-eyebrow ep-eyebrow--accent">
             {featuredEp.episodeNumber != null ? `EP.${featuredEp.episodeNumber} · 最新一期` : '最新一期'}
           </span>
-          <h3 class="ep-title">{featuredEp.title}</h3>
+          <div class="ep-title-row">
+            <h3 class="ep-title">{featuredEp.title}</h3>
+            <button type="button" class="ep-share" data-ep-slug={featuredEp.slug} title="分享本集" aria-label="分享本集">
+              <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 16V4"/><path d="m8 8 4-4 4 4"/><path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>
+              </svg>
+            </button>
+          </div>
           {epBlurb(featuredEp) && <p class="ep-sum">{epBlurb(featuredEp)}</p>}
           <audio controls preload="none" src={`/api/podcasts/episodes/${encodeURIComponent(featuredEp.slug)}/download`}></audio>
           {featuredEp.transcript && (
@@ -156,9 +163,16 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
       </div>
       <div class="ep-list">
         {archive.map((ep: Episode) => (
-          <article class="ep-item">
+          <article class="ep-item" id={`ep-${ep.slug}`}>
             <span class="ep-eyebrow">{episodeMeta(ep)}</span>
-            <h3 class="ep-title">{ep.title}</h3>
+            <div class="ep-title-row">
+              <h3 class="ep-title">{ep.title}</h3>
+              <button type="button" class="ep-share" data-ep-slug={ep.slug} title="分享本集" aria-label="分享本集">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 16V4"/><path d="m8 8 4-4 4 4"/><path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>
+                </svg>
+              </button>
+            </div>
             {epBlurb(ep) && <p class="ep-sum">{epBlurb(ep)}</p>}
             <audio controls preload="none" src={`/api/podcasts/episodes/${encodeURIComponent(ep.slug)}/download`}></audio>
             {ep.transcript && (
@@ -412,6 +426,53 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
 
   document.querySelectorAll<HTMLElement>('.ep-fb').forEach(wireFeedback);
   document.querySelectorAll<HTMLElement>('.tx').forEach((el) => { void wireTranscript(el); });
+
+  // Per-episode share: links to /podcast#ep-<slug>. Mobile uses the system
+  // share sheet (target=native), desktop copies the anchor link (target=copy).
+  // The episode identity rides in the path (#ep-slug), not the target column.
+  function trackShare(path: string, target: string) {
+    const apiUrl = document.body.dataset.apiUrl;
+    if (!apiUrl) return;
+    fetch(`${apiUrl}/api/analytics/share`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path, target }),
+      keepalive: true,
+    }).catch(() => {});
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('.ep-share').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const slug = btn.dataset.epSlug;
+      if (!slug) return;
+      const path = `/podcast#ep-${slug}`;
+      const url = `${location.origin}${path}`;
+      if (typeof navigator.share === 'function') {
+        trackShare(path, 'native');
+        navigator.share({ url }).catch(() => {});
+        return;
+      }
+      trackShare(path, 'copy');
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch {
+        const input = document.createElement('input');
+        input.value = url;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+      }
+      // Icon-only feedback: swap the share glyph for a checkmark for ~1.3s.
+      const svg = btn.querySelector('svg');
+      if (svg) {
+        const orig = svg.innerHTML;
+        svg.innerHTML = '<path d="M20 6 9 17l-5-5"/>';
+        btn.classList.add('copied');
+        setTimeout(() => { svg.innerHTML = orig; btn.classList.remove('copied'); }, 1300);
+      }
+    });
+  });
 </script>
 
 <style>
@@ -509,6 +570,15 @@ const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary,
     display: inline-flex; align-items: center; gap: 6px;
   }
   .tx-toggle:hover { color: var(--ink); }
+  .ep-title-row {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 14px;
+  }
+  .ep-share {
+    flex-shrink: 0; margin-top: 2px;
+    color: var(--ink-4); background: none; border: none; padding: 2px; cursor: pointer;
+    display: inline-flex; line-height: 0; transition: color 0.2s;
+  }
+  .ep-share:hover, .ep-share.copied { color: var(--accent); }
   .tx-caret { transition: transform .2s var(--ease); font-size: 10px; }
   .tx-toggle[aria-expanded="true"] .tx-caret { transform: rotate(180deg); }
   .tx-panel {

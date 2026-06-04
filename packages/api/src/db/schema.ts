@@ -103,6 +103,7 @@ export const pageViews = sqliteTable('page_views', {
   referrer: text('referrer'),
   userAgent: text('user_agent'),
   ipHash: text('ip_hash'),
+  country: text('country'), // ISO-3166-1 alpha-2, geo-looked-up at ingest; null if no GeoIP DB
   createdAt: integer('created_at').notNull(),
 });
 
@@ -272,6 +273,21 @@ export const podcastEvents = sqliteTable('podcast_events', {
   podcastIdx: index('ix_podcast_events_podcast').on(t.eventType, t.podcastId, t.createdAt),
 }));
 
+// share_events table — one row per share-button click (raw event stream,
+// aggregated at read time like page_views / podcast_events).
+//   target = channel only ('x' | 'wechat' | 'copy' | 'native'); page/episode
+//   context lives in `path` (e.g. '/posts/x' or '/podcast#ep-slug').
+export const shareEvents = sqliteTable('share_events', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  path: text('path').notNull(),
+  target: text('target').notNull(),
+  ipHash: text('ip_hash'),
+  createdAt: integer('created_at').notNull(),
+}, (t) => ({
+  createdIdx: index('ix_share_events_created').on(t.createdAt),
+  targetIdx: index('ix_share_events_target').on(t.target, t.createdAt),
+}));
+
 // Type exports for queries
 export type Post = typeof posts.$inferSelect;
 export type NewPost = typeof posts.$inferInsert;
@@ -294,4 +310,6 @@ export type EpisodeFeedback = typeof episodeFeedback.$inferSelect;
 export type NewEpisodeFeedback = typeof episodeFeedback.$inferInsert;
 export type PodcastEvent = typeof podcastEvents.$inferSelect;
 export type NewPodcastEvent = typeof podcastEvents.$inferInsert;
+export type ShareEvent = typeof shareEvents.$inferSelect;
+export type NewShareEvent = typeof shareEvents.$inferInsert;
 export type NewApp = typeof apps.$inferInsert;

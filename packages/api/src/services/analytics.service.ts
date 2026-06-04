@@ -1,7 +1,13 @@
 import { eq, desc, sql, and, gte } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { pageViews, posts, postTags, tags } from '../db/schema.js';
+import { pageViews, posts, postTags, tags, shareEvents } from '../db/schema.js';
 import { hashIp } from '../lib/hash-ip.js';
+import { lookupCountry } from '../lib/geoip.js';
+
+// Share-button channels we accept; anything else is rejected so the by-target
+// breakdown stays clean (path carries page/episode context, not target).
+export const SHARE_TARGETS = ['x', 'wechat', 'copy', 'native'] as const;
+export type ShareTarget = (typeof SHARE_TARGETS)[number];
 
 export interface RecordPageViewInput {
   path: string;
@@ -22,6 +28,7 @@ export async function recordPageView(input: RecordPageViewInput) {
     referrer: input.referrer ?? null,
     userAgent: input.userAgent ?? null,
     ipHash: input.ipAddress ? hashIp(input.ipAddress) : null,
+    country: lookupCountry(input.ipAddress), // null if no GeoIP DB; raw IP never stored
     createdAt: now,
   }).returning();
   return record;
@@ -30,6 +37,66 @@ export async function recordPageView(input: RecordPageViewInput) {
 export async function getTotalPageViews() {
   const [result] = await db.select({ count: sql<number>`count(*)` }).from(pageViews);
   return result.count;
+}
+
+export interface RecordShareInput {
+  path: string;
+  target: string;
+  ipAddress?: string;
+}
+
+// Records one share-button click. Click-time, no dedup (raw event stream) —
+// share-completion callbacks are unreliable, so the click is the signal.
+// Invalid targets are rejected (returns null) to keep the channel column clean.
+export async function recordShare(input: RecordShareInput) {
+  if (!SHARE_TARGETS.includes(input.target as ShareTarget)) return null;
+  const now = Math.floor(Date.now() / 1000);
+  const [record] = await db.insert(shareEvents).values({
+    path: input.path,
+    target: input.target,
+    ipHash: input.ipAddress ? hashIp(input.ipAddress) : null,
+    createdAt: now,
+  }).returning();
+  return record;
+}
+
+// Read-time aggregation: shares grouped by channel and by page, within `days`.
+export async function getShareStats(days: number = 30) {
+  const since = Math.floor(Date.now() / 1000) - days * 86400;
+  const where = gte(shareEvents.createdAt, since);
+
+  const byTarget = await db.select({
+    target: shareEvents.target,
+    count: sql<number>`count(*)`,
+  }).from(shareEvents).where(where)
+    .groupBy(shareEvents.target)
+    .orderBy(desc(sql`count(*)`));
+
+  const byPage = await db.select({
+    path: shareEvents.path,
+    count: sql<number>`count(*)`,
+  }).from(shareEvents).where(where)
+    .groupBy(shareEvents.path)
+    .orderBy(desc(sql`count(*)`))
+    .limit(10);
+
+  return { days, byTarget, byPage };
+}
+
+// Visitor counts by country (ISO alpha-2) within `days`. Rows with no country
+// (geo lookup unavailable at ingest, e.g. before the GeoIP DB was installed) are
+// excluded — they can't be placed on the map.
+export async function getRegions(days: number = 30) {
+  const since = Math.floor(Date.now() / 1000) - days * 86400;
+  const rows = await db.select({
+    country: pageViews.country,
+    count: sql<number>`count(*)`,
+  }).from(pageViews)
+    .where(and(gte(pageViews.createdAt, since), sql`${pageViews.country} is not null`))
+    .groupBy(pageViews.country)
+    .orderBy(desc(sql`count(*)`));
+
+  return rows.map(r => ({ country: r.country as string, count: r.count }));
 }
 
 export async function getTodayPageViews() {
