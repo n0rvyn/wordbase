@@ -1,0 +1,18 @@
+# AI / answer-engine crawlers — explicitly allowed (training + retrieval).
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: Claude-User
+User-agent: PerplexityBot
+User-agent: Google-Extended
+User-agent: CCBot
+Allow: /
+
+# Everyone — keep crawlers out of the API and admin surfaces.
+User-agent: *
+Disallow: /api/
+Disallow: /admin/
+Allow: /
+
+Sitemap: https://norvyn.com/sitemap.xml
