@@ -9,6 +9,7 @@ import {
 import { selectFeaturedEpisode, decodeEntities } from '../lib/home';
 import { selectShow, sortEpisodes, episodeMeta } from '../lib/podcast';
 import { FEEDBACK_CHIPS } from '../lib/feedback';
+import { buildPodcastLd } from '../lib/jsonld.js';
 
 const apiUrl = (import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4100').replace(/\/$/, '');
 
@@ -32,12 +33,17 @@ const showCover = podcast?.coverImage || featuredEp?.coverImage || null;
 // lives in showNotes / content:encoded, far too long for the list). Returns
 // '' when absent so the markup can skip rendering an empty line.
 const epBlurb = (ep: Episode): string => (ep.summary ? stripMarkdown(ep.summary, 180) : '');
+
+const origin = Astro.site!.href.replace(/\/$/, '');
+const jsonLd = podcast ? [buildPodcastLd(podcast, episodes, origin)] : [];
 ---
 
 <BaseLayout
   title={podcast ? showTitle : '播客'}
   description={podcast?.description ? stripMarkdown(podcast.description, 120) : '一档慢节奏的播客。'}
   ogImage="/og-podcast.png"
+  jsonLd={jsonLd}
+  feeds={feedHref ? [{ title: `${showTitle} · Podcast`, href: feedHref }] : []}
 >
 
 <!-- 00 HERO — show header (cover + identity) -->

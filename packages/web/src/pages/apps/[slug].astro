@@ -10,6 +10,7 @@ import {
   descriptionParagraphs,
   formatYear,
 } from '../../lib/app';
+import { buildSoftwareApplicationLd, buildBreadcrumbLd } from '../../lib/jsonld.js';
 import '../../styles/app-detail.css';
 
 export async function getStaticPaths() {
@@ -46,9 +47,17 @@ const appStoreHref = app.appStoreUrl ?? (app.appStoreId ? `https://apps.apple.co
 
 // Canonical page URL for sharing
 const shareUrl = new URL(`/apps/${app.slug}`, Astro.site).href;
+const origin = Astro.site!.href.replace(/\/$/, '');
+const jsonLd = [
+  buildSoftwareApplicationLd(app, origin),
+  buildBreadcrumbLd([
+    { name: 'Apps', url: `${origin}/apps` },
+    { name: app.name, url: `${origin}/apps/${app.slug}` },
+  ]),
+];
 ---
 
-<BaseLayout title={`${app.name} — norvyn`} description={app.tagline ?? ''}>
+<BaseLayout title={`${app.name} — norvyn`} description={app.tagline ?? ''} jsonLd={jsonLd}>
   <div id="top" style={`--app:${appC};--app-2:${app2}`}>
 
     <!-- 00 HERO -->

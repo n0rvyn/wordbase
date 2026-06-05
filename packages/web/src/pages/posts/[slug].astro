@@ -2,9 +2,10 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ShareButtons from '../../components/ShareButtons.astro';
 import CommentSection from '../../components/CommentSection.astro';
-import { getPosts, getCategories, formatDate, estimateReadTime, stripMarkdown, type Post } from '../../lib/api';
+import { getPosts, getCategories, formatDate, estimateReadTime, stripMarkdown, type Post, getSiteIdentity } from '../../lib/api';
 import { formatMonoDate } from '../../lib/home';
 import { injectHeadingIds, selectAdjacent } from '../../lib/article';
+import { buildBlogPostingLd, buildBreadcrumbLd } from '../../lib/jsonld.js';
 import { marked } from 'marked';
 import '../../styles/prose.css';
 
@@ -45,9 +46,25 @@ const readTime = estimateReadTime(post.content);
 const { html, toc } = injectHeadingIds(marked.parse(post.content) as string);
 const { newer, older } = selectAdjacent(orderedSlugs, post.slug);
 const firstCat = postFirstCat[post.id] || '';
+const origin = Astro.site!.href.replace(/\/$/, '');
+const id = await getSiteIdentity();
+const jsonLd = [
+  buildBlogPostingLd(post, origin, id.author),
+  buildBreadcrumbLd([
+    { name: 'Writing', url: `${origin}/writing` },
+    { name: post.title, url: `${origin}/posts/${post.slug}` },
+  ]),
+];
+const article = {
+  publishedTime: post.publishedAt ?? undefined,
+  modifiedTime: post.updatedAt,
+  author: id.author,
+  section: firstCat || undefined,
+  tags: undefined,
+};
 ---
 
-<BaseLayout title={post.title} description={description} ogImage={post.coverImage || undefined}>
+<BaseLayout title={post.title} description={description} ogImage={post.coverImage || undefined} ogType="article" article={article} jsonLd={jsonLd}>
   <!-- Progress bar (owned by this page, fixed at top) -->
   <div class="progress" id="progress"></div>
 
@@ -91,7 +108,7 @@ const firstCat = postFirstCat[post.id] || '';
         )}
 
         <div class="rail-div"></div>
-        <ShareButtons title={post.title} url={`https://blog.norvyn.com/posts/${post.slug}`} />
+        <ShareButtons title={post.title} url={new URL(`/posts/${post.slug}`, Astro.site).href} />
       </aside>
 
       <!-- Article body -->

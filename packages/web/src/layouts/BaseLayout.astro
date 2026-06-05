@@ -1,19 +1,31 @@
 ---
 import '../styles/tokens.css';
+import { buildWebSiteLd, buildOrganizationLd } from '../lib/jsonld.js';
+import { getSiteIdentity } from '../lib/api';
 
 interface Props {
   title: string;
   description?: string;
   ogImage?: string;
+  ogType?: 'website' | 'article';
+  article?: { publishedTime?: number; modifiedTime?: number; author?: string; section?: string; tags?: string[] };
+  jsonLd?: object[];
+  // Extra <link rel="alternate"> feeds beyond the site blog feed (e.g. the
+  // podcast page injects its show feed, whose slug only the page knows).
+  feeds?: { title: string; href: string }[];
 }
 
-const { title, description = 'A personal blog powered by Wordbase', ogImage } = Astro.props;
-const siteTitle = 'norvyn';
+// 保留现有默认串逐字不变，避免回归既有页面 meta。
+const { title, description = 'A personal blog powered by Wordbase', ogImage, ogType = 'website', article, jsonLd = [], feeds = [] } = Astro.props;
+const id = await getSiteIdentity();
+const siteTitle = id.name;
 const fullTitle = title === siteTitle ? title : `${title} — ${siteTitle}`;
 const apiUrl = (import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4100').replace(/\/$/, '');
 const currentPath = Astro.url.pathname;
 const ogImageUrl = new URL(ogImage ?? '/og-image.png', Astro.site).href;
 const canonicalUrl = new URL(currentPath, Astro.site).href;
+const ldOrigin = Astro.site!.href.replace(/\/$/, '');
+const isoMeta = (ts: number | undefined) => (ts ? new Date(ts * 1000).toISOString() : undefined);
 
 const navItems = [
   { href: '/apps',     label: 'Apps',    isActive: currentPath.startsWith('/apps') },
@@ -28,16 +40,34 @@ const navItems = [
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalUrl} />
-    <meta property="og:type" content="website" />
+    <link rel="alternate" type="application/rss+xml" title={`${siteTitle} — 文章`} href="/rss.xml" />
+    {feeds.map((f) => (
+      <link rel="alternate" type="application/rss+xml" title={f.title} href={f.href} />
+    ))}
+    <meta property="og:type" content={ogType} />
     <meta property="og:site_name" content={siteTitle} />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImageUrl} />
+    {ogType === 'article' && article && (
+      <>
+        {isoMeta(article.publishedTime) && <meta property="article:published_time" content={isoMeta(article.publishedTime)} />}
+        {isoMeta(article.modifiedTime) && <meta property="article:modified_time" content={isoMeta(article.modifiedTime)} />}
+        {article.author && <meta property="article:author" content={article.author} />}
+        {article.section && <meta property="article:section" content={article.section} />}
+        {article.tags?.map((t) => (
+          <meta property="article:tag" content={t} />
+        ))}
+      </>
+    )}
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={fullTitle} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageUrl} />
+    {[buildWebSiteLd(ldOrigin, id), buildOrganizationLd(ldOrigin, id), ...jsonLd].map((obj) => (
+      <script type="application/ld+json" set:html={JSON.stringify(obj).replaceAll('<', String.fromCharCode(92)+'u003c')} />
+    ))}
     <title>{fullTitle}</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -69,7 +99,7 @@ const navItems = [
     <nav class="nav" id="nav">
       <div class="wrap nav-in">
         <a class="brand" href="/">
-          <span>norvyn</span><span class="dot"></span>
+          <span>{siteTitle}</span><span class="dot"></span>
         </a>
         <div class="nav-r">
           {navItems.map(item => (
@@ -90,7 +120,7 @@ const navItems = [
     <footer>
       <div class="wrap foot">
         <div class="foot-l">
-          <div class="brand"><span>norvyn</span><span class="dot"></span></div>
+          <div class="brand"><span>{siteTitle}</span><span class="dot"></span></div>
           <p>独立开发者，住在一座有海的城市。做 App、写字、录播客，慢慢来。</p>
         </div>
         <div class="foot-cols">
@@ -109,12 +139,12 @@ const navItems = [
           </div>
           <div class="foot-col">
             <h4>Elsewhere</h4>
-            <a href="mailto:norvyn@norvyn.com">Email</a>
-            <a href="https://github.com/n0rvyn" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <a href={`mailto:${id.email}`}>Email</a>
+            <a href={id.github} target="_blank" rel="noopener noreferrer">GitHub</a>
           </div>
         </div>
         <div class="foot-bot">
-          <span>© {new Date().getFullYear()} norvyn</span>
+          <span>© {new Date().getFullYear()} {siteTitle}</span>
           <span>Built with Wordbase</span>
         </div>
       </div>
