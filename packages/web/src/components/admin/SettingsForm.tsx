@@ -5,6 +5,7 @@ const SETTINGS_FIELDS = [
   { key: 'site.title', label: 'Site Title', type: 'text' },
   { key: 'site.description', label: 'Site Description', type: 'textarea' },
   { key: 'site.author', label: 'Author', type: 'text' },
+  { key: 'site.email', label: 'Site Email', type: 'text' },
   { key: 'site.url', label: 'Site URL', type: 'text' },
   { key: 'site.posts_per_page', label: 'Posts per Page', type: 'text' },
   { key: 'comments.moderation', label: 'Comment Moderation', type: 'select', options: ['manual', 'auto-approve'] },
@@ -51,7 +52,7 @@ export default function SettingsForm() {
   if (loading) return <p class="text-ink-3">Loading...</p>;
 
   return (
-    <div class="max-w-2xl">
+    <div class="w-full">
       <div class="bg-surface border rounded-lg p-6 space-y-4">
         {SETTINGS_FIELDS.map(field => (
           <div>

@@ -323,3 +323,22 @@ export function estimateReadTime(content: string): number {
   const cjkChars = (content.match(/[\u4e00-\u9fff]/g) || []).length;
   return Math.max(1, Math.ceil((words + cjkChars) / 300));
 }
+
+// ---- Site identity (build-time, shared by BaseLayout + builders) ----
+
+export interface SiteIdentity {
+  name: string;
+  description: string;
+  author: string;
+  email: string;
+  github: string;
+}
+
+// Memoize the PROMISE, not the resolved value \u2014 under concurrent page renders
+// multiple callers would otherwise all see null and each fire a fetch. A
+// single in-flight promise is shared for the entire build.
+let _siteIdentity: Promise<SiteIdentity> | null = null;
+export function getSiteIdentity(): Promise<SiteIdentity> {
+  if (!_siteIdentity) _siteIdentity = fetchApi<SiteIdentity>('/api/settings/site');
+  return _siteIdentity;
+}

@@ -1,0 +1,28 @@
+/* Admin form controls — theme-aware bg/text so they're legible in dark mode.
+ *
+ * Pre-existing bug: admin inputs/selects/textareas used a bare `border rounded`
+ * (no bg/text token), so they fell back to the browser's white UA default — a
+ * white box with the dark theme's light --ink text = invisible in dark mode.
+ *
+ * This file is imported ONLY by the two admin entry points (AdminLayout.astro
+ * for authed pages, login.astro for the standalone login), so it never ships on
+ * the public site (BaseLayout does not import it) and cannot touch the comment
+ * form's .cs-input. Type-scoped so checkbox/file/button controls keep UA styling.
+ */
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="url"],
+input[type="search"],
+input[type="number"],
+textarea,
+select {
+  background-color: var(--surface-2);
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--ink-3);
+}

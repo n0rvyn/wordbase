@@ -3,6 +3,7 @@ import { authMiddleware, requireScope } from '../middleware/index.js';
 import * as analyticsService from '../services/analytics.service.js';
 import * as observabilityService from '../services/observability.service.js';
 import * as podcastAnalytics from '../services/podcast-analytics.service.js';
+import * as seoHealthService from '../services/seo-health.service.js';
 import type { AppEnv } from '../types.js';
 
 // All observability endpoints are auth-protected — they power the admin panel,
@@ -75,6 +76,9 @@ observabilityRouter.get('/requests', async (c) => {
 observabilityRouter.get('/system', async (c) => {
   return c.json(observabilityService.getSystemStatus());
 });
+
+// GET /seo-health — read-only SEO artifact + coverage snapshot (sitemap/robots/rss/llms + canonical host + post excerpt/cover coverage + derived issues)
+observabilityRouter.get('/seo-health', (c) => c.json(seoHealthService.getSeoHealth()));
 
 // ---- Podcast consumption analytics (downloads + RSS feed polls) ----
 

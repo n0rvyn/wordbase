@@ -50,6 +50,16 @@ interface PodcastSummary {
 }
 interface PodcastTrendPoint { period: string; downloads: number; feedPolls: number; }
 interface EpisodeDownloadRow { id: string; title: string; slug: string; episodeNumber: number | null; status: string; downloads: number; trend: number[]; }
+interface SeoHealth {
+  artifacts: {
+    sitemap: { exists: boolean; urlCount: number; canonicalHost: string | null };
+    robots: { exists: boolean };
+    blogFeed: { exists: boolean };
+    llmsTxt: { exists: boolean };
+  };
+  coverage: { postsTotal: number; postsWithAuthoredExcerpt: number; postsWithCustomCover: number };
+  issues: string[];
+}
 
 // daily trends span 30 days, weekly 12 weeks, monthly 12 months — keep the
 // summary window aligned with the chart so the headline numbers match the curve.
@@ -98,6 +108,7 @@ export default function ObservabilityPanel() {
   const [podTrends, setPodTrends] = useState<PodcastTrendPoint[]>([]);
   const [episodeTable, setEpisodeTable] = useState<EpisodeDownloadRow[]>([]);
   const [podClients, setPodClients] = useState<DeviceRow[]>([]);
+  const [seoHealth, setSeoHealth] = useState<SeoHealth | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -107,7 +118,7 @@ export default function ObservabilityPanel() {
     setLoading(true);
     setError('');
     try {
-      const [sum, tr, tp, ref, shr, reg, dev, req, sys, pSum, pTr, pEps, pCli] = await Promise.all([
+      const [sum, tr, tp, ref, shr, reg, dev, req, sys, pSum, pTr, pEps, pCli, seo] = await Promise.all([
         adminFetch<VisitorSummary>(`/api/observability/visits?days=${PERIOD_DAYS[p]}`),
         adminFetch<TrendPoint[]>(`/api/observability/trends?period=${p}`),
         adminFetch<TopPage[]>('/api/observability/top-pages?limit=10'),
@@ -121,9 +132,11 @@ export default function ObservabilityPanel() {
         adminFetch<PodcastTrendPoint[]>(`/api/observability/podcast/trends?period=${p}`),
         adminFetch<EpisodeDownloadRow[]>('/api/observability/podcast/episodes'),
         adminFetch<DeviceRow[]>('/api/observability/podcast/clients?limit=10'),
+        adminFetch<SeoHealth>('/api/observability/seo-health'),
       ]);
       setSummary(sum); setTrends(tr); setTopPages(tp); setReferrers(ref); setShareStats(shr); setRegions(reg); setDevices(dev); setRequests(req); setSystem(sys);
       setPodSummary(pSum); setPodTrends(pTr); setEpisodeTable(pEps); setPodClients(pCli);
+      setSeoHealth(seo);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -268,6 +281,9 @@ export default function ObservabilityPanel() {
             <p class="text-sm text-ink-3 mt-0.5">Process, database, and content-pipeline status · read-only</p>
           </div>
           <SystemSection data={system} />
+
+          {/* ---- SEO health (read-only) ---- */}
+          <SeoHealthSection data={seoHealth} />
         </>
       )}
     </div>
@@ -342,6 +358,51 @@ function SystemSection({ data }: { data: SystemStatus | null }) {
           )}
         </div>
       </Panel>
+    </div>
+  );
+}
+
+function SeoHealthSection({ data }: { data: SeoHealth | null }) {
+  if (!data) return null;
+  const { artifacts, coverage, issues } = data;
+  const mark = (ok: boolean) => (ok ? '✓' : '✗');
+  return (
+    <div class="mt-10">
+      <div class="mb-6">
+        <h2 class="text-xl font-semibold text-ink tracking-tight">SEO Health</h2>
+        <p class="text-sm text-ink-3 mt-0.5">Static artifacts + canonical host + content enrichment · read-only</p>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <Panel title="Static artifacts">
+          <Row label="Sitemap" value={`${mark(artifacts.sitemap.exists)} ${artifacts.sitemap.exists ? `${artifacts.sitemap.urlCount} urls` : 'missing'}`} />
+          <Row label="Robots.txt" value={`${mark(artifacts.robots.exists)} ${artifacts.robots.exists ? 'present' : 'missing'}`} />
+          <Row label="RSS feed" value={`${mark(artifacts.blogFeed.exists)} ${artifacts.blogFeed.exists ? 'present' : 'missing'}`} />
+          <Row label="llms.txt" value={`${mark(artifacts.llmsTxt.exists)} ${artifacts.llmsTxt.exists ? 'present' : 'missing'}`} />
+        </Panel>
+        <Panel title="Content enrichment">
+          <Row label="Published posts" value={String(coverage.postsTotal)} />
+          <Row label="Hand-authored excerpt" value={`${coverage.postsWithAuthoredExcerpt} / ${coverage.postsTotal}`} />
+          <Row label="Custom cover image" value={`${coverage.postsWithCustomCover} / ${coverage.postsTotal}`} />
+          <Row label="Canonical host" value={artifacts.sitemap.canonicalHost ?? '—'} />
+          <p class="text-xs text-ink-3 pt-1.5">所有页面都已有自动派生的 description 与默认 OG 图；此处统计的是更强的人工撰写增强项，非"是否存在"。</p>
+        </Panel>
+        <div class="lg:col-span-2">
+          <Panel title="Issues">
+            {issues.length === 0 ? (
+              <p class="text-sm text-ink-3 py-1.5">No issues</p>
+            ) : (
+              <ul class="space-y-1.5 py-1.5">
+                {issues.map((msg) => (
+                  <li class="flex items-start gap-2 text-sm text-rose-500">
+                    <span class="shrink-0">⚠</span>
+                    <span class="break-words">{msg}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
+        </div>
+      </div>
     </div>
   );
 }
