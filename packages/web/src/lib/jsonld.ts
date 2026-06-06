@@ -72,7 +72,7 @@ export function buildPodcastLd(show: Podcast, episodes: Episode[], origin: strin
     episode: published.map((ep) => ({
       '@type': 'PodcastEpisode',
       name: ep.title,
-      url: `${url}#ep-${ep.slug}`,
+      url: `${url}/${ep.slug}`,
       ...(ep.summary ? { description: ep.summary } : {}),
       ...(ep.publishedAt ? { datePublished: iso(ep.publishedAt) } : {}),
       ...(ep.episodeNumber != null ? { episodeNumber: ep.episodeNumber } : {}),
@@ -84,6 +84,39 @@ export function buildPodcastLd(show: Podcast, episodes: Episode[], origin: strin
         ...(ep.audioType ? { encodingFormat: ep.audioType } : {}),
       },
     })),
+  };
+}
+
+/**
+ * Standalone PodcastEpisode LD for a single-episode page (/podcast/<slug>).
+ * Distinct from the embedded episodes inside buildPodcastLd's PodcastSeries:
+ * this is the page's own primary entity, with a partOfSeries back-reference.
+ */
+export function buildPodcastEpisodeLd(show: Podcast, ep: Episode, origin: string) {
+  const seriesUrl = `${origin}/podcast`;
+  const url = `${seriesUrl}/${ep.slug}`;
+  const image = ep.coverImage ?? show.coverImage;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'PodcastEpisode',
+    name: ep.title,
+    url,
+    ...(ep.summary ? { description: ep.summary } : {}),
+    ...(ep.publishedAt ? { datePublished: iso(ep.publishedAt) } : {}),
+    ...(ep.episodeNumber != null ? { episodeNumber: ep.episodeNumber } : {}),
+    ...(ep.seasonNumber != null ? { seasonNumber: ep.seasonNumber } : {}),
+    ...(ep.duration != null ? { duration: ep.duration } : {}),
+    ...(image ? { image } : {}),
+    associatedMedia: {
+      '@type': 'MediaObject',
+      contentUrl: ep.audioUrl,
+      ...(ep.audioType ? { encodingFormat: ep.audioType } : {}),
+    },
+    partOfSeries: {
+      '@type': 'PodcastSeries',
+      name: show.title,
+      url: seriesUrl,
+    },
   };
 }
 

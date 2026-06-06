@@ -4,6 +4,7 @@ import {
   buildBlogPostingLd,
   buildSoftwareApplicationLd,
   buildPodcastLd,
+  buildPodcastEpisodeLd,
   buildWebSiteLd,
   buildOrganizationLd,
   buildBreadcrumbLd,
@@ -200,6 +201,40 @@ describe('buildPodcastLd', () => {
     expect(ld.episode).toHaveLength(2);
     expect(ld.episode[0]['@type']).toBe('PodcastEpisode');
     expect(ld.episode[0].name).toBe('EP.1');
+  });
+});
+
+describe('buildPodcastEpisodeLd', () => {
+  it('emits a standalone PodcastEpisode whose url is the per-episode page', () => {
+    const ld = buildPodcastEpisodeLd(makePodcast(), makeEpisode({ slug: 'ep-7' }), SITE);
+    expect(ld['@context']).toBe('https://schema.org');
+    expect(ld['@type']).toBe('PodcastEpisode');
+    expect(ld.url).toBe(`${SITE}/podcast/ep-7`);
+    expect(ld.datePublished).toBe(new Date(1_700_000_000 * 1000).toISOString());
+    expect(ld.associatedMedia.contentUrl).toBe('https://norvyn.com/audio/ep-1.mp3');
+    expect(ld.partOfSeries).toEqual({
+      '@type': 'PodcastSeries',
+      name: '拾余光',
+      url: `${SITE}/podcast`,
+    });
+  });
+
+  it('falls back to the show cover when the episode has no cover', () => {
+    const ld = buildPodcastEpisodeLd(
+      makePodcast({ coverImage: 'https://norvyn.com/show.png' }),
+      makeEpisode({ coverImage: null }),
+      SITE,
+    );
+    expect(ld.image).toBe('https://norvyn.com/show.png');
+  });
+
+  it('prefers the episode cover over the show cover', () => {
+    const ld = buildPodcastEpisodeLd(
+      makePodcast({ coverImage: 'https://norvyn.com/show.png' }),
+      makeEpisode({ coverImage: 'https://norvyn.com/ep.png' }),
+      SITE,
+    );
+    expect(ld.image).toBe('https://norvyn.com/ep.png');
   });
 });
 

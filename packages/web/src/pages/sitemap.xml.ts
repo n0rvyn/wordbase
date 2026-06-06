@@ -1,19 +1,29 @@
 import type { APIRoute } from 'astro';
-import { getPosts, getCategories, getTags, getPages, getApps, type Post, type Category, type Tag, type Page, type App } from '../lib/api';
+import { getPosts, getCategories, getTags, getPages, getApps, getPodcasts, getEpisodes, type Post, type Category, type Tag, type Page, type App, type Episode } from '../lib/api';
+import { selectShow } from '../lib/podcast';
 
 export const GET: APIRoute = async ({ site }) => {
   const origin = (site?.href ?? 'https://norvyn.com/').replace(/\/$/, '');
 
-  const [postsRes, categories, tags, pages, appsRes] = await Promise.all([
+  const [postsRes, categories, tags, pages, appsRes, podcastsRes] = await Promise.all([
     getPosts({ status: 'published', limit: 10000 }),
     getCategories(),
     getTags(),
     getPages(),
     getApps({ status: 'published', limit: 10000 }),
+    getPodcasts({ status: 'published', limit: 10000 }),
   ]);
 
   const posts = postsRes.data;
   const apps = appsRes.data;
+
+  // Single-episode pages exist at /podcast/<slug>; enumerate them so crawlers
+  // index each (the per-episode OG cards live there). Fetch episodes for the
+  // selected show only — mirrors the /podcast page's show selection.
+  const show = selectShow(podcastsRes.data);
+  const episodes: Episode[] = show
+    ? (await getEpisodes(show.slug, { status: 'published', limit: 10000 })).data
+    : [];
 
   const urls: { loc: string; lastmod?: string; changefreq?: string; priority: string }[] = [];
 
@@ -59,8 +69,14 @@ export const GET: APIRoute = async ({ site }) => {
     urls.push({ loc: `${origin}/apps/${app.slug}`, lastmod, changefreq: 'monthly', priority: '0.6' });
   });
 
-  // Podcast index (no single-episode route exists at packages/web/src/pages/podcast/ — verified)
+  // Podcast index + each single-episode page (/podcast/<slug>)
   urls.push({ loc: `${origin}/podcast`, changefreq: 'weekly', priority: '0.6' });
+  episodes.forEach((ep: Episode) => {
+    const lastmod = ep.updatedAt
+      ? new Date(ep.updatedAt * 1000).toISOString().split('T')[0]
+      : undefined;
+    urls.push({ loc: `${origin}/podcast/${ep.slug}`, lastmod, changefreq: 'monthly', priority: '0.6' });
+  });
 
   // Writing index
   urls.push({ loc: `${origin}/writing`, changefreq: 'weekly', priority: '0.6' });

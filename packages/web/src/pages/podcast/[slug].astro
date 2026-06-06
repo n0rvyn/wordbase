@@ -1,0 +1,271 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ShareButtons from '../../components/ShareButtons.astro';
+import {
+  getPodcasts,
+  getEpisodes,
+  stripMarkdown,
+  type Podcast,
+  type Episode,
+} from '../../lib/api';
+import { decodeEntities } from '../../lib/home';
+import { selectShow, episodeMeta } from '../../lib/podcast';
+import { FEEDBACK_CHIPS } from '../../lib/feedback';
+import { buildPodcastEpisodeLd, buildBreadcrumbLd } from '../../lib/jsonld.js';
+import { marked } from 'marked';
+import '../../styles/prose.css';
+
+export async function getStaticPaths() {
+  const { data: podcasts } = await getPodcasts({ status: 'published' });
+  const show = selectShow(podcasts);
+  if (!show) return [];
+  const { data: episodes } = await getEpisodes(show.slug, { status: 'published', limit: 10000 });
+  return episodes.map((ep: Episode) => ({
+    params: { slug: ep.slug },
+    props: { show, ep },
+  }));
+}
+
+const { show, ep } = Astro.props as { show: Podcast; ep: Episode };
+
+const apiUrl = (import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4100').replace(/\/$/, '');
+const origin = Astro.site!.href.replace(/\/$/, '');
+
+const showTitle = decodeEntities(show.title);
+const cover = ep.coverImage || show.coverImage || null;
+
+// Per-episode share card: episode summary first, fall back to the show blurb.
+const description = ep.summary
+  ? stripMarkdown(ep.summary, 160)
+  : show.description
+    ? stripMarkdown(show.description, 160)
+    : '一档慢节奏的播客。';
+const ogImage = ep.coverImage || show.coverImage || '/og-podcast.png';
+const shareUrl = `${origin}/podcast/${ep.slug}`;
+
+const showNotesHtml = ep.showNotes ? (marked.parse(ep.showNotes) as string) : '';
+
+const jsonLd = [
+  buildPodcastEpisodeLd(show, ep, origin),
+  buildBreadcrumbLd([
+    { name: showTitle, url: `${origin}/podcast` },
+    { name: ep.title, url: shareUrl },
+  ]),
+];
+---
+
+<BaseLayout
+  title={ep.title}
+  description={description}
+  ogImage={ogImage}
+  ogType="article"
+  article={{ publishedTime: ep.publishedAt ?? undefined }}
+  jsonLd={jsonLd}
+>
+
+<article class="sec wrap ep-page">
+  <a class="back" href="/podcast">← {showTitle}</a>
+
+  <header class="ep-head">
+    {cover && (
+      <div class="ep-cover">
+        <img src={cover} alt={ep.title} width="120" height="120" loading="eager" />
+      </div>
+    )}
+    <div class="ep-id">
+      <span class="ep-eyebrow ep-eyebrow--accent">{episodeMeta(ep)}</span>
+      <h1 class="ep-h1">{ep.title}</h1>
+    </div>
+  </header>
+
+  <!-- Media block. MUST stay `.ep-item` so wireTranscript can reach <audio> via
+       closest('.ep-item'); MUST keep <audio preload="none"> (download counting). -->
+  <div class="ep-item">
+    <audio controls preload="none" src={`/api/podcasts/episodes/${encodeURIComponent(ep.slug)}/download`}></audio>
+
+    {ep.summary && <p class="ep-sum">{stripMarkdown(ep.summary, ep.summary.length)}</p>}
+
+    {ep.transcript && (
+      <div class="tx" data-slug={ep.slug} data-api-url={apiUrl}>
+        <button type="button" class="tx-toggle" aria-expanded="false">逐字稿<span class="tx-caret">▾</span></button>
+        <div class="tx-panel" hidden>
+          <div class="tx-body"></div>
+        </div>
+      </div>
+    )}
+
+    <div class="ep-fb" data-slug={ep.slug} data-api-url={apiUrl}>
+      <div class="ep-fb-chips">
+        {FEEDBACK_CHIPS.map((chip) => (
+          <button type="button" class="ep-fb-chip" data-category={chip.category}>{chip.label}</button>
+        ))}
+        <button type="button" class="ep-fb-say">说一句</button>
+      </div>
+      <input class="ep-fb-note msg-hidden" type="text" maxlength="200" placeholder="一句话（可选）" />
+      <p class="ep-fb-hint msg-hidden">写完，点上面任一个表情发出去</p>
+      <p class="ep-fb-msg msg-hidden"></p>
+      <p class="ep-fb-thanks msg-hidden">已收到 · 谢谢</p>
+    </div>
+  </div>
+
+  {showNotesHtml && (
+    <div class="ep-notes">
+      <h2 class="notes-label">本期笔记</h2>
+      <div class="prose" set:html={showNotesHtml} />
+    </div>
+  )}
+
+  <footer class="ep-foot">
+    <ShareButtons title={ep.title} url={shareUrl} compact />
+  </footer>
+</article>
+
+</BaseLayout>
+
+<script>
+  import { wireFeedback, wireTranscript } from '../../lib/episode-ui';
+
+  document.querySelectorAll<HTMLElement>('.ep-fb').forEach(wireFeedback);
+  document.querySelectorAll<HTMLElement>('.tx').forEach((el) => { void wireTranscript(el); });
+</script>
+
+<style>
+  /* ── Page frame ───────────────────────────────────────────────────────────── */
+  .sec { padding: clamp(44px, 6vw, 84px) 0; }
+  .ep-page { max-width: 720px; }
+
+  .back {
+    display: inline-block; margin-bottom: clamp(24px, 4vw, 40px);
+    font-family: var(--font-mono); font-size: 13px;
+    letter-spacing: .04em; color: var(--ink-3); text-decoration: none;
+    transition: color .2s;
+  }
+  .back:hover { color: var(--accent); }
+
+  /* ── Episode header (cover + identity) ────────────────────────────────────── */
+  .ep-head {
+    display: grid; grid-template-columns: auto 1fr;
+    gap: clamp(16px, 3vw, 24px); align-items: center;
+    margin-bottom: clamp(24px, 4vw, 36px);
+  }
+  .ep-cover {
+    width: clamp(88px, 12vw, 120px); aspect-ratio: 1;
+    border-radius: var(--r-lg); overflow: hidden; flex-shrink: 0;
+    box-shadow: var(--shadow);
+  }
+  .ep-cover img { width: 100%; height: 100%; object-fit: cover; }
+  .ep-id { display: flex; flex-direction: column; gap: 8px; }
+  .ep-eyebrow {
+    font-family: var(--font-mono); font-size: 11.5px;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3);
+  }
+  .ep-eyebrow--accent { color: var(--accent); }
+  .ep-h1 {
+    margin: 0; font-family: var(--font-display); font-weight: 800;
+    font-size: clamp(24px, 3.2vw, 34px); line-height: 1.15; letter-spacing: -.02em;
+  }
+
+  /* ── Media block (mirrors the list page's .ep-item player/transcript/feedback) ── */
+  .ep-item {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  }
+  .ep-sum {
+    font-family: var(--font-read); font-size: 15px; line-height: 1.6;
+    color: var(--ink-2); max-width: 64ch; margin: 0;
+  }
+  audio { width: 100%; max-width: 480px; margin-top: 6px; }
+
+  /* Transcript — container/toggle/panel are build-time (scoped styles apply);
+     .tx-line rows are runtime-injected, so styled via :global below. */
+  .tx { width: 100%; max-width: 480px; margin-top: 10px; }
+  .tx-toggle {
+    font-family: var(--font-ui); font-size: 13px; color: var(--ink-3);
+    background: none; border: none; padding: 4px 0; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .tx-toggle:hover { color: var(--ink); }
+  .tx-caret { transition: transform .2s var(--ease); font-size: 10px; }
+  .tx-toggle[aria-expanded="true"] .tx-caret { transform: rotate(180deg); }
+  .tx-panel {
+    margin-top: 8px; max-height: 320px; overflow-y: auto;
+    border-left: 2px solid var(--line); padding-left: 14px;
+  }
+  :global(.tx-line) {
+    font-family: var(--font-read); font-size: 14.5px; line-height: 1.7;
+    color: var(--ink-3); margin: 0 0 10px; padding: 2px 6px; border-radius: 6px;
+    cursor: pointer; transition: color .2s, background .2s;
+  }
+  :global(.tx-line:hover) { color: var(--ink-2); }
+  :global(.tx-line--h) { font-weight: 600; color: var(--ink-2); margin-top: 14px; }
+  :global(.tx-line.is-active) { color: var(--ink); background: var(--surface-2); }
+  :global(.tx-empty) { font-family: var(--font-read); font-size: 13px; color: var(--ink-3); }
+
+  /* Feedback — ghost chips at rest; note collapses until opted in. */
+  .ep-fb {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+    width: 100%; max-width: 480px; margin-top: 14px;
+  }
+  .ep-fb-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-left: -10px; }
+  .ep-fb-chip {
+    font-family: var(--font-ui); font-size: 13px; font-weight: 500;
+    color: var(--ink-3); background: transparent;
+    border: 1px solid transparent; border-radius: 99px;
+    padding: 4px 10px; cursor: pointer;
+    transition: border-color .18s, color .18s, background .18s;
+  }
+  .ep-fb-chip:hover { color: var(--ink); border-color: var(--line-2); background: var(--surface); }
+  .ep-fb-chip:disabled { opacity: .4; cursor: default; }
+  .ep-fb-say {
+    font-family: var(--font-ui); font-size: 12.5px;
+    color: var(--ink-3); background: none; border: none;
+    padding: 4px 6px; margin-left: 2px; cursor: pointer;
+    text-decoration: underline; text-underline-offset: 2px;
+    text-decoration-color: var(--line-2);
+  }
+  .ep-fb-say:hover { color: var(--ink-2); }
+  .ep-fb-say:disabled { opacity: .4; cursor: default; }
+  .ep-fb-note {
+    font-family: var(--font-ui); font-size: 13px;
+    color: var(--ink); background: var(--surface);
+    border: 1px solid var(--line); border-radius: 8px;
+    padding: 7px 11px; outline: none; width: 100%; box-sizing: border-box;
+    transition: border-color .2s;
+  }
+  .ep-fb-note:focus { border-color: var(--accent); }
+  .ep-fb-hint {
+    font-family: var(--font-ui); font-size: 12px;
+    color: var(--ink-3); margin: 0; margin-top: -2px;
+  }
+  .ep-fb-msg {
+    font-family: var(--font-read); font-size: 13px;
+    color: var(--ink-3); margin: 0;
+  }
+  .ep-fb-thanks {
+    font-family: var(--font-ui); font-size: 13px;
+    color: var(--ink-3); margin: 0;
+    animation: ep-fb-in .25s ease both;
+    transition: opacity .4s ease;
+  }
+  .ep-fb-thanks--out { opacity: 0; }
+  @keyframes ep-fb-in { from { opacity: 0; } to { opacity: 1; } }
+  .msg-hidden { display: none; }
+
+  /* ── Show notes ───────────────────────────────────────────────────────────── */
+  .ep-notes {
+    margin-top: clamp(32px, 5vw, 52px);
+    padding-top: clamp(28px, 4vw, 40px);
+    border-top: 1px solid var(--line);
+  }
+  .notes-label {
+    font-family: var(--font-mono); font-size: 12.5px;
+    letter-spacing: .16em; text-transform: uppercase;
+    color: var(--ink-3); margin: 0 0 18px;
+  }
+
+  /* ── Footer (share) ───────────────────────────────────────────────────────── */
+  .ep-foot {
+    margin-top: clamp(32px, 5vw, 52px);
+    padding-top: clamp(24px, 4vw, 36px);
+    border-top: 1px solid var(--line);
+  }
+</style>
