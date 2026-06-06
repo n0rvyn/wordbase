@@ -1,5 +1,6 @@
 ---
 name: wb-rebuild
+model: haiku
 description: Trigger a WordBase static-site rebuild and report when it finishes. Use when the user wants to republish the site, push content live, or says "rebuild the blog".
 ---
 

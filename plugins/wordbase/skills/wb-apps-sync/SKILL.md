@@ -1,5 +1,6 @@
 ---
 name: wb-apps-sync
+model: haiku
 description: Sync WordBase app entries from App Store Connect and show the result. Use when the user wants to refresh app metadata, pull the latest App Store data, or says "sync my apps".
 ---
 

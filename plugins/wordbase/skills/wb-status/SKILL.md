@@ -1,5 +1,6 @@
 ---
 name: wb-status
+model: haiku
 description: Show the WordBase site's current build status and content statistics. Use when the user asks how the blog is doing, whether the last build succeeded, or for a content overview (post/page/comment counts).
 ---
 

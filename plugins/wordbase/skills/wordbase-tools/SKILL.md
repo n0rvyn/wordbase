@@ -1,5 +1,6 @@
 ---
 name: wordbase-tools
+model: haiku
 description: Reference catalog of the WordBase MCP tools (blog, podcast, apps, pages). Use when the user asks what WordBase tools exist, what the MCP server can do, or which tool to use for a task.
 ---
 

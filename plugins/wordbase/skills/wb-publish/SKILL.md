@@ -1,5 +1,6 @@
 ---
 name: wb-publish
+model: haiku
 description: Publish a WordBase draft blog post. Use when the user wants to publish, go live with, or push out a specific draft. Lists drafts, confirms which one, publishes it, and rebuilds.
 ---
 
