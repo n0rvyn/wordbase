@@ -104,6 +104,7 @@ export const pageViews = sqliteTable('page_views', {
   userAgent: text('user_agent'),
   ipHash: text('ip_hash'),
   country: text('country'), // ISO-3166-1 alpha-2, geo-looked-up at ingest; null if no GeoIP DB
+  visitorId: text('visitor_id'), // client-minted persistent anonymous browser id; null for pre-migration rows
   createdAt: integer('created_at').notNull(),
 });
 

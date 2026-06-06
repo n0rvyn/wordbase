@@ -115,6 +115,7 @@ export function initializeDatabase() {
       user_agent TEXT,
       ip_hash TEXT,
       country TEXT,
+      visitor_id TEXT,
       created_at INTEGER NOT NULL
     );
 
@@ -298,6 +299,9 @@ export function initializeDatabase() {
   );
   if (!pageViewCols.has('country')) {
     sqlite.exec('ALTER TABLE page_views ADD COLUMN country TEXT;');
+  }
+  if (!pageViewCols.has('visitor_id')) {
+    sqlite.exec('ALTER TABLE page_views ADD COLUMN visitor_id TEXT;');
   }
 
   // Issue #2: enforce App Store ID uniqueness so concurrent /discover cannot

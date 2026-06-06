@@ -196,12 +196,28 @@ const navItems = [
     <script>
       const apiUrl = document.body.dataset.apiUrl;
       if (apiUrl) {
+        // Persistent anonymous browser id → real unique-visitor counts. Stored once
+        // in localStorage and reused; never an IP, never PII. If storage/crypto is
+        // blocked (private mode), fall through to an anonymous page view (no visitorId).
+        let vid;
+        try {
+          vid = localStorage.getItem('wb_vid');
+          if (!vid) {
+            vid = (window.crypto && crypto.randomUUID)
+              ? crypto.randomUUID()
+              : 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+            localStorage.setItem('wb_vid', vid);
+          }
+        } catch (_) {
+          vid = undefined;
+        }
         fetch(`${apiUrl}/api/analytics/pageview`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             path: location.pathname,
             referrer: document.referrer || undefined,
+            visitorId: vid || undefined,
           }),
           keepalive: true,
         }).catch(() => {});

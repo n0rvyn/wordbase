@@ -14,6 +14,7 @@ export interface RecordPageViewInput {
   referrer?: string;
   userAgent?: string;
   ipAddress?: string;
+  visitorId?: string | null;
 }
 
 function getTodayStart(): number {
@@ -29,6 +30,7 @@ export async function recordPageView(input: RecordPageViewInput) {
     userAgent: input.userAgent ?? null,
     ipHash: input.ipAddress ? hashIp(input.ipAddress) : null,
     country: lookupCountry(input.ipAddress), // null if no GeoIP DB; raw IP never stored
+    visitorId: input.visitorId ?? null,
     createdAt: now,
   }).returning();
   return record;
@@ -246,22 +248,39 @@ export async function getTrends(period: string = 'daily') {
 // COUNT(DISTINCT) over an indexed integer column is microseconds and zero error.
 const SESSION_WINDOW_SECONDS = 1800; // 30 min — a refresh/re-read inside this folds into one session
 
-// SQL fragment for the per-row session fingerprint. ip_hash may be null
-// (unknown IP); SQLite skips null keys in COUNT(DISTINCT), which is the
+// Visitor identity: prefer the client-minted browser id (visitor_id); fall back to
+// ip_hash for rows recorded before the visitor_id column existed (and for clients with
+// localStorage disabled). The two id spaces are format-disjoint (UUID vs 16-hex), so
+// COALESCE cannot mis-merge a visitor_id with an ip_hash. Declared before sessionKeySql,
+// which composes it. (UV used to count distinct ip_hash directly, but behind the prod
+// proxy every ip_hash is 127.0.0.1's hash → UV collapsed to 1; see
+// docs/06-plans/2026-06-06-real-client-ip-proxy-protocol-deferred.md.)
+const visitorKeySql = sql<string>`coalesce(${pageViews.visitorId}, ${pageViews.ipHash})`;
+
+// Bot user-agent classification (read-side only; shared with getDeviceBreakdown so the
+// predicate has a single definition). FALSE for null UA, so unknown-UA hits stay counted
+// in UV — matching getDeviceBreakdown's null→'unknown' (not 'bot') branch.
+const isBotSql = sql`(${pageViews.userAgent} is not null and (
+  lower(${pageViews.userAgent}) like '%bot%'
+  or lower(${pageViews.userAgent}) like '%spider%'
+  or lower(${pageViews.userAgent}) like '%crawl%'))`;
+
+// SQL fragment for the per-row session fingerprint. The visitor key may be null
+// (unknown IP and no visitor_id); SQLite skips null keys in COUNT(DISTINCT), which is the
 // desired behaviour (an unidentifiable hit is not a countable session).
 //
 // The window divisor is inlined as an integer literal via sql.raw and the
 // quotient is cast to INTEGER: a bound numeric parameter makes SQLite do REAL
 // division (each second a distinct bucket → no dedup), so we force integer
 // floor division to land hits in the same 30-min bucket.
-const sessionKeySql = sql<string>`${pageViews.ipHash} || '|' || ${pageViews.path} || '|' || cast(${pageViews.createdAt} / ${sql.raw(String(SESSION_WINDOW_SECONDS))} as integer)`;
+const sessionKeySql = sql<string>`${visitorKeySql} || '|' || ${pageViews.path} || '|' || cast(${pageViews.createdAt} / ${sql.raw(String(SESSION_WINDOW_SECONDS))} as integer)`;
 
 export async function getVisitorSummary(days: number = 30) {
   const since = Math.floor(Date.now() / 1000) - days * 86400;
   const [row] = await db.select({
     pageViews: sql<number>`count(*)`,
-    uniqueVisitors: sql<number>`count(distinct ${pageViews.ipHash})`,
-    sessions: sql<number>`count(distinct (${sessionKeySql}))`,
+    uniqueVisitors: sql<number>`count(distinct case when not ${isBotSql} then ${visitorKeySql} end)`,
+    sessions: sql<number>`count(distinct case when not ${isBotSql} then (${sessionKeySql}) end)`,
   }).from(pageViews).where(gte(pageViews.createdAt, since));
 
   return {
@@ -295,8 +314,8 @@ export async function getVisitTrends(period: string = 'daily') {
   const results = await db.select({
     period: bucket,
     pageViews: sql<number>`count(*)`,
-    uniqueVisitors: sql<number>`count(distinct ${pageViews.ipHash})`,
-    sessions: sql<number>`count(distinct (${sessionKeySql}))`,
+    uniqueVisitors: sql<number>`count(distinct case when not ${isBotSql} then ${visitorKeySql} end)`,
+    sessions: sql<number>`count(distinct case when not ${isBotSql} then (${sessionKeySql}) end)`,
   }).from(pageViews)
     .groupBy(bucket)
     .orderBy(desc(bucket))
@@ -336,9 +355,7 @@ export async function getReferrers(limit: number = 10) {
 export async function getDeviceBreakdown() {
   const deviceType = sql<string>`case
     when ${pageViews.userAgent} is null then 'unknown'
-    when lower(${pageViews.userAgent}) like '%bot%'
-      or lower(${pageViews.userAgent}) like '%spider%'
-      or lower(${pageViews.userAgent}) like '%crawl%' then 'bot'
+    when ${isBotSql} then 'bot'
     when ${pageViews.userAgent} like '%Mobi%'
       or ${pageViews.userAgent} like '%Android%'
       or ${pageViews.userAgent} like '%iPhone%'

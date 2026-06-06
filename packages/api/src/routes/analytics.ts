@@ -5,6 +5,16 @@ import type { AppEnv } from '../types.js';
 
 export const analyticsRouter = new Hono<AppEnv>();
 
+// Normalize the client-supplied anonymous visitor id from the public, unauthenticated
+// pageview beacon. Attacker-controllable: accept only a non-empty string ≤ 64 chars
+// (a UUID is 36); anything else → undefined so the row falls back to ip_hash. The value
+// is bound through Drizzle's parameterized insert, so it is never interpolated into SQL.
+export function normalizeVisitorId(raw: unknown): string | undefined {
+  if (typeof raw !== 'string') return undefined;
+  const v = raw.trim();
+  return v.length >= 1 && v.length <= 64 ? v : undefined;
+}
+
 // POST /pageview - Record page view (public, no auth)
 analyticsRouter.post('/pageview', async (c) => {
   const body = await c.req.json();
@@ -20,6 +30,7 @@ analyticsRouter.post('/pageview', async (c) => {
     referrer: body.referrer,
     userAgent,
     ipAddress,
+    visitorId: normalizeVisitorId(body.visitorId),
   });
 
   return c.json({ success: true, id: record.id }, 201);
