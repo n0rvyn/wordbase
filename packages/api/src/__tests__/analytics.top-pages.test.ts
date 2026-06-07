@@ -57,6 +57,23 @@ describe('getTopPages — all visited pages', () => {
   it('respects the limit', async () => {
     expect(await getTopPages(2)).toHaveLength(2);
   });
+
+  it('decodes percent-encoded CJK paths: resolves the post title and returns a readable path', async () => {
+    // Slugs are stored decoded; the page-view beacon reports location.pathname,
+    // which percent-encodes non-ASCII — so the stored view path is encoded.
+    await db.delete(pageViews);
+    await db.insert(posts).values({
+      id: 'p2', slug: '什么是dbos？这与我何干？', title: '什么是DBOS？这与我何干？',
+      content: '#', status: 'published', createdAt: now, updatedAt: now,
+    });
+    const encoded = '/posts/' + encodeURIComponent('什么是dbos？这与我何干？');
+    await db.insert(pageViews).values(view(encoded, 7));
+
+    const rows = await getTopPages(10);
+    const row = rows.find(r => r.views === 7)!;
+    expect(row.path).toBe('/posts/什么是dbos？这与我何干？'); // readable, not %E4%BB%80...
+    expect(row.label).toBe('什么是DBOS？这与我何干？');       // resolved to the post title
+  });
 });
 
 describe('getTopPosts — unchanged, post-only (MCP regression guard)', () => {

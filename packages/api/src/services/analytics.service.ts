@@ -74,13 +74,14 @@ export async function getShareStats(days: number = 30) {
     .groupBy(shareEvents.target)
     .orderBy(desc(sql`count(*)`));
 
-  const byPage = await db.select({
+  const byPageRaw = await db.select({
     path: shareEvents.path,
     count: sql<number>`count(*)`,
   }).from(shareEvents).where(where)
     .groupBy(shareEvents.path)
     .orderBy(desc(sql`count(*)`))
     .limit(10);
+  const byPage = byPageRaw.map(r => ({ path: decodePath(r.path), count: r.count }));
 
   return { days, byTarget, byPage };
 }
@@ -173,6 +174,18 @@ const STATIC_PAGE_LABELS: Record<string, string> = {
   '/archives': 'Archives',
 };
 
+// Page-view and share paths are stored exactly as the browser reported them
+// (location.pathname / URL.pathname), so non-ASCII slugs arrive percent-encoded
+// (e.g. /posts/%E4%BB%80...). Decode for slug matching + display; fall back to the
+// raw string if it isn't valid percent-encoding (a stray '%' would otherwise throw).
+function decodePath(p: string): string {
+  try {
+    return decodeURIComponent(p);
+  } catch {
+    return p;
+  }
+}
+
 // Unlike getTopPosts (which the blog_analytics_top_posts MCP tool consumes and
 // must stay post-only), this ranks ALL visited pages for the admin Observability
 // widget: posts resolve to their title, known static pages get a friendly label,
@@ -196,13 +209,14 @@ export async function getTopPages(limit: number = 10) {
   const postsBySlug = new Map(allPosts.map(p => [p.slug, p]));
 
   return results.map(row => {
-    const segments = row.path.split('/').filter(Boolean);
+    const path = decodePath(row.path);
+    const segments = path.split('/').filter(Boolean);
     const slug = segments[segments.length - 1];
     const post = slug ? postsBySlug.get(slug) : undefined;
     const label = post
       ? post.title
-      : (STATIC_PAGE_LABELS[row.path] ?? row.path);
-    return { path: row.path, label, views: row.count };
+      : (STATIC_PAGE_LABELS[path] ?? path);
+    return { path, label, views: row.count };
   });
 }
 

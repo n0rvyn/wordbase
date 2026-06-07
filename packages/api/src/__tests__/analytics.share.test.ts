@@ -48,4 +48,12 @@ describe('getShareStats', () => {
     const { byPage } = await getShareStats(30);
     expect(byPage.map((p) => p.path)).toEqual(['/posts/new']);
   });
+
+  it('decodes percent-encoded CJK paths for display', async () => {
+    const encoded = '/posts/' + encodeURIComponent('什么是dbos？这与我何干？');
+    await recordShare({ path: encoded, target: 'copy' });
+
+    const { byPage } = await getShareStats(30);
+    expect(byPage.map((p) => p.path)).toEqual(['/posts/什么是dbos？这与我何干？']);
+  });
 });
