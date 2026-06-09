@@ -233,8 +233,7 @@ function firstCatName(p: Post): string {
 
   /* ── Featured post ────────────────────────────────────────────────────────── */
   .post-feat {
-    padding-bottom: clamp(30px, 4vw, 46px);
-    border-bottom: 1px solid var(--line);
+    display: block;
   }
   .post-feat .tag {
     font-family: var(--font-mono); font-size: 11.5px;
@@ -248,11 +247,11 @@ function firstCatName(p: Post): string {
   .post-feat h2 {
     font-family: var(--font-display); font-weight: 600;
     font-size: clamp(28px, 3.6vw, 46px); letter-spacing: -.03em;
-    line-height: 1.08; margin: 0 0 16px; max-width: 18ch; text-wrap: balance;
+    line-height: 1.08; margin: 0 0 16px; max-width: 22ch; text-wrap: balance;
   }
   .post-feat p {
     font-family: var(--font-read); font-size: 17px; line-height: 1.75;
-    color: var(--ink-2); max-width: 54ch; margin: 0 0 22px;
+    color: var(--ink-2); max-width: 66ch; margin: 0 0 22px;
   }
   .post-feat .rmeta { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
   .post-feat .rmeta .item-meta { font-size: 11.5px; }
