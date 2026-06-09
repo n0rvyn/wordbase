@@ -45,6 +45,16 @@ const topCats = selectTopCategories(catInputs, 6);
 // ── Featured (newest post) + archive (rest) ──────────────────────────────────
 const featured = posts[0] ?? null;
 const archive = posts.slice(1);
+
+// Featured variant per active filter: 'all' = newest overall; each top category
+// = its newest post. The chip filter swaps which variant is shown.
+const featuredVariants = ([
+  { key: 'all', post: featured },
+  ...topCats.map(c => ({
+    key: c.slug,
+    post: posts.find(p => (postCatSlugs.get(p.id) ?? []).includes(c.slug)) ?? null,
+  })),
+].filter(v => v.post) as { key: string; post: Post }[]);
 const fullYears = selectFullYears(posts, 2);
 const groups = groupByYear(archive);
 
@@ -91,18 +101,27 @@ function firstCatName(p: Post): string {
         <span class="lab">Latest</span>
         <span class="note">最新一篇。</span>
       </div>
-      <a class="post-feat" href={`/posts/${featured.slug}`} style="display:block">
-        <span class="tag">最新 · Featured</span>
-        {featured.publishedAt && <div class="pdate">{formatMonoDate(featured.publishedAt)}</div>}
-        <h2>{featured.title}</h2>
-        <p>{featured.excerpt || stripMarkdown(featured.content, 160)}</p>
-        <div class="rmeta">
-          <span class="item-meta">
-            {[firstCatName(featured), `${estimateReadTime(featured.content)} min`].filter(Boolean).join(' · ')}
-          </span>
-          <span class="read-link">继续阅读 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
-        </div>
-      </a>
+      <div class="feat-stack">
+        {featuredVariants.map(({ key, post }) => (
+          <a
+            class={`post-feat${key === 'all' ? '' : ' hide'}`}
+            data-feat-cat={key}
+            data-feat-id={post.id}
+            href={`/posts/${post.slug}`}
+          >
+            <span class="tag">最新 · Featured</span>
+            {post.publishedAt && <div class="pdate">{formatMonoDate(post.publishedAt)}</div>}
+            <h2>{post.title}</h2>
+            <p>{post.excerpt || stripMarkdown(post.content, 160)}</p>
+            <div class="rmeta">
+              <span class="item-meta">
+                {[firstCatName(post), `${estimateReadTime(post.content)} min`].filter(Boolean).join(' · ')}
+              </span>
+              <span class="read-link">继续阅读 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+            </div>
+          </a>
+        ))}
+      </div>
     </div>
   </section>
 )}
@@ -130,6 +149,7 @@ function firstCatName(p: Post): string {
                 return (
                   <a
                     class={`item post ${density}`}
+                    data-id={p.id}
                     data-cats={slugs.join(' ')}
                     href={`/posts/${p.slug}`}
                   >
@@ -166,15 +186,35 @@ function firstCatName(p: Post): string {
 
 <script>
   // ── Chip filter ──────────────────────────────────────────────────────────────
+  const featBlocks = document.querySelectorAll<HTMLElement>('.post-feat[data-feat-cat]');
+
   document.querySelectorAll<HTMLButtonElement>('.chip-f').forEach(chip => {
     chip.addEventListener('click', () => {
       document.querySelectorAll<HTMLButtonElement>('.chip-f').forEach(c => c.classList.remove('sel'));
       chip.classList.add('sel');
       const cat = chip.dataset.cat ?? 'all';
 
+      // Swap the featured (01) block to the active category's newest post.
+      // Fall back to the 'all' variant if a category has no featured block.
+      let activeFeatId: string | null = null;
+      let matched = false;
+      featBlocks.forEach(fb => {
+        const isMatch = fb.dataset.featCat === cat;
+        if (isMatch) { matched = true; activeFeatId = fb.dataset.featId ?? null; }
+      });
+      featBlocks.forEach(fb => {
+        const show = matched
+          ? fb.dataset.featCat === cat
+          : fb.dataset.featCat === 'all';
+        fb.classList.toggle('hide', !show);
+      });
+      if (!matched) activeFeatId = null;
+
       document.querySelectorAll<HTMLElement>('.item.post[data-cats]').forEach(row => {
         const rowCats = (row.dataset.cats ?? '').split(' ');
-        const hide = cat !== 'all' && !rowCats.includes(cat);
+        const hide =
+          (cat !== 'all' && !rowCats.includes(cat)) ||
+          (activeFeatId !== null && row.dataset.id === activeFeatId);
         row.classList.toggle('hide', hide);
       });
 
