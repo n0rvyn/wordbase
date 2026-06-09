@@ -17,6 +17,8 @@ function makePodcast(partial: Partial<Podcast> & { id: string }): Podcast {
     category: null,
     explicit: 0,
     link: null,
+    appleUrl: null,
+    spotifyUrl: null,
     copyright: null,
     status: 'published',
     sortOrder: null,

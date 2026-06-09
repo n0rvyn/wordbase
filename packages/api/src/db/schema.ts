@@ -157,6 +157,8 @@ export const podcasts = sqliteTable('podcasts', {
   category: text('category'),
   explicit: integer('explicit').notNull().default(0),
   link: text('link'),
+  appleUrl: text('apple_url'),
+  spotifyUrl: text('spotify_url'),
   copyright: text('copyright'),
   status: text('status').notNull().default('draft'),
   sortOrder: integer('sort_order').default(0),

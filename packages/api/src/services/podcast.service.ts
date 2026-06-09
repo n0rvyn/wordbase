@@ -67,6 +67,8 @@ interface CreatePodcastData {
   category?: string;
   explicit?: number;
   link?: string;
+  appleUrl?: string;
+  spotifyUrl?: string;
   copyright?: string;
   status?: string;
   sortOrder?: number;
@@ -93,6 +95,8 @@ export async function createPodcast(data: CreatePodcastData) {
       category: data.category ?? null,
       explicit: data.explicit ?? 0,
       link: data.link ?? null,
+      appleUrl: data.appleUrl ?? null,
+      spotifyUrl: data.spotifyUrl ?? null,
       copyright: data.copyright ?? null,
       status: data.status || 'draft',
       sortOrder: data.sortOrder ?? 0,
@@ -120,6 +124,8 @@ export async function updatePodcast(id: string, data: Partial<CreatePodcastData>
   if (data.category !== undefined) updateValues.category = data.category;
   if (data.explicit !== undefined) updateValues.explicit = data.explicit;
   if (data.link !== undefined) updateValues.link = data.link;
+  if (data.appleUrl !== undefined) updateValues.appleUrl = data.appleUrl;
+  if (data.spotifyUrl !== undefined) updateValues.spotifyUrl = data.spotifyUrl;
   if (data.copyright !== undefined) updateValues.copyright = data.copyright;
   if (data.status !== undefined) updateValues.status = data.status;
   if (data.sortOrder !== undefined) updateValues.sortOrder = data.sortOrder;

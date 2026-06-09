@@ -455,6 +455,8 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
       category: { type: 'string', description: 'iTunes category' },
       explicit: { type: 'number', description: '1 if explicit content, 0 otherwise' },
       coverImage: { type: 'string', description: 'Cover image URL' },
+      appleUrl: { type: 'string', description: 'Apple Podcasts show URL' },
+      spotifyUrl: { type: 'string', description: 'Spotify show URL' },
       slug: { type: 'string', description: 'URL slug (auto-generated if not provided)' },
     },
     async (args: Record<string, unknown>) => {
@@ -468,6 +470,8 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
         category: args.category as string | undefined,
         explicit: args.explicit as number | undefined,
         coverImage: args.coverImage as string | undefined,
+        appleUrl: args.appleUrl as string | undefined,
+        spotifyUrl: args.spotifyUrl as string | undefined,
         slug: args.slug as string | undefined,
       });
       return { content: [{ type: 'text' as const, text: JSON.stringify(show, null, 2) }] };
@@ -659,6 +663,8 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
       language: { type: 'string', description: 'Language code (e.g. zh-CN)' },
       copyright: { type: 'string', description: 'Copyright line' },
       link: { type: 'string', description: 'Show website link' },
+      appleUrl: { type: 'string', description: 'Apple Podcasts show URL' },
+      spotifyUrl: { type: 'string', description: 'Spotify show URL' },
       explicit: { type: 'number', description: '1 if explicit content, 0 otherwise' },
       status: { type: 'string', description: 'Status: draft or published' },
     },
@@ -675,6 +681,8 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
         language: args.language as string | undefined,
         copyright: args.copyright as string | undefined,
         link: args.link as string | undefined,
+        appleUrl: args.appleUrl as string | undefined,
+        spotifyUrl: args.spotifyUrl as string | undefined,
         explicit: args.explicit as number | undefined,
         status: args.status as string | undefined,
       });

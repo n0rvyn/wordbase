@@ -260,6 +260,8 @@ export interface Podcast {
   category: string | null;
   explicit: number;
   link: string | null;
+  appleUrl: string | null;
+  spotifyUrl: string | null;
   copyright: string | null;
   status: string;
   sortOrder: number | null;

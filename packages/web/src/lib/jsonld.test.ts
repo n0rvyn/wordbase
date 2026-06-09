@@ -91,6 +91,8 @@ function makePodcast(overrides: Partial<Podcast> = {}): Podcast {
     category: 'Technology',
     explicit: 0,
     link: null,
+    appleUrl: null,
+    spotifyUrl: null,
     copyright: null,
     status: 'published',
     sortOrder: null,

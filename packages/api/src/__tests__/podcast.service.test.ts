@@ -38,6 +38,23 @@ describe('podcast show service', () => {
     expect(updated?.title).toBe('Updated Title');
   });
 
+  it('createPodcast persists appleUrl + spotifyUrl', async () => {
+    const show = await createPodcast({
+      title: 'Links Show',
+      appleUrl: 'https://podcasts.apple.com/cn/podcast/x/id123',
+      spotifyUrl: 'https://open.spotify.com/show/abc',
+    });
+    expect(show.appleUrl).toBe('https://podcasts.apple.com/cn/podcast/x/id123');
+    expect(show.spotifyUrl).toBe('https://open.spotify.com/show/abc');
+  });
+
+  it('updatePodcast sets appleUrl without clearing spotifyUrl', async () => {
+    const show = await createPodcast({ title: 'Partial', spotifyUrl: 'https://open.spotify.com/show/keep' });
+    const updated = await updatePodcast(show.id, { appleUrl: 'https://podcasts.apple.com/cn/podcast/y/id456' });
+    expect(updated!.appleUrl).toBe('https://podcasts.apple.com/cn/podcast/y/id456');
+    expect(updated!.spotifyUrl).toBe('https://open.spotify.com/show/keep');
+  });
+
   it('publishPodcast sets status to published', async () => {
     const show = await createPodcast({ title: 'To Publish' });
     const published = await publishPodcast(show.id);
