@@ -119,6 +119,12 @@ export function initializeDatabase() {
       created_at INTEGER NOT NULL
     );
 
+    -- Observability read-path indexes. created_at + path are original columns
+    -- (always present), so they index safely here. country is indexed separately
+    -- after its legacy ALTER below, since it may not yet exist on old prod DBs.
+    CREATE INDEX IF NOT EXISTS ix_page_views_created ON page_views(created_at);
+    CREATE INDEX IF NOT EXISTS ix_page_views_path ON page_views(path);
+
     CREATE TABLE IF NOT EXISTS request_metrics (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       method TEXT NOT NULL,
@@ -305,6 +311,11 @@ export function initializeDatabase() {
   if (!pageViewCols.has('visitor_id')) {
     sqlite.exec('ALTER TABLE page_views ADD COLUMN visitor_id TEXT;');
   }
+
+  // country is added by the ALTER above on legacy DBs; index it only now that the
+  // column is guaranteed to exist (a CREATE INDEX on it inside the main exec above
+  // would throw "no such column: country" on a pre-geo prod DB and abort boot).
+  sqlite.exec('CREATE INDEX IF NOT EXISTS ix_page_views_country ON page_views(country);');
 
   // Idempotent ALTER for podcasts platform-link columns (existing prod tables predate them).
   const podcastCols = new Set(

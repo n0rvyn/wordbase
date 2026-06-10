@@ -2,6 +2,10 @@ import { sql, gte, eq, desc, and } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { podcastEvents, podcastEpisodes } from '../db/schema.js';
 import { hashIp } from '../lib/hash-ip.js';
+import { cached } from '../lib/ttl-cache.js';
+
+// Short staleness budget for the Observability dashboard (see analytics.service.ts).
+const OBS_CACHE_TTL_MS = 60_000;
 
 // Podcast consumption analytics. Same philosophy as analytics.service.ts: the
 // podcast_events table keeps the raw hit stream untouched and every count here is
@@ -57,6 +61,7 @@ export async function recordPodcastEvent(input: RecordPodcastEventInput) {
 }
 
 export async function getPodcastSummary(days: number = 30) {
+  return cached(`podcastSummary:${days}`, OBS_CACHE_TTL_MS, async () => {
   const now = Math.floor(Date.now() / 1000);
   const windowSince = now - days * 86400;
   const subSince = now - SUBSCRIBER_WINDOW_DAYS * 86400;
@@ -80,9 +85,11 @@ export async function getPodcastSummary(days: number = 30) {
     subscriberEstimate: subs.subscriberEstimate,
     subscriberWindowDays: SUBSCRIBER_WINDOW_DAYS,
   };
+  });
 }
 
 export async function getPodcastTrends(period: string = 'daily') {
+  return cached(`podcastTrends:${period}`, OBS_CACHE_TTL_MS, async () => {
   let groupFormat: string;
   let groupCount: number;
 
@@ -112,6 +119,7 @@ export async function getPodcastTrends(period: string = 'daily') {
     .limit(groupCount);
 
   return results.reverse(); // chronological order
+  });
 }
 
 export async function getTopEpisodes(limit: number = 10) {
@@ -133,6 +141,7 @@ export async function getTopEpisodes(limit: number = 10) {
 // Powers the per-episode detail table: every episode (download or not) with its
 // deduped lifetime downloads plus a short recent-trend array for an inline sparkline.
 export async function getEpisodeDownloadTable(trendDays: number = 14) {
+  return cached(`episodeDownloadTable:${trendDays}`, OBS_CACHE_TTL_MS, async () => {
   const now = Math.floor(Date.now() / 1000);
 
   // Contiguous UTC day axis (oldest → today) so every episode's sparkline has the
@@ -196,11 +205,13 @@ export async function getEpisodeDownloadTable(trendDays: number = 14) {
       trend,
     };
   });
+  });
 }
 
 // Feed-poll user agents → podcast client distribution. Mirrors getDeviceBreakdown's
 // CASE classification, tuned for podcast client UA signatures.
 export async function getPodcastClients(limit: number = 10) {
+  return cached(`podcastClients:${limit}`, OBS_CACHE_TTL_MS, async () => {
   const client = sql<string>`case
     when ${podcastEvents.userAgent} is null then 'unknown'
     when lower(${podcastEvents.userAgent}) like '%apple%podcast%' or lower(${podcastEvents.userAgent}) like '%itunes%' then 'Apple Podcasts'
@@ -223,4 +234,5 @@ export async function getPodcastClients(limit: number = 10) {
     .limit(limit);
 
   return rows;
+  });
 }

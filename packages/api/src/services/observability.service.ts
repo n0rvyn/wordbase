@@ -3,6 +3,10 @@ import { statSync } from 'fs';
 import { db, dbPragmas, DB_FILE } from '../db/index.js';
 import { requestMetrics, posts, comments, pageViews, media, apps, podcasts, podcastEpisodes } from '../db/schema.js';
 import { getBuildStatus } from './build.service.js';
+import { cached, cachedSync } from '../lib/ttl-cache.js';
+
+// Short staleness budget for the Observability dashboard (see analytics.service.ts).
+const OBS_CACHE_TTL_MS = 60_000;
 
 // Nearest-rank percentile over an ascending-sorted array.
 function percentile(sorted: number[], p: number): number {
@@ -25,6 +29,7 @@ export interface EndpointStat {
 // window and aggregate per endpoint in JS. At personal-site volume this is a few
 // thousand rows at most; the created_at index keeps the scan cheap.
 export async function getRequestMetrics(hours: number = 24) {
+  return cached(`requestMetrics:${hours}`, OBS_CACHE_TTL_MS, async () => {
   const since = Math.floor(Date.now() / 1000) - hours * 3600;
   const rows = await db.select({
     method: requestMetrics.method,
@@ -71,6 +76,7 @@ export async function getRequestMetrics(hours: number = 24) {
     statusClass,
     endpoints,
   };
+  });
 }
 
 /* ---------------- system health + ops status (Stage C, read-only) ---------------- */
@@ -90,6 +96,7 @@ function countWhere(table: any, where: any): number {
 }
 
 export function getSystemStatus() {
+  return cachedSync('systemStatus', OBS_CACHE_TTL_MS, () => {
   // --- runtime ---
   const mem = process.memoryUsage();
 
@@ -154,4 +161,5 @@ export function getSystemStatus() {
       pendingComments,
     },
   };
+  });
 }

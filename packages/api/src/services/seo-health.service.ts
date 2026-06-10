@@ -4,6 +4,10 @@ import { sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { posts } from '../db/schema.js';
 import { REPO_ROOT } from '../paths.js';
+import { cachedSync } from '../lib/ttl-cache.js';
+
+// Short staleness budget for the Observability dashboard (see analytics.service.ts).
+const OBS_CACHE_TTL_MS = 60_000;
 
 // Static build output directory. Resolved once at module load — both
 // `src/services/seo-health.service.ts` (vitest) and the compiled
@@ -28,6 +32,7 @@ function exists(p: string): boolean {
  * returns exists:false with no throw.
  */
 export function getSeoHealth() {
+  return cachedSync('seoHealth', OBS_CACHE_TTL_MS, () => {
   const sitemapPath = resolve(DIST, 'sitemap.xml');
   let urlCount = 0;
   let canonicalHost: string | null = null;
@@ -77,4 +82,5 @@ export function getSeoHealth() {
     },
     issues,
   };
+  });
 }

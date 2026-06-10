@@ -3,6 +3,12 @@ import { db } from '../db/index.js';
 import { pageViews, posts, postTags, tags, shareEvents } from '../db/schema.js';
 import { hashIp } from '../lib/hash-ip.js';
 import { lookupCountry } from '../lib/geoip.js';
+import { cached } from '../lib/ttl-cache.js';
+
+// Short staleness budget for the Observability dashboard read aggregations: repeat
+// panel opens and period toggles within this window are served from memory instead
+// of re-scanning the raw event tables. Transparent — cached values equal the live result.
+const OBS_CACHE_TTL_MS = 60_000;
 
 // Share-button channels we accept; anything else is rejected so the by-target
 // breakdown stays clean (path carries page/episode context, not target).
@@ -64,6 +70,7 @@ export async function recordShare(input: RecordShareInput) {
 
 // Read-time aggregation: shares grouped by channel and by page, within `days`.
 export async function getShareStats(days: number = 30) {
+  return cached(`shareStats:${days}`, OBS_CACHE_TTL_MS, async () => {
   const since = Math.floor(Date.now() / 1000) - days * 86400;
   const where = gte(shareEvents.createdAt, since);
 
@@ -84,12 +91,14 @@ export async function getShareStats(days: number = 30) {
   const byPage = byPageRaw.map(r => ({ path: decodePath(r.path), count: r.count }));
 
   return { days, byTarget, byPage };
+  });
 }
 
 // Visitor counts by country (ISO alpha-2) within `days`. Rows with no country
 // (geo lookup unavailable at ingest, e.g. before the GeoIP DB was installed) are
 // excluded — they can't be placed on the map.
 export async function getRegions(days: number = 30) {
+  return cached(`regions:${days}`, OBS_CACHE_TTL_MS, async () => {
   const since = Math.floor(Date.now() / 1000) - days * 86400;
   const rows = await db.select({
     country: pageViews.country,
@@ -100,6 +109,7 @@ export async function getRegions(days: number = 30) {
     .orderBy(desc(sql`count(*)`));
 
   return rows.map(r => ({ country: r.country as string, count: r.count }));
+  });
 }
 
 export async function getTodayPageViews() {
@@ -193,6 +203,7 @@ function decodePath(p: string): string {
 // (admin uses AdminLayout, which sends no pageview beacon, so they shouldn't be
 // in page_views anyway).
 export async function getTopPages(limit: number = 10) {
+  return cached(`topPages:${limit}`, OBS_CACHE_TTL_MS, async () => {
   const results = await db.select({
     path: pageViews.path,
     count: sql<number>`count(*)`,
@@ -217,6 +228,7 @@ export async function getTopPages(limit: number = 10) {
       ? post.title
       : (STATIC_PAGE_LABELS[path] ?? path);
     return { path, label, views: row.count };
+  });
   });
 }
 
@@ -290,6 +302,7 @@ const isBotSql = sql`(${pageViews.userAgent} is not null and (
 const sessionKeySql = sql<string>`${visitorKeySql} || '|' || ${pageViews.path} || '|' || cast(${pageViews.createdAt} / ${sql.raw(String(SESSION_WINDOW_SECONDS))} as integer)`;
 
 export async function getVisitorSummary(days: number = 30) {
+  return cached(`visitorSummary:${days}`, OBS_CACHE_TTL_MS, async () => {
   const since = Math.floor(Date.now() / 1000) - days * 86400;
   const [row] = await db.select({
     pageViews: sql<number>`count(*)`,
@@ -303,9 +316,11 @@ export async function getVisitorSummary(days: number = 30) {
     uniqueVisitors: row.uniqueVisitors,
     sessions: row.sessions,
   };
+  });
 }
 
 export async function getVisitTrends(period: string = 'daily') {
+  return cached(`visitTrends:${period}`, OBS_CACHE_TTL_MS, async () => {
   let groupFormat: string;
   let groupCount: number;
 
@@ -336,9 +351,11 @@ export async function getVisitTrends(period: string = 'daily') {
     .limit(groupCount);
 
   return results.reverse(); // chronological order
+  });
 }
 
 export async function getReferrers(limit: number = 10) {
+  return cached(`referrers:${limit}`, OBS_CACHE_TTL_MS, async () => {
   // Group by raw referrer, then collapse to host in JS (clean display without
   // brittle SQL host-parsing). Empty/null referrers are direct traffic.
   const rows = await db.select({
@@ -364,9 +381,11 @@ export async function getReferrers(limit: number = 10) {
     .map(([host, count]) => ({ host, count }))
     .sort((a, b) => b.count - a.count)
     .slice(0, limit);
+  });
 }
 
 export async function getDeviceBreakdown() {
+  return cached('deviceBreakdown', OBS_CACHE_TTL_MS, async () => {
   const deviceType = sql<string>`case
     when ${pageViews.userAgent} is null then 'unknown'
     when ${isBotSql} then 'bot'
@@ -384,6 +403,7 @@ export async function getDeviceBreakdown() {
     .orderBy(desc(sql`count(*)`));
 
   return rows;
+  });
 }
 
 export async function getContentStats() {

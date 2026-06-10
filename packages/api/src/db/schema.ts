@@ -106,7 +106,14 @@ export const pageViews = sqliteTable('page_views', {
   country: text('country'), // ISO-3166-1 alpha-2, geo-looked-up at ingest; null if no GeoIP DB
   visitorId: text('visitor_id'), // client-minted persistent anonymous browser id; null for pre-migration rows
   createdAt: integer('created_at').notNull(),
-});
+}, (t) => ({
+  // ORM-parity mirror of the indexes created in db/index.ts:initializeDatabase().
+  // The raw CREATE INDEX statements there are the load-bearing DDL; these keep the
+  // Drizzle schema aware of them. Drives the Observability analytics read path.
+  createdIdx: index('ix_page_views_created').on(t.createdAt),
+  pathIdx: index('ix_page_views_path').on(t.path),
+  countryIdx: index('ix_page_views_country').on(t.country),
+}));
 
 // request_metrics table — one row per server-side request (Stage B observability).
 // `route` is the matched Hono pattern (e.g. /api/posts/:id), NOT the raw path,
