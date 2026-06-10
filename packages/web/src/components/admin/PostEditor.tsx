@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'preact/hooks';
-import { adminFetch } from '../../lib/admin-api';
+import { useState, useEffect, useRef } from 'preact/hooks';
+import { adminFetch, adminUpload } from '../../lib/admin-api';
 import { marked } from 'marked';
 
 interface Props {
@@ -23,6 +23,9 @@ export default function PostEditor({ postId: propId }: Props) {
   const [showPreview, setShowPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     loadMetadata();
@@ -141,6 +144,94 @@ export default function PostEditor({ postId: propId }: Props) {
     setSelectedTags(selectedTags.filter((t) => t !== id));
   }
 
+  // Upload an image and splice the resulting Markdown at the textarea caret.
+  // The URL is stored relative (/uploads/...) so it resolves wherever the
+  // rendered post is served (Caddy on prod) — never an absolute API origin.
+  async function uploadAndInsertImage(file: File) {
+    if (!file.type.startsWith('image/')) {
+      setMessage('Error: only image files can be inserted');
+      return;
+    }
+    const ta = contentRef.current;
+    const start = ta?.selectionStart ?? content.length;
+    const end = ta?.selectionEnd ?? content.length;
+
+    setUploadingImage(true);
+    setMessage('');
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const media = await adminUpload('/api/media', formData);
+      // Square brackets would break the Markdown image syntax — strip them.
+      const alt = String(media.altText || media.filename || 'image').replace(/[\[\]]/g, '');
+      const md = `![${alt}](${media.url})`;
+      const next = content.slice(0, start) + md + content.slice(end);
+      setContent(next);
+      setMessage('Image inserted');
+      requestAnimationFrame(() => {
+        const el = contentRef.current;
+        if (!el) return;
+        el.focus();
+        const pos = start + md.length;
+        el.setSelectionRange(pos, pos);
+      });
+    } catch (e: any) {
+      setMessage(`Image upload failed: ${e.message}`);
+    } finally {
+      setUploadingImage(false);
+    }
+  }
+
+  async function handleImagePick(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (file) await uploadAndInsertImage(file);
+    input.value = '';
+  }
+
+  function handlePaste(e: ClipboardEvent) {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        const file = items[i].getAsFile();
+        if (file) {
+          e.preventDefault();
+          uploadAndInsertImage(file);
+          return;
+        }
+      }
+    }
+  }
+
+  function handleDrop(e: DragEvent) {
+    const file = e.dataTransfer?.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      e.preventDefault();
+      uploadAndInsertImage(file);
+    }
+  }
+
+  async function handleCoverUpload(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    setUploadingCover(true);
+    setMessage('');
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const media = await adminUpload('/api/media', formData);
+      setCoverImage(media.url);
+      setMessage('Cover image uploaded');
+    } catch (e: any) {
+      setMessage(`Cover upload failed: ${e.message}`);
+    } finally {
+      setUploadingCover(false);
+      input.value = '';
+    }
+  }
+
   const previewHtml = marked.parse(content || '');
 
   return (
@@ -178,11 +269,24 @@ export default function PostEditor({ postId: propId }: Props) {
             placeholder="URL slug (auto-generated if empty)" class="w-full px-4 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
 
+          {/* Editor toolbar: image insert. Paste/drag also work on the textarea. */}
+          <div class="flex items-center gap-3">
+            <label class={`inline-flex items-center gap-1.5 px-3 py-1.5 border rounded-md text-sm cursor-pointer hover:bg-surface-2 ${uploadingImage ? 'opacity-50 pointer-events-none' : ''}`}>
+              {uploadingImage ? 'Uploading…' : '🖼 Insert image'}
+              <input type="file" accept="image/*" class="hidden" onChange={handleImagePick} disabled={uploadingImage} />
+            </label>
+            <span class="text-xs text-ink-3">or paste / drag an image into the editor</span>
+          </div>
+
           {/* Live split: editor + rendered preview side by side on large screens.
               On mobile the Edit/Preview toggle swaps which single pane shows. */}
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <textarea
+              ref={contentRef}
               value={content} onInput={(e) => setContent((e.target as HTMLTextAreaElement).value)}
+              onPaste={handlePaste}
+              onDrop={handleDrop}
+              onDragOver={(e) => e.preventDefault()}
               placeholder="Write your post in Markdown..."
               class={`${showPreview ? 'hidden lg:block' : 'block'} w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm min-h-[400px] resize-y`}
             />
@@ -208,6 +312,10 @@ export default function PostEditor({ postId: propId }: Props) {
               placeholder="Image URL (e.g. /uploads/2026/03/image.png)"
               class="w-full px-3 py-2 border rounded-md text-sm"
             />
+            <label class={`mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 border rounded-md text-sm cursor-pointer hover:bg-surface-2 ${uploadingCover ? 'opacity-50 pointer-events-none' : ''}`}>
+              {uploadingCover ? 'Uploading…' : 'Upload image'}
+              <input type="file" accept="image/*" class="hidden" onChange={handleCoverUpload} disabled={uploadingCover} />
+            </label>
             {coverImage && <img src={coverImage} alt="Cover preview" class="mt-2 w-full h-24 object-cover rounded" />}
           </div>
 
