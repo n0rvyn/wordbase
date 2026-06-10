@@ -1,14 +1,8 @@
-import { eq, desc, asc, like, and, sql, inArray } from 'drizzle-orm';
+import { eq, ne, desc, asc, like, and, sql, inArray } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { db } from '../db/index.js';
 import { posts, postCategories, postTags, categories, tags } from '../db/schema.js';
-
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9\u4e00-\u9fff]+/g, '-')
-    .replace(/^-|-$/g, '');
-}
+import { generateSlug } from '../lib/slug.js';
 
 interface ListPostsOptions {
   status?: string;
@@ -88,7 +82,10 @@ interface CreatePostData {
 export async function createPost(data: CreatePostData) {
   const id = nanoid();
   const now = Math.floor(Date.now() / 1000);
-  const slug = data.slug || slugify(data.title) || id;
+  // SEO-friendly ASCII slug (pinyin for CJK); manual `data.slug` is normalized
+  // through the same generator, dedupe against existing slugs, id as last resort.
+  const taken = new Set((await db.select({ s: posts.slug }).from(posts)).map(r => r.s));
+  const slug = generateSlug(data.slug || data.title, { existing: taken, fallbackId: id });
 
   const [post] = await db.insert(posts).values({
     id,
@@ -126,7 +123,15 @@ export async function updatePost(id: string, data: Partial<Omit<CreatePostData, 
   const updateValues: Record<string, unknown> = { updatedAt: now };
   if (postData.title !== undefined) updateValues.title = postData.title;
   if (postData.content !== undefined) updateValues.content = postData.content;
-  if (postData.slug !== undefined) updateValues.slug = postData.slug;
+  // Only an explicitly-provided slug changes the URL (title-only edits keep the
+  // slug stable). A provided slug is normalized through the same ASCII generator
+  // and deduped against OTHER posts (self-excluded so re-saving isn't bumped to -2).
+  if (postData.slug !== undefined) {
+    const taken = new Set(
+      (await db.select({ s: posts.slug }).from(posts).where(ne(posts.id, id))).map(r => r.s)
+    );
+    updateValues.slug = generateSlug(postData.slug, { existing: taken, fallbackId: id });
+  }
   if (postData.excerpt !== undefined) updateValues.excerpt = postData.excerpt;
   if (postData.coverImage !== undefined) updateValues.coverImage = postData.coverImage;
   if (postData.status !== undefined) updateValues.status = postData.status;

@@ -17,6 +17,21 @@ norvyn.com {
         file_server
     }
 
+    # Posts: serve the static page if it exists, otherwise fall back to Node so the
+    # redirect middleware can 301 (old CJK slug → new pinyin slug, and /posts/<id>
+    # canonicalization). Must precede the catch-all static handle below.
+    handle /posts/* {
+        root * /var/www/wordbase/packages/web/dist
+        @exists file {path} {path}.html
+        handle @exists {
+            try_files {path} {path}.html
+            file_server
+        }
+        handle {
+            reverse_proxy localhost:4100
+        }
+    }
+
     # Static site → Astro build output
     handle {
         root * /var/www/wordbase/packages/web/dist
