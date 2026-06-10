@@ -55,6 +55,7 @@
   --spine:   clamp(96px, 15vw, 210px);   /* left index column width     */
   --col-gap: clamp(28px, 5vw, 72px);     /* spine ↔ content gap         */
   --maxw:    1180px;                      /* content max width           */
+  --measure: 40rem;                       /* shared reading line-length (~640px) — title/dek/body align to this */
   --sec-pad: clamp(44px, 6vw, 84px);     /* vertical section padding    */
   /* base rhythm is a 4/8 grid: 4 8 12 16 20 24 32 40 48 px */
 

@@ -246,13 +246,13 @@ const showPodcast = !!(podcast && featuredEp);
   .hero h1 {
     font-family: var(--font-display); font-weight: 500;
     font-size: clamp(33px, 4.6vw, 60px); line-height: 1.08;
-    letter-spacing: -.03em; margin: 0 0 26px; max-width: 18ch;
+    letter-spacing: -.03em; margin: 0 0 clamp(38px, 4vw, 46px); max-width: 18ch;
     text-wrap: balance;
   }
   .hero h1 em { font-style: normal; color: var(--accent); }
   .lede {
     font-family: var(--font-read); font-size: clamp(16px, 1.6vw, 19px);
-    line-height: 1.75; color: var(--ink-2); max-width: 50ch; margin: 0 0 34px;
+    line-height: 1.75; color: var(--ink-2); max-width: 50ch; margin: 0 0 clamp(42px, 4.5vw, 52px);
   }
   .hero-cta { display: flex; flex-wrap: wrap; gap: 12px; }
 

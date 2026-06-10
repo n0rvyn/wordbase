@@ -265,10 +265,13 @@ const navItems = [
   .item {
     display: grid; align-items: center;
     padding: 22px 4px; border-top: 1px solid var(--line);
-    transition: padding-left .3s var(--ease);
+    transition: padding-left .3s var(--ease), margin-right .3s var(--ease);
   }
   .item:first-child { border-top: none; padding-top: 2px; }
-  .item:hover { padding-left: 14px; }
+  /* Slide content right on hover via padding, compensated by an equal negative
+     margin-right so the content width never changes (no line-break reflow) and
+     the row's top hairline stays left-aligned (no jog). */
+  .item:hover { padding-left: 14px; margin-right: -10px; }
   .item-title {
     font-family: var(--font-display); font-weight: 600;
     letter-spacing: -.018em; transition: color .2s;

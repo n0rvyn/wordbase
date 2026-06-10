@@ -184,7 +184,7 @@ const article = {
 
   .art-grid {
     display: grid;
-    grid-template-columns: clamp(150px, 18vw, 236px) minmax(0, 70ch);
+    grid-template-columns: clamp(150px, 18vw, 236px) minmax(0, var(--measure));
     gap: var(--col-gap);
     padding: clamp(40px, 6vw, 72px) 0 60px;
   }
@@ -282,7 +282,8 @@ const article = {
     line-height: 1.08;
     letter-spacing: -0.03em;
     margin: 0 0 18px;
-    text-wrap: balance;
+    /* No text-wrap:balance — balance shortens line 1 (~399px) so the title
+       never reaches the body's right edge; normal wrap fills the measure. */
   }
 
   .reading .dek {
@@ -291,7 +292,14 @@ const article = {
     line-height: 1.6;
     color: var(--ink-2);
     margin: 0 0 26px;
-    max-width: 60ch;
+    max-width: none;
+  }
+
+  /* Override @tailwindcss/typography's .prose 65ch cap so the body fills the
+     reading column (var(--measure)) and aligns with h1 + .dek. Scoped to
+     .reading so companion pages ([slug].astro) keep Tailwind's default. */
+  .reading .prose {
+    max-width: none;
   }
 
   .byline {
