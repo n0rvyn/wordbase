@@ -4,11 +4,11 @@ import { FEEDBACK_CHIPS, categoryToReaction } from './feedback';
 describe('feedback lib', () => {
   it('FEEDBACK_CHIPS lists the five visible categories in order: great, repetitive, disagree, boring, shallow', () => {
     expect(FEEDBACK_CHIPS).toEqual([
-      { category: 'great',      label: '很棒' },
-      { category: 'repetitive', label: '重复' },
-      { category: 'disagree',   label: '不同意' },
-      { category: 'boring',     label: '没意思' },
-      { category: 'shallow',    label: '太水' },
+      { category: 'great',      label: '很棒',   labelEn: 'Great' },
+      { category: 'repetitive', label: '重复',   labelEn: 'Repetitive' },
+      { category: 'disagree',   label: '不同意', labelEn: 'Disagree' },
+      { category: 'boring',     label: '没意思', labelEn: 'Boring' },
+      { category: 'shallow',    label: '太水',   labelEn: 'Shallow' },
     ]);
   });
 

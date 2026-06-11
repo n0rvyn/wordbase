@@ -162,3 +162,23 @@ code { font-family: var(--font-mono); font-size: .84em; background: var(--surfac
 
 /* The hairline rule — the single most-used divider in the system. */
 .hairline { border-top: 1px solid var(--line); }
+
+/* ===========================================================
+   Bilingual chrome (Phase 1)
+   Dual-copy text rendered by components/T.astro. Each T emits
+   <span class="i18n"><span data-l="zh">…</span><span data-l="en">…</span></span>.
+   .i18n is a layout-transparent wrapper (display:contents) — the
+   parent's inline/grid/flex layout is unchanged.
+
+   Default (no data-lang → crawler / pre-paint / no-JS): en hidden,
+   zh visible. After the head bootstrap runs (it sets data-lang on
+   <html> before first paint) the matching language is shown.
+   Active [data-l] is forced display:inline because the surrounding
+   text-flow sites assume inline content; this forbids block-level
+   elements inside dictionary values.
+   =========================================================== */
+.i18n { display: contents; }
+[data-l="en"] { display: none; }
+:root[data-lang="en"] [data-l="zh"] { display: none; }
+:root[data-lang="en"] [data-l="en"] { display: inline; }
+

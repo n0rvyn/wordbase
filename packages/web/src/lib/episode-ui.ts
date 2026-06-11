@@ -9,6 +9,15 @@
 // `.tx` block inside an `.ep-item` that also contains the player.
 import { categoryToReaction } from './feedback';
 import { segmentTranscript, blockAtProgress, type TxBlock } from './transcript';
+import { dict, type Lang } from './i18n';
+
+// Resolve the current UI language (defaults to 'zh' if unset — BaseLayout
+// always sets it on <html data-lang="…"> at first paint, but the same module
+// may be reached by tests that don't render the page).
+function uiLang(): Lang {
+  const v = document.documentElement.dataset.lang;
+  return v === 'en' ? 'en' : 'zh';
+}
 
 // A submission locks this episode's control on THIS browser for 24h. After that
 // the chips return, so a re-listen the next day can leave fresh feedback.
@@ -111,7 +120,7 @@ export function wireFeedback(root: HTMLElement) {
           throw new Error('non-ok');
         }
       } catch {
-        msgEl.textContent = '提交失败，稍后再试';
+        msgEl.textContent = dict['podcast.fbError'][uiLang()];
         msgEl.classList.remove('msg-hidden');
         chips.forEach((b) => (b.disabled = false));
         noteInput.disabled = false;
@@ -174,7 +183,7 @@ export async function wireTranscript(root: HTMLElement) {
       });
       loaded = true; // latch only on success — an error leaves loaded=false so a re-expand retries
     } catch {
-      body.innerHTML = '<p class="tx-empty">逐字稿加载失败</p>';
+      body.innerHTML = `<p class="tx-empty">${dict['podcast.txError'][uiLang()]}</p>`;
     } finally {
       inFlight = false;
     }

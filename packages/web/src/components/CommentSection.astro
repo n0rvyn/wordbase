@@ -1,4 +1,6 @@
 ---
+import T from './T.astro';
+
 interface Props {
   postId: string;
 }
@@ -8,34 +10,34 @@ const apiUrl = (import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4100').repl
 ---
 
 <section id="comments" class="cs" data-post-id={postId} data-api-url={apiUrl}>
-  <h2 class="cs-title">评论</h2>
+  <h2 class="cs-title"><T k="comment.title" /></h2>
 
   <div id="comments-list" class="cs-list">
-    <p class="cs-status">加载中…</p>
+    <p class="cs-status"><T k="comment.loading" /></p>
   </div>
 
   <div class="cs-form-wrap">
-    <h3 class="cs-form-title">留下评论</h3>
+    <h3 class="cs-form-title"><T k="comment.formTitle" /></h3>
     <form id="comment-form" class="cs-form">
       <div class="cs-row2">
         <div class="cs-field">
-          <label for="author_name" class="cs-label">名字 *</label>
+          <label for="author_name" class="cs-label"><T k="comment.name" /></label>
           <input type="text" id="author_name" name="author_name" required class="cs-input" />
         </div>
         <div class="cs-field">
-          <label for="author_email" class="cs-label">邮箱</label>
+          <label for="author_email" class="cs-label"><T k="comment.email" /></label>
           <input type="email" id="author_email" name="author_email" class="cs-input" />
         </div>
       </div>
       <div class="cs-field">
-        <label for="author_url" class="cs-label">网站</label>
+        <label for="author_url" class="cs-label"><T k="comment.url" /></label>
         <input type="url" id="author_url" name="author_url" placeholder="https://" class="cs-input" />
       </div>
       <div class="cs-field">
-        <label for="content" class="cs-label">评论 *</label>
+        <label for="content" class="cs-label"><T k="comment.content" /></label>
         <textarea id="content" name="content" rows="4" required class="cs-input cs-textarea"></textarea>
       </div>
-      <button type="submit" class="cs-submit">提交</button>
+      <button type="submit" class="cs-submit"><T k="comment.submit" /></button>
       <p id="form-message" class="cs-msg msg-hidden"></p>
     </form>
   </div>
@@ -178,11 +180,18 @@ const apiUrl = (import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4100').repl
 
 <script>
   import { escapeHtml } from '../lib/escape';
+  import { t, type Lang } from '../lib/i18n';
 
   const section = document.getElementById('comments')!;
   const postId = section.dataset.postId!;
   const apiUrl = section.dataset.apiUrl!;
   const listEl = document.getElementById('comments-list')!;
+
+  // Read the active language from <html data-lang> (set by BaseLayout's head
+  // bootstrap before paint; matches the language the user is currently
+  // viewing, not the persisted preference). Defaults to 'zh' if missing.
+  const uiLang: Lang = (document.documentElement.dataset.lang as Lang) || 'zh';
+  const tr = (key: string) => t(key)[uiLang];
 
   function formatDate(ts: number): string {
     return new Date(ts * 1000).toLocaleDateString('zh-CN', {
@@ -209,7 +218,7 @@ const apiUrl = (import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4100').repl
       const { data } = await res.json();
 
       if (data.length === 0) {
-        listEl.innerHTML = '<p style="font-family:var(--font-read);font-size:14.5px;color:var(--ink-3);margin:0;">还没有评论，来说第一句话吧。</p>';
+        listEl.innerHTML = `<p style="font-family:var(--font-read);font-size:14.5px;color:var(--ink-3);margin:0;">${tr('comment.empty')}</p>`;
         return;
       }
 
@@ -233,7 +242,7 @@ const apiUrl = (import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4100').repl
 
       listEl.innerHTML = html;
     } catch {
-      listEl.innerHTML = '<p style="font-family:var(--font-read);font-size:14.5px;color:var(--ink-3);margin:0;">加载评论失败，请刷新重试。</p>';
+      listEl.innerHTML = `<p style="font-family:var(--font-read);font-size:14.5px;color:var(--ink-3);margin:0;">${tr('comment.loadError')}</p>`;
     }
   }
 
@@ -264,18 +273,18 @@ const apiUrl = (import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4100').repl
       });
 
       if (res.ok) {
-        msgEl.textContent = '评论已提交，审核后将显示。';
+        msgEl.textContent = tr('comment.posted');
         msgEl.style.color = 'var(--ink-2)';
         msgEl.classList.remove('msg-hidden');
         form.reset();
       } else {
         const err = await res.json();
-        msgEl.textContent = err.error?.message || '提交失败，请重试。';
+        msgEl.textContent = err.error?.message || tr('comment.submitError');
         msgEl.style.color = 'var(--ink-3)';
         msgEl.classList.remove('msg-hidden');
       }
     } catch {
-      msgEl.textContent = '网络错误，请重试。';
+      msgEl.textContent = tr('comment.netError');
       msgEl.style.color = 'var(--ink-3)';
       msgEl.classList.remove('msg-hidden');
     } finally {

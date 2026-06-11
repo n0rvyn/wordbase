@@ -45,6 +45,7 @@ export function appColors(
 
 export interface MetaCell {
   k: string;
+  kEn: string;
   v: string;
   star?: boolean;
 }
@@ -52,6 +53,11 @@ export interface MetaCell {
 /**
  * Build the meta row cells in display order, omitting any whose source is null/falsy.
  * Rating cell is omitted when ratingCount is 0 or null (DP-4.4).
+ *
+ * `k` is the Chinese label (consumed by the apps/[slug] template's dual-copy
+ * <T zh={cell.k} en={cell.kEn} />). `kEn` is the English label counterpart.
+ * `v` is the API-sourced value (version, rating, price, …) and is never
+ * translated — that would mutate user-visible numeric / system-version data.
  */
 export function buildMetaCells(app: Pick<
   App,
@@ -60,27 +66,28 @@ export function buildMetaCells(app: Pick<
   const cells: MetaCell[] = [];
 
   if (app.version) {
-    cells.push({ k: '版本', v: `v${app.version}` });
+    cells.push({ k: '版本', kEn: 'Version', v: `v${app.version}` });
   }
 
   if (app.ratingCount) {
     cells.push({
       k: '评分',
+      kEn: 'Rating',
       v: `${app.rating ?? ''} (${app.ratingCount})`,
       star: true,
     });
   }
 
   if (app.price) {
-    cells.push({ k: '价格', v: app.price });
+    cells.push({ k: '价格', kEn: 'Price', v: app.price });
   }
 
   if (app.minimumOsVersion) {
-    cells.push({ k: '系统要求', v: app.minimumOsVersion });
+    cells.push({ k: '系统要求', kEn: 'Requires', v: app.minimumOsVersion });
   }
 
   if (app.category) {
-    cells.push({ k: '分类', v: app.category.split(' · ').pop()! });
+    cells.push({ k: '分类', kEn: 'Category', v: app.category.split(' · ').pop()! });
   }
 
   return cells;

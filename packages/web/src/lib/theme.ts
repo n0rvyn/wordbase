@@ -18,6 +18,8 @@ export type Theme = 'light' | 'dark';
 export interface ThemePrefs {
   theme?: string;
   accent?: string;
+  /** Active UI language: 'zh' | 'en' (see lib/i18n.ts for detection). */
+  lang?: string;
 }
 
 /** Parse the stored JSON blob; never throws, never returns a non-object. */
