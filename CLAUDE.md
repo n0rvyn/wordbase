@@ -61,6 +61,7 @@ services/*.service.ts   ← ALL business logic + DB access lives here
 - Error shape: `{ error: { code, message } }`.
 - Every Hono router is `new Hono<AppEnv>()` (auth typing). Public endpoints (pageview, comment submit, published reads) need no auth; everything else is Bearer + scope.
 - TS is ESM with `.js` import specifiers (e.g. `import { x } from './services/post.service.js'`) even though sources are `.ts` — match this or the build breaks.
+- **前端改动必须兼顾手机小屏（验收到 ≤480px）**：改 `packages/web` 的页面 / 组件 / 布局时，必须在窄视口验证不横向溢出、不裁切控件、不破版，不能只在桌面宽度验收。尤其**新增 nav / 工具栏控件**（语言钮、主题钮等）后要检查 `.nav-r` 一类横向 flex 容器在小屏是否溢出；新控件必须纳入 `BaseLayout` 现有响应式断点（`@media max-width:880px / 560px`）的处理，而不是只在宽屏堆叠。
 
 ## Where things live
 
