@@ -12,6 +12,7 @@ import { decodeEntities } from '../../lib/home';
 import { selectShow, episodeMeta } from '../../lib/podcast';
 import { FEEDBACK_CHIPS } from '../../lib/feedback';
 import { buildPodcastEpisodeLd, buildBreadcrumbLd } from '../../lib/jsonld.js';
+import T from '../../components/T.astro';
 
 export async function getStaticPaths() {
   const { data: podcasts } = await getPodcasts({ status: 'published' });
@@ -82,13 +83,13 @@ const jsonLd = [
     {ep.summary && (
       <div class="ep-sum-wrap">
         <p class="ep-sum">{stripMarkdown(ep.summary, ep.summary.length)}</p>
-        <button type="button" class="ep-sum-toggle" aria-expanded="false" hidden>展开</button>
+        <button type="button" class="ep-sum-toggle" aria-expanded="false" hidden><span class="lbl-expand"><T k="podcast.expand" /></span><span class="lbl-collapse"><T k="podcast.collapse" /></span></button>
       </div>
     )}
 
     {ep.transcript && (
       <div class="tx" data-slug={ep.slug} data-api-url={apiUrl}>
-        <button type="button" class="tx-toggle" aria-expanded="false">逐字稿<span class="tx-caret">▾</span></button>
+        <button type="button" class="tx-toggle" aria-expanded="false"><T k="podcast.transcript" /><span class="tx-caret">▾</span></button>
         <div class="tx-panel" hidden>
           <div class="tx-body"></div>
         </div>
@@ -98,14 +99,14 @@ const jsonLd = [
     <div class="ep-fb" data-slug={ep.slug} data-api-url={apiUrl}>
       <div class="ep-fb-chips">
         {FEEDBACK_CHIPS.map((chip) => (
-          <button type="button" class="ep-fb-chip" data-category={chip.category}>{chip.label}</button>
+          <button type="button" class="ep-fb-chip" data-category={chip.category}><T zh={chip.label} en={chip.labelEn} /></button>
         ))}
-        <button type="button" class="ep-fb-say">说一句</button>
+        <button type="button" class="ep-fb-say"><T k="podcast.fbSay" /></button>
       </div>
-      <input class="ep-fb-note msg-hidden" type="text" maxlength="200" placeholder="一句话（可选）" />
-      <p class="ep-fb-hint msg-hidden">写完，点上面任一个表情发出去</p>
+      <input class="ep-fb-note msg-hidden" type="text" maxlength="200" data-i18n-placeholder="podcast.fbPlaceholder" placeholder="一句话（可选）" />
+      <p class="ep-fb-hint msg-hidden"><T k="podcast.fbHint" /></p>
       <p class="ep-fb-msg msg-hidden"></p>
-      <p class="ep-fb-thanks msg-hidden">已收到 · 谢谢</p>
+      <p class="ep-fb-thanks msg-hidden"><T k="podcast.fbThanks" /></p>
     </div>
   </div>
 
@@ -122,9 +123,12 @@ const jsonLd = [
   document.querySelectorAll<HTMLElement>('.ep-fb').forEach(wireFeedback);
   document.querySelectorAll<HTMLElement>('.tx').forEach((el) => { void wireTranscript(el); });
 
-  // Summary clamps to 3 lines; reveal the 展开/收起 toggle ONLY when the text
-  // actually overflows (short summaries need no control). Overflow is measured
-  // while clamped: scrollHeight > clientHeight.
+  // Summary clamps to 3 lines; reveal the expand/collapse toggle ONLY when the
+  // text actually overflows (short summaries need no control). Overflow is
+  // measured while clamped: scrollHeight > clientHeight. The button label is
+  // driven entirely by CSS off the wrap's `.open` class and the root
+  // `data-lang` (dual-copy <T>), so it follows a live language toggle without
+  // any textContent mutation here.
   document.querySelectorAll<HTMLElement>('.ep-sum-wrap').forEach((wrap) => {
     const sum = wrap.querySelector<HTMLElement>('.ep-sum');
     const btn = wrap.querySelector<HTMLButtonElement>('.ep-sum-toggle');
@@ -134,7 +138,6 @@ const jsonLd = [
     btn.addEventListener('click', () => {
       const open = wrap.classList.toggle('open');
       btn.setAttribute('aria-expanded', String(open));
-      btn.textContent = open ? '收起' : '展开';
     });
   });
 </script>
@@ -201,6 +204,12 @@ const jsonLd = [
     color: var(--accent); background: none; border: none; padding: 0; cursor: pointer;
   }
   .ep-sum-toggle:hover { text-decoration: underline; text-underline-offset: 2px; }
+  /* Expand/collapse label driven by `.open` (zh/en handled by the global
+     [data-l] rules inside each <T>). No textContent mutation → survives a
+     live language toggle. */
+  .ep-sum-toggle .lbl-collapse { display: none; }
+  .ep-sum-wrap.open .ep-sum-toggle .lbl-expand { display: none; }
+  .ep-sum-wrap.open .ep-sum-toggle .lbl-collapse { display: inline; }
 
   /* Transcript — container/toggle/panel are build-time (scoped styles apply);
      .tx-line rows are runtime-injected, so styled via :global below. */

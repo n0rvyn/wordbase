@@ -7,6 +7,7 @@ import { formatMonoDate } from '../../lib/home';
 import { injectHeadingIds, selectAdjacent } from '../../lib/article';
 import { buildBlogPostingLd, buildBreadcrumbLd } from '../../lib/jsonld.js';
 import { marked } from 'marked';
+import T from '../../components/T.astro';
 import '../../styles/prose.css';
 
 export async function getStaticPaths() {
@@ -75,19 +76,19 @@ const article = {
         <div class="meta">
           {post.publishedAt && (
             <div class="m">
-              <span class="k">发表于</span>
+              <span class="k"><T k="post.publishedAt" /></span>
               <span class="v mono">{formatMonoDate(post.publishedAt)}</span>
             </div>
           )}
           {firstCat && (
             <div class="m">
-              <span class="k">分类</span>
+              <span class="k"><T k="post.category" /></span>
               <span class="v">{firstCat}</span>
             </div>
           )}
           <div class="m">
-            <span class="k">阅读时长</span>
-            <span class="v">约 {readTime} 分钟</span>
+            <span class="k"><T k="post.readTime" /></span>
+            <span class="v"><T zh={`约 ${readTime} 分钟`} en={`${readTime} min`} /></span>
           </div>
         </div>
 
@@ -95,7 +96,7 @@ const article = {
           <>
             <div class="rail-div"></div>
             <nav class="toc">
-              <h5>目录</h5>
+              <h5><T k="post.toc" /></h5>
               {toc.map((t, i) => (
                 <a
                   href={`#${t.id}`}
@@ -130,7 +131,7 @@ const article = {
           <div class="av">N</div>
           <div>
             <div class="an">norvyn</div>
-            <p>独立 iOS 开发者，写字的人。在一座有海的城市，慢慢地做一些小而确定的东西。</p>
+            <p><T k="post.authorBio" /></p>
           </div>
         </div>
 
@@ -138,13 +139,13 @@ const article = {
           <nav class="pn-nav">
             {older ? (
               <a class="pn prev" href={`/posts/${older}`}>
-                <div class="pl">← 上一篇</div>
+                <div class="pl"><T k="post.prev" /></div>
                 <div class="pt">{slugTitle[older] || ''}</div>
               </a>
             ) : <div class="pn prev empty"></div>}
             {newer ? (
               <a class="pn next" href={`/posts/${newer}`}>
-                <div class="pl">下一篇 →</div>
+                <div class="pl"><T k="post.next" /></div>
                 <div class="pt">{slugTitle[newer] || ''}</div>
               </a>
             ) : <div class="pn next empty"></div>}

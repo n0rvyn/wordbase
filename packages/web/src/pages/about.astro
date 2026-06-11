@@ -1,21 +1,23 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { ACCENTS } from '../lib/theme';
+import T from '../components/T.astro';
+import { t } from '../lib/i18n.js';
 ---
 
-<BaseLayout title="关于" description="独立开发者 norvyn — 关于这个人、这个站点与这些事。">
+<BaseLayout title="关于" titleEn={t('title.about').en} description="独立开发者 norvyn — 关于这个人、这个站点与这些事。">
   <header class="sec wrap" style="border-top:none;padding-top:clamp(44px,6vw,80px)">
     <div class="row2">
       <div class="spine">
         <span class="no">00</span>
         <span class="lab">About</span>
-        <span class="note">一个人，几件事。</span>
+        <span class="note"><T k="about.spine.note" /></span>
       </div>
       <div class="ab-hero">
         <div>
-          <div class="eyebrow">Independent developer · 自 2023</div>
-          <h1>关于 norvyn</h1>
-          <p class="lede">我做小而克制的 iOS 应用，写关于设计与工程的随笔，也在筹备一档慢节奏的播客。这个站点，是这几件事共同的家。</p>
+          <div class="eyebrow"><T k="about.eyebrow" /></div>
+          <h1><T k="about.h1" /></h1>
+          <p class="lede"><T k="about.lede" /></p>
         </div>
         <div class="portrait">N</div>
       </div>
@@ -26,15 +28,15 @@ import { ACCENTS } from '../lib/theme';
     <div class="row2">
       <div class="spine">
         <span class="no">01</span>
-        <span class="lab">Story</span>
-        <span class="note">我是谁，在做什么。</span>
+        <span class="lab"><T k="about.story.lab" /></span>
+        <span class="note"><T k="about.story.note" /></span>
       </div>
       <div class="prose-a">
-        <p>你好，我是 <strong>norvyn</strong>。一个独立开发者。</p>
-        <p>2023 年，我开始认真地做自己的东西。没有团队、没有融资，只有一台笔记本和一些想法。</p>
-        <p>目前上架了 <strong>Delphi</strong> — 一款基于牌阵的 iOS 应用，用于反思与思维整理。博客里已有 128+ 篇文章，记录设计与工程路上的思考。播客还在筹备中。</p>
-        <p>我对「软件」的信念很简单：<strong>小一点，慢一点，诚实一点</strong>。喜欢只做一件事、但把它做到刚好的应用；喜欢加载很快、读起来安静的网页；喜欢在上线前，把一半花哨的功能删掉的那种克制。</p>
-        <p>这个站点本身也是一次实践 — 它正在重新设计中，你现在看到的是进行时。</p>
+        <p><T k="about.story.p1" /></p>
+        <p><T k="about.story.p2" /></p>
+        <p><T k="about.story.p3" /></p>
+        <p><T k="about.story.p4" /></p>
+        <p><T k="about.story.p5" /></p>
       </div>
     </div>
   </section>
@@ -43,25 +45,25 @@ import { ACCENTS } from '../lib/theme';
     <div class="row2">
       <div class="spine">
         <span class="no">02</span>
-        <span class="lab">Now</span>
-        <span class="note">最近在忙的事。</span>
+        <span class="lab"><T k="about.now.lab" /></span>
+        <span class="note"><T k="about.now.note" /></span>
       </div>
       <div class="now-list">
         <div class="now-item">
-          <span class="nk">在做</span>
-          <span class="nv"><b>Delphi</b> — 迭代牌阵交互与截图展示，持续打磨细节。</span>
+          <span class="nk"><T k="about.now.building" /></span>
+          <span class="nv"><T k="about.now.building.v" /></span>
         </div>
         <div class="now-item">
-          <span class="nk">在建</span>
-          <span class="nv">这个站点的前端重设计 (Phase 6/8)，正在进行中。</span>
+          <span class="nk"><T k="about.now.rebuild" /></span>
+          <span class="nv"><T k="about.now.rebuild.v" /></span>
         </div>
         <div class="now-item">
-          <span class="nk">在准备</span>
-          <span class="nv">播客还未上线，节目形式还在构思阶段。</span>
+          <span class="nk"><T k="about.now.preparing" /></span>
+          <span class="nv"><T k="about.now.preparing.v" /></span>
         </div>
         <div class="now-item">
-          <span class="nk">在写</span>
-          <span class="nv">断断续续更新博客，128+ 篇文章，主题围绕设计、工程与独立创作。</span>
+          <span class="nk"><T k="about.now.writing" /></span>
+          <span class="nv"><T k="about.now.writing.v" /></span>
         </div>
       </div>
     </div>
@@ -71,24 +73,24 @@ import { ACCENTS } from '../lib/theme';
     <div class="row2">
       <div class="spine">
         <span class="no">03</span>
-        <span class="lab">Colophon</span>
-        <span class="note">这个站点怎么做的。</span>
+        <span class="lab"><T k="about.colophon.lab" /></span>
+        <span class="note"><T k="about.colophon.note" /></span>
       </div>
       <div class="colophon">
         <div class="cl">
-          <span class="ck">设计</span>
-          <span class="cv">一套语义令牌驱动的系统，hairline 而非卡片，颜色只来自作品。</span>
+          <span class="ck"><T k="about.colophon.design.k" /></span>
+          <span class="cv"><T k="about.colophon.design.v" /></span>
         </div>
         <div class="cl">
-          <span class="ck">字体</span>
-          <span class="cv">Geist（界面/标题）、Noto Sans SC（中文）、Geist Mono（标签与代码）。</span>
+          <span class="ck"><T k="about.colophon.type.k" /></span>
+          <span class="cv"><T k="about.colophon.type.v" /></span>
         </div>
         <div class="cl">
-          <span class="ck">主题</span>
-          <span class="cv">浅色 / 深色双主题，一个可切换的强调色，全站同步。</span>
+          <span class="ck"><T k="about.colophon.theme.k" /></span>
+          <span class="cv"><T k="about.colophon.theme.v" /></span>
         </div>
         <div class="cl">
-          <span class="ck">强调色</span>
+          <span class="ck"><T k="about.colophon.accent.k" /></span>
           <span class="cv">
             <div class="sw-row" id="accentPicker">
               {ACCENTS.map(a => (
@@ -104,8 +106,8 @@ import { ACCENTS } from '../lib/theme';
           </span>
         </div>
         <div class="cl">
-          <span class="ck">构建</span>
-          <span class="cv">Wordbase — 一个 AI 原生、支持 MCP 的内容系统。</span>
+          <span class="ck"><T k="about.colophon.build.k" /></span>
+          <span class="cv"><T k="about.colophon.build.v" /></span>
         </div>
       </div>
     </div>
@@ -115,14 +117,14 @@ import { ACCENTS } from '../lib/theme';
     <div class="row2">
       <div class="spine">
         <span class="no">04</span>
-        <span class="lab">Say hi</span>
-        <span class="note">随时来信。</span>
+        <span class="lab"><T k="about.contact.lab" /></span>
+        <span class="note"><T k="about.contact.note" /></span>
       </div>
       <div>
-        <p class="prose-a" style="margin-bottom:24px">最好的联系方式是邮件。我读每一封，也尽量回每一封。</p>
+        <p class="prose-a" style="margin-bottom:24px"><T k="about.contact.lede" /></p>
         <div class="contact-row">
           <a class="cbtn pri" href="mailto:norvyn@norvyn.com">
-            写封邮件
+            <T k="about.contact.email" />
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
           </a>
           <a class="cbtn" href="https://github.com/n0rvyn" target="_blank" rel="noopener noreferrer">GitHub</a>

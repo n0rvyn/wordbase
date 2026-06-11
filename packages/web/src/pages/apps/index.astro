@@ -2,25 +2,27 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getApps, type App } from '../../lib/api';
 import { selectFeaturedApp, restApps } from '../../lib/home';
+import T from '../../components/T.astro';
+import { t } from '../../lib/i18n.js';
 
 const { data: apps } = await getApps({ status: 'published' });
 const featuredApp = selectFeaturedApp(apps);
 const ordered: App[] = featuredApp ? [featuredApp, ...restApps(apps, featuredApp)] : [...apps];
 ---
 
-<BaseLayout title="Apps" description="我做的小而克制的应用。">
+<BaseLayout title="Apps" titleEn={t('title.apps').en} description="我做的小而克制的应用。">
 
 <header class="sec wrap" style="border-top:none;padding-top:clamp(44px,6vw,80px)">
   <div class="row2">
     <div class="spine">
       <span class="no">00</span>
       <span class="lab">Apps</span>
-      <span class="note">每款只把一件事做好。</span>
+      <span class="note"><T k="apps.spine.note" /></span>
     </div>
     <div>
-      <div class="eyebrow">Apps · 独立开发</div>
-      <h1>作品</h1>
-      <p class="lede-w">小而克制的应用，每款只专注做好一件事。</p>
+      <div class="eyebrow"><T k="apps.eyebrow" /></div>
+      <h1><T k="apps.h1" /></h1>
+      <p class="lede-w"><T k="apps.lede" /></p>
     </div>
   </div>
 </header>
@@ -29,12 +31,12 @@ const ordered: App[] = featuredApp ? [featuredApp, ...restApps(apps, featuredApp
   <div class="row2">
     <div class="spine">
       <span class="no">01</span>
-      <span class="lab">All Apps</span>
-      <span class="note">全部已发布的应用。</span>
+      <span class="lab"><T k="apps.allApps.lab" /></span>
+      <span class="note"><T k="apps.allApps.note" /></span>
     </div>
     <div>
       {ordered.length === 0 ? (
-        <div class="empty">作品即将上线。</div>
+        <div class="empty"><T k="apps.empty" /></div>
       ) : (
         <div class="list">
           {ordered.map((a: App) => (

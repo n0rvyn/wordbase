@@ -14,6 +14,8 @@ import {
   selectFullYears,
   densityForYear,
 } from '../../lib/writing';
+import T from '../../components/T.astro';
+import { t } from '../../lib/i18n.js';
 
 // ── Fetch all published posts sorted desc ────────────────────────────────────
 const { data: postsRaw } = await getPosts({ status: 'published', limit: 10000 });
@@ -67,7 +69,7 @@ function firstCatName(p: Post): string {
 }
 ---
 
-<BaseLayout title="写作" description="关于设计取舍、工程实践与独立开发。">
+<BaseLayout title="写作" titleEn={t('title.writing').en} description="关于设计取舍、工程实践与独立开发。">
 
 <!-- HERO -->
 <header class="sec wrap" style="border-top:none;padding-top:clamp(44px,6vw,80px)">
@@ -75,18 +77,18 @@ function firstCatName(p: Post): string {
     <div class="spine">
       <span class="no">00</span>
       <span class="lab">Writing</span>
-      <span class="note">关于设计取舍、工程实践与独立开发。</span>
+      <span class="note"><T k="writing.spine.note" /></span>
     </div>
     <div>
-      <div class="eyebrow">Essays · 自 2008</div>
-      <h1>写作</h1>
-      <p class="lede-w">把每天读到的、想到的，慢慢写下来。关于做产品这条路上，所有的取舍、怀疑与微小的确信。</p>
+      <div class="eyebrow"><T k="writing.eyebrow" /></div>
+      <h1><T k="writing.h1" /></h1>
+      <p class="lede-w"><T k="writing.lede" /></p>
       <div class="topics">
-        <button class="chip-f sel" data-cat="all">全部</button>
+        <button class="chip-f sel" data-cat="all"><T k="writing.chipAll" /></button>
         {topCats.map(cat => (
           <button class="chip-f" data-cat={cat.slug}>{cat.name}</button>
         ))}
-        <a class="viewall" href="/categories">全部分类 →</a>
+        <a class="viewall" href="/categories"><T k="writing.viewallCats" /></a>
       </div>
     </div>
   </div>
@@ -99,7 +101,7 @@ function firstCatName(p: Post): string {
       <div class="spine">
         <span class="no">01</span>
         <span class="lab">Latest</span>
-        <span class="note">最新一篇。</span>
+        <span class="note"><T k="writing.featured.note" /></span>
       </div>
       <div class="feat-stack">
         {featuredVariants.map(({ key, post }) => (
@@ -109,7 +111,7 @@ function firstCatName(p: Post): string {
             data-feat-id={post.id}
             href={`/posts/${post.slug}`}
           >
-            <span class="tag">最新 · Featured</span>
+            <span class="tag"><T k="writing.featured.tag" /></span>
             {post.publishedAt && <div class="pdate">{formatMonoDate(post.publishedAt)}</div>}
             <h2>{post.title}</h2>
             <p>{post.excerpt || stripMarkdown(post.content, 160)}</p>
@@ -117,7 +119,7 @@ function firstCatName(p: Post): string {
               <span class="item-meta">
                 {[firstCatName(post), `${estimateReadTime(post.content)} min`].filter(Boolean).join(' · ')}
               </span>
-              <span class="read-link">继续阅读 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+              <span class="read-link"><T k="writing.readMore" /> <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
             </div>
           </a>
         ))}
@@ -132,7 +134,7 @@ function firstCatName(p: Post): string {
     <div class="spine">
       <span class="no">02</span>
       <span class="lab">Archive</span>
-      <span class="note">全部文章，按时间倒序。</span>
+      <span class="note"><T k="writing.archive.note" /></span>
     </div>
     <div id="postList">
       {groups.map(group => {
@@ -140,7 +142,7 @@ function firstCatName(p: Post): string {
         return (
           <div class="year-section">
             <div class="year-head">
-              <span class="mono">{group.year === 0 ? '未知' : group.year}</span>
+              <span class="mono">{group.year === 0 ? <T k="writing.yearUnknown" /> : group.year}</span>
             </div>
             <div class="list">
               {group.posts.map((p: Post) => {

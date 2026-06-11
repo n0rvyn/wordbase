@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getCategories, getPosts, estimateReadTime, stripMarkdown, type Category, type Post } from '../../lib/api';
 import { formatMonoDate, decodeEntities } from '../../lib/home';
+import T from '../../components/T.astro';
 
 export async function getStaticPaths() {
   const categories = await getCategories();
@@ -28,10 +29,10 @@ const catName = decodeEntities(category.name);
     <div class="spine">
       <span class="no">00</span>
       <span class="lab">Category</span>
-      <span class="note">{sorted.length} 篇文章。</span>
+      <span class="note"><T zh={`${sorted.length} 篇文章。`} en={`${sorted.length} posts.`} /></span>
     </div>
     <div>
-      <div class="eyebrow">分类 · Category</div>
+      <div class="eyebrow"><T k="cat.detail.eyebrow" /></div>
       <h1>{catName}</h1>
       {category.description && <p class="lede-w">{category.description}</p>}
     </div>
@@ -42,11 +43,11 @@ const catName = decodeEntities(category.name);
   <div class="row2">
     <div class="spine">
       <span class="no">01</span>
-      <span class="lab">Posts</span>
+      <span class="lab"><T k="cat.detail.posts.lab" /></span>
     </div>
     <div>
       {sorted.length === 0 ? (
-        <div class="empty">该分类暂无文章。</div>
+        <div class="empty"><T k="cat.detail.empty" /></div>
       ) : (
         <div class="list">
           {sorted.map((p: Post) => (

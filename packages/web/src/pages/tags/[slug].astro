@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getTags, getPosts, estimateReadTime, stripMarkdown, type Tag, type Post } from '../../lib/api';
 import { formatMonoDate, decodeEntities } from '../../lib/home';
+import T from '../../components/T.astro';
 
 export async function getStaticPaths() {
   const tags = await getTags();
@@ -28,10 +29,10 @@ const tagName = decodeEntities(tag.name);
     <div class="spine">
       <span class="no">00</span>
       <span class="lab">Tag</span>
-      <span class="note">{sorted.length} 篇文章。</span>
+      <span class="note"><T zh={`${sorted.length} 篇文章。`} en={`${sorted.length} posts.`} /></span>
     </div>
     <div>
-      <div class="eyebrow">标签 · Tag</div>
+      <div class="eyebrow"><T k="tag.detail.eyebrow" /></div>
       <h1>{tagName}</h1>
     </div>
   </div>
@@ -41,11 +42,11 @@ const tagName = decodeEntities(tag.name);
   <div class="row2">
     <div class="spine">
       <span class="no">01</span>
-      <span class="lab">Posts</span>
+      <span class="lab"><T k="tag.detail.posts.lab" /></span>
     </div>
     <div>
       {sorted.length === 0 ? (
-        <div class="empty">该标签暂无文章。</div>
+        <div class="empty"><T k="tag.detail.empty" /></div>
       ) : (
         <div class="list">
           {sorted.map((p: Post) => (

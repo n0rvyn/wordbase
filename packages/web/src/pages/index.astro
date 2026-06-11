@@ -1,5 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import T from '../components/T.astro';
+import { t } from '../lib/i18n.js';
 import {
   getPosts,
   getApps,
@@ -52,7 +54,7 @@ const showPodcast = !!(podcast && featuredEp);
 
 ---
 
-<BaseLayout title="norvyn">
+<BaseLayout title="norvyn" titleEn={t('title.home').en}>
 
 <!-- HERO -->
 <header class="hero wrap">
@@ -60,15 +62,15 @@ const showPodcast = !!(podcast && featuredEp);
     <div class="spine">
       <span class="no">00</span>
       <span class="lab">norvyn</span>
-      <span class="note">独立 iOS 开发者，写作者，播客主播。</span>
+      <span class="note"><T k="home.spine.note" /></span>
     </div>
     <div class="hero-main">
-      <div class="eyebrow">Independent iOS developer · 自 2023</div>
-      <h1>做小而克制的 App，也<em>写字</em>，也<em>录播客</em>。</h1>
-      <p class="lede">这里收着我亲手做的 iOS 应用、关于设计与工程的随笔，以及一档慢节奏的播客——一个人的全部作品，都在一处。</p>
+      <div class="eyebrow"><T k="home.hero.eyebrow" /></div>
+      <h1><T k="home.hero.h1" /></h1>
+      <p class="lede"><T k="home.hero.lede" /></p>
       <div class="hero-cta">
-        <a class="btn btn-1" href="#apps">浏览作品<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-        <a class="btn btn-2" href="#podcast">订阅播客</a>
+        <a class="btn btn-1" href="#apps"><T k="home.hero.ctaApps" /><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="btn btn-2" href="#podcast"><T k="home.hero.ctaPodcast" /></a>
       </div>
     </div>
   </div>
@@ -81,7 +83,7 @@ const showPodcast = !!(podcast && featuredEp);
       <div class="spine">
         <span class="no">01</span>
         <span class="lab">Apps</span>
-        <span class="note">每款只把一件事做好。</span>
+        <span class="note"><T k="home.apps.note" /></span>
       </div>
       <div class="apps">
         {featuredApp && (
@@ -97,26 +99,26 @@ const showPodcast = !!(podcast && featuredEp);
               </div>
             </div>
             <div class="feature-body">
-              <div class="ftag">Featured · 主推</div>
+              <div class="ftag"><T k="home.apps.featuredTag" /></div>
               <h3>{featuredApp.name}</h3>
               {featuredApp.tagline && <p>{featuredApp.tagline}</p>}
               <div class="fmeta">
                 {featuredApp.category && (
                   <div>
-                    <span class="k">Category</span>
+                    <span class="k"><T k="home.meta.category" /></span>
                     <span class="v">{featuredApp.category}</span>
                   </div>
                 )}
                 {featuredApp.publishedAt && (
                   <div>
-                    <span class="k">Since</span>
+                    <span class="k"><T k="home.meta.since" /></span>
                     <span class="v">{new Date(featuredApp.publishedAt * 1000).getUTCFullYear()}</span>
                   </div>
                 )}
                 {featuredApp.appStoreUrl && (
                   <div>
-                    <span class="k">Store</span>
-                    <span class="v">App Store ↗</span>
+                    <span class="k"><T k="home.meta.store" /></span>
+                    <span class="v"><T k="home.meta.appStore" /> ↗</span>
                   </div>
                 )}
               </div>
@@ -143,13 +145,13 @@ const showPodcast = !!(podcast && featuredEp);
                   </span>
                 )}
                 {a.appStoreUrl && (
-                  <span class="store">App Store <svg class="arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg></span>
+                  <span class="store"><T k="home.meta.appStore" /> <svg class="arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg></span>
                 )}
               </div>
             </a>
           ))}
         </div>
-        <a class="viewall" href="/apps">全部作品 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="viewall" href="/apps"><T k="home.apps.viewall" /> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
       </div>
     </div>
   </section>
@@ -161,7 +163,7 @@ const showPodcast = !!(podcast && featuredEp);
     <div class="spine">
       <span class="no">02</span>
       <span class="lab">Writing</span>
-      <span class="note">关于设计取舍、工程实践与独立开发。</span>
+      <span class="note"><T k="home.writing.note" /></span>
     </div>
     <div>
       <div class="list">
@@ -178,7 +180,7 @@ const showPodcast = !!(podcast && featuredEp);
           </a>
         ))}
       </div>
-      <a class="viewall" href="/writing">全部文章 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <a class="viewall" href="/writing"><T k="home.writing.viewall" /> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     </div>
   </div>
 </section>
@@ -204,7 +206,7 @@ const showPodcast = !!(podcast && featuredEp);
           </div>
           <div class="eb">
             <span class="en">
-              {featuredEp.episodeNumber != null ? `EP.${featuredEp.episodeNumber} · 最新一期` : '最新一期'}
+              {featuredEp.episodeNumber != null ? `EP.${featuredEp.episodeNumber} · ` : ''}<T k="home.podcast.featuredPrefix" />
             </span>
             <h3>{featuredEp.title}</h3>
             <audio controls preload="metadata" src={featuredEp.audioUrl}></audio>
@@ -227,7 +229,7 @@ const showPodcast = !!(podcast && featuredEp);
             );
           })}
         </div>
-        <a class="viewall" href="/podcast">全部单集 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="viewall" href="/podcast"><T k="home.podcast.viewall" /> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
       </div>
     </div>
   </section>

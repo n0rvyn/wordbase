@@ -2,9 +2,16 @@
 import '../styles/tokens.css';
 import { buildWebSiteLd, buildOrganizationLd } from '../lib/jsonld.js';
 import { getSiteIdentity } from '../lib/api';
+import T from '../components/T.astro';
 
 interface Props {
   title: string;
+  /** English title for client-side <title> swap when language is en.
+   *  Static <title> still renders Chinese (crawler/no-JS default);
+   *  the bundled script overwrites document.title at runtime. Leave
+   *  undefined for API-derived titles (posts, apps, podcast, tag/category
+   *  detail pages) where the title IS the content and stays Chinese. */
+  titleEn?: string;
   description?: string;
   ogImage?: string;
   ogType?: 'website' | 'article';
@@ -16,10 +23,15 @@ interface Props {
 }
 
 // 保留现有默认串逐字不变，避免回归既有页面 meta。
-const { title, description = 'A personal blog powered by Wordbase', ogImage, ogType = 'website', article, jsonLd = [], feeds = [] } = Astro.props;
+const { title, titleEn, description = 'A personal blog powered by Wordbase', ogImage, ogType = 'website', article, jsonLd = [], feeds = [] } = Astro.props;
 const id = await getSiteIdentity();
 const siteTitle = id.name;
 const fullTitle = title === siteTitle ? title : `${title} — ${siteTitle}`;
+// Mirror the same join rule for the English title so 'Apps — norvyn' style
+// canonical titles are preserved on the EN tab label. If the caller didn't
+// pass a titleEn, fullTitleEn stays empty and the bundled script leaves
+// the (Chinese) document.title untouched.
+const fullTitleEn = titleEn ? (titleEn === siteTitle ? titleEn : `${titleEn} — ${siteTitle}`) : '';
 const apiUrl = (import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4100').replace(/\/$/, '');
 const currentPath = Astro.url.pathname;
 const ogImageUrl = new URL(ogImage ?? '/og-image.png', Astro.site).href;
@@ -34,7 +46,7 @@ const navItems = [
 ];
 ---
 
-<html lang="zh-CN" data-theme="light">
+<html lang="zh-CN" data-theme="light" data-title-en={fullTitleEn || undefined}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -77,7 +89,11 @@ const navItems = [
     <!-- FOUC-prevention bootstrap: read localStorage['norvyn-v2'] before paint.
          is:inline + in <head> => runs synchronously before <body> paints (no FOUC).
          Cannot import src/lib/theme.ts here; this hand-mirrors readPrefs +
-         resolveTheme/resolveAccent. Keep in sync with that module. -->
+         resolveTheme/resolveAccent. Keep in sync with that module.
+         Also resolves the active UI language — mirrors lib/i18n.ts detectLang()
+         three-level guard exactly: stored 'zh'/'en' wins, else falsy
+         navigator.language → 'zh' default BEFORE the startsWith('zh') check,
+         else prefix test. -->
     <script is:inline>
       (function() {
         var LS = 'norvyn-v2';
@@ -87,10 +103,15 @@ const navItems = [
           var stored = JSON.parse(localStorage.getItem(LS) || '{}');
           var theme = stored.theme || DEFAULT_THEME;
           var accent = stored.accent || DEFAULT_ACCENT;
+          var lang = (stored.lang === 'zh' || stored.lang === 'en') ? stored.lang : (!navigator.language ? 'zh' : (navigator.language.toLowerCase().indexOf('zh') === 0 ? 'zh' : 'en'));
           document.documentElement.setAttribute('data-theme', theme);
           document.documentElement.style.setProperty('--accent', accent);
+          document.documentElement.setAttribute('data-lang', lang);
+          document.documentElement.setAttribute('lang', lang === 'en' ? 'en' : 'zh-CN');
         } catch(e) {
           document.documentElement.setAttribute('data-theme', DEFAULT_THEME);
+          document.documentElement.setAttribute('data-lang', 'zh');
+          document.documentElement.setAttribute('lang', 'zh-CN');
         }
       })();
     </script>
@@ -102,12 +123,21 @@ const navItems = [
           <span>{siteTitle}</span><span class="dot"></span>
         </a>
         <div class="nav-r">
-          {navItems.map(item => (
-            <a href={item.href} class:list={[{ active: item.isActive }]}>{item.label}</a>
-          ))}
-          <button class="icon-btn" id="themeBtn" aria-label="切换主题">
+          <div class="nav-links" id="navLinks">
+            {navItems.map(item => (
+              <a href={item.href} class:list={[{ active: item.isActive }]}>{item.label}</a>
+            ))}
+          </div>
+          <button class="icon-btn" id="themeBtn" data-i18n-aria="common.themeToggle" aria-label="切换主题">
             <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
             <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7"/></svg>
+          </button>
+          <button class="icon-btn lang-btn" id="langBtn" data-i18n-aria="common.langToggle" aria-label="切换语言">
+            <span class="lang-zh">中</span><span class="lang-en">EN</span>
+          </button>
+          <button class="icon-btn nav-burger" id="navBurger" aria-expanded="false" aria-controls="navLinks" data-i18n-aria="common.menu" aria-label="菜单">
+            <svg class="burger-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            <svg class="burger-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
           </button>
         </div>
       </div>
@@ -121,37 +151,38 @@ const navItems = [
       <div class="wrap foot">
         <div class="foot-l">
           <div class="brand"><span>{siteTitle}</span><span class="dot"></span></div>
-          <p>独立开发者，住在一座有海的城市。做 App、写字、录播客，慢慢来。</p>
+          <p><T k="foot.tagline" /></p>
         </div>
         <div class="foot-cols">
           <div class="foot-col">
-            <h4>Navigate</h4>
-            <a href="/apps">作品</a>
-            <a href="/writing">写作</a>
-            <a href="/podcast">播客</a>
-            <a href="/about">关于</a>
+            <h4><T k="foot.colNav" /></h4>
+            <a href="/apps"><T k="foot.linkApps" /></a>
+            <a href="/writing"><T k="foot.linkWriting" /></a>
+            <a href="/podcast"><T k="foot.linkPodcast" /></a>
+            <a href="/about"><T k="foot.linkAbout" /></a>
           </div>
           <div class="foot-col">
-            <h4>更多</h4>
-            <a href="/categories">分类</a>
-            <a href="/tags">标签</a>
-            <a href="/archives">归档</a>
+            <h4><T k="foot.colMore" /></h4>
+            <a href="/categories"><T k="foot.linkCategories" /></a>
+            <a href="/tags"><T k="foot.linkTags" /></a>
+            <a href="/archives"><T k="foot.linkArchives" /></a>
           </div>
           <div class="foot-col">
-            <h4>Elsewhere</h4>
+            <h4><T k="foot.colElsewhere" /></h4>
             <a href={`mailto:${id.email}`}>Email</a>
             <a href={id.github} target="_blank" rel="noopener noreferrer">GitHub</a>
           </div>
         </div>
         <div class="foot-bot">
           <span>© {new Date().getFullYear()} {siteTitle}</span>
-          <span>Built with Wordbase</span>
+          <span><T k="foot.builtWith" /></span>
         </div>
       </div>
     </footer>
 
-    <!-- Theme toggle + nav scroll border. Bundled module so it can reuse the
-         tested persistence helpers in src/lib/theme.ts (single source of truth). -->
+    <!-- Theme + language toggle + nav scroll border. Bundled module so it can
+         reuse the tested persistence helpers in src/lib/theme.ts and the
+         i18n helpers in src/lib/i18n.ts (single source of truth). -->
     <script>
       import {
         THEME_LS_KEY,
@@ -161,10 +192,32 @@ const navItems = [
         nextTheme,
         resolveAccent,
       } from '../lib/theme';
+      import {
+        applyAttrI18n,
+        nextLang,
+        type Lang,
+      } from '../lib/i18n';
 
       function applyToDom(theme: string, accent: string) {
         document.documentElement.setAttribute('data-theme', theme);
         document.documentElement.style.setProperty('--accent', accent);
+      }
+
+      // Capture the server-rendered <title> once (the Chinese original) before
+      // any swap, so toggling back to ZH can restore it.
+      const ssrTitle = document.title;
+
+      function applyLangToDom(lang: Lang) {
+        document.documentElement.setAttribute('data-lang', lang);
+        document.documentElement.setAttribute('lang', lang === 'en' ? 'en' : 'zh-CN');
+        // <title> head-swap (two-way): pages with a static title supply
+        // data-title-en. Swap to English in EN, restore the captured Chinese
+        // SSR title in ZH — a one-way overwrite would leave the tab stuck in
+        // English after EN→ZH. Pages without titleEn (API-derived titles:
+        // posts, apps, podcast, tag/category details) have en === undefined,
+        // so document.title is always set back to ssrTitle (their Chinese).
+        const en = document.documentElement.dataset.titleEn;
+        document.title = (en && lang === 'en') ? en : ssrTitle;
       }
 
       // Nav scroll border
@@ -174,6 +227,17 @@ const navItems = [
           nav.classList.toggle('scrolled', window.scrollY > 10);
         }, { passive: true });
       }
+
+      // Apply i18n attribute translation for the active language on load
+      // (the head bootstrap already set data-lang — we honour it). If a user
+      // opens DevTools and rewrites data-lang the attributes stay stale; this
+      // hook is the only one responsible for keeping aria/placeholder/title
+      // in sync with the active language.
+      const initialLang = (document.documentElement.getAttribute('data-lang') as Lang) || 'zh';
+      applyAttrI18n(document, initialLang);
+      // Head <title> swap on first load too (the head bootstrap can't run
+      // applyLangToDom because it lives is:inline and must not import).
+      applyLangToDom(initialLang);
 
       // Theme toggle button
       const btn = document.getElementById('themeBtn');
@@ -185,6 +249,44 @@ const navItems = [
           const accent = resolveAccent(prefs);
           localStorage.setItem(THEME_LS_KEY, JSON.stringify(mergePrefs(prefs, { theme, accent })));
           applyToDom(theme, accent);
+        });
+      }
+
+      // Language toggle button. Persists into the same norvyn-v2 blob as
+      // theme/accent (the theme prefs read/write interface already carries
+      // `lang` through mergePrefs; no extra localStorage key).
+      const langBtn = document.getElementById('langBtn');
+      if (langBtn) {
+        langBtn.addEventListener('click', () => {
+          const prefs = readPrefs(localStorage.getItem(THEME_LS_KEY));
+          const current = (document.documentElement.getAttribute('data-lang') as Lang) || 'zh';
+          const lang = nextLang(current);
+          localStorage.setItem(THEME_LS_KEY, JSON.stringify(mergePrefs(prefs, { lang })));
+          applyLangToDom(lang);
+          applyAttrI18n(document, lang);
+        });
+      }
+
+      // Mobile hamburger: toggles the nav-links dropdown (only visible ≤640px).
+      // Closes on link tap, outside click, or Escape.
+      const burger = document.getElementById('navBurger');
+      if (nav && burger) {
+        const setMenu = (open: boolean) => {
+          nav.classList.toggle('menu-open', open);
+          burger.setAttribute('aria-expanded', String(open));
+        };
+        burger.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setMenu(!nav.classList.contains('menu-open'));
+        });
+        document.getElementById('navLinks')?.addEventListener('click', (e) => {
+          if ((e.target as HTMLElement).closest('a')) setMenu(false);
+        });
+        document.addEventListener('click', (e) => {
+          if (nav.classList.contains('menu-open') && !nav.contains(e.target as Node)) setMenu(false);
+        });
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') setMenu(false);
         });
       }
     </script>
@@ -295,6 +397,7 @@ const navItems = [
   .nav-in {
     display: flex; align-items: center;
     justify-content: space-between; height: 64px;
+    position: relative; /* anchor for the mobile nav-links dropdown */
   }
   .brand {
     display: flex; align-items: center; gap: 8px;
@@ -325,6 +428,41 @@ const navItems = [
   .sun { display: none; }
   :root[data-theme="dark"] .sun { display: block; }
   :root[data-theme="dark"] .moon { display: none; }
+
+  /* ── Nav links + mobile hamburger ── */
+  .nav-links { display: flex; align-items: center; gap: 4px; }
+  .nav-burger { display: none; }
+  .nav-burger .burger-close { display: none; }
+  .nav.menu-open .nav-burger .burger-open { display: none; }
+  .nav.menu-open .nav-burger .burger-close { display: block; }
+  /* Collapse the text nav into a hamburger dropdown on phones (the brand +
+     theme + language controls stay on the bar). Below ~640px the inline links
+     would overflow and clip the rightmost control. */
+  @media (max-width: 640px) {
+    .nav-burger { display: grid; }
+    .nav-links {
+      position: absolute; top: calc(100% + 8px); right: 0;
+      flex-direction: column; align-items: stretch; gap: 2px;
+      min-width: 168px; padding: 8px;
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: 16px; box-shadow: 0 14px 34px -14px rgba(0,0,0,.30);
+      opacity: 0; visibility: hidden; transform: translateY(-6px);
+      transition: opacity .18s var(--ease), transform .18s var(--ease), visibility .18s;
+    }
+    .nav.menu-open .nav-links { opacity: 1; visibility: visible; transform: translateY(0); }
+    .nav-r a { width: 100%; padding: 10px 14px; border-radius: 10px; }
+  }
+
+  /* ── Language toggle (中 / EN) ──
+     Mirrors the sun/moon pattern: default (zh) shows the alternative label
+     (EN) as the click target; clicking switches data-lang and the active
+     label highlights. Sized to fit the existing icon-btn footprint without
+     changing its border/radius — the inner spans are text instead of SVG. */
+  .lang-btn { font-family: var(--font-mono); font-size: 11.5px; letter-spacing: .04em; color: var(--ink-2); }
+  .lang-btn:hover { color: var(--ink); }
+  .lang-en { display: none; }
+  :root[data-lang="en"] .lang-en { display: inline; color: var(--accent); font-weight: 600; }
+  :root[data-lang="en"] .lang-zh { display: none; }
 
   /* ── Footer ── */
   footer {

@@ -3,6 +3,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import { getPosts, estimateReadTime, type Post } from '../lib/api';
 import { formatMonoDate } from '../lib/home';
 import { groupByYear } from '../lib/writing';
+import T from '../components/T.astro';
+import { t } from '../lib/i18n.js';
 
 const { data: postsRaw } = await getPosts({ status: 'published', limit: 10000 });
 const posts = [...postsRaw].sort((a, b) => (b.publishedAt ?? 0) - (a.publishedAt ?? 0));
@@ -10,19 +12,19 @@ const groups = groupByYear(posts);
 const totalPosts = posts.length;
 ---
 
-<BaseLayout title="归档" description="全部文章，按时间倒序。">
+<BaseLayout title="归档" titleEn={t('title.archives').en} description="全部文章，按时间倒序。">
 
 <header class="sec wrap" style="border-top:none;padding-top:clamp(44px,6vw,80px)">
   <div class="row2">
     <div class="spine">
       <span class="no">00</span>
       <span class="lab">Archive</span>
-      <span class="note">{totalPosts} 篇文章，按时间倒序。</span>
+      <span class="note"><T zh={`${totalPosts} 篇文章，按时间倒序。`} en={`${totalPosts} posts, newest first.`} /></span>
     </div>
     <div>
-      <div class="eyebrow">Essays · Timeline</div>
-      <h1>归档</h1>
-      <p class="lede-w">全部已发布的文章。</p>
+      <div class="eyebrow"><T k="archives.eyebrow" /></div>
+      <h1><T k="archives.h1" /></h1>
+      <p class="lede-w"><T k="archives.lede" /></p>
     </div>
   </div>
 </header>
@@ -31,13 +33,13 @@ const totalPosts = posts.length;
   <div class="row2">
     <div class="spine">
       <span class="no">01</span>
-      <span class="lab">All</span>
+      <span class="lab"><T k="archives.all.lab" /></span>
     </div>
     <div id="postList">
       {groups.map(group => (
         <div class="year-section">
           <div class="year-head">
-            <span class="mono">{group.year === 0 ? '未知' : group.year}</span>
+            <span class="mono">{group.year === 0 ? <T k="writing.yearUnknown" /> : group.year}</span>
           </div>
           <div class="list">
             {group.posts.map((p: Post) => (

@@ -3,6 +3,8 @@ import type { GetStaticPaths } from 'astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getPosts, estimateReadTime, stripMarkdown, type Post } from '../../lib/api';
 import { formatMonoDate } from '../../lib/home';
+import T from '../../components/T.astro';
+import { t } from '../../lib/i18n.js';
 
 export const getStaticPaths = (async ({ paginate }) => {
   const { data: posts } = await getPosts({ status: 'published', limit: 10000 });
@@ -13,18 +15,18 @@ export const getStaticPaths = (async ({ paginate }) => {
 const { page } = Astro.props;
 ---
 
-<BaseLayout title={`第 ${page.currentPage} 页`}>
+<BaseLayout title={`第 ${page.currentPage} 页`} titleEn={t('title.page').en.replace('{n}', String(page.currentPage))}>
 
 <header class="sec wrap" style="border-top:none;padding-top:clamp(44px,6vw,80px)">
   <div class="row2">
     <div class="spine">
       <span class="no">00</span>
       <span class="lab">Page {page.currentPage}</span>
-      <span class="note">{page.currentPage} / {page.lastPage}</span>
+      <span class="note"><T zh={`${page.currentPage} / ${page.lastPage}`} en={`${page.currentPage} / ${page.lastPage}`} /></span>
     </div>
     <div>
-      <div class="eyebrow">Writing · 第 {page.currentPage} 页</div>
-      <h1>文章</h1>
+      <div class="eyebrow"><T zh={`Writing · 第 ${page.currentPage} 页`} en={`Writing · Page ${page.currentPage}`} /></div>
+      <h1><T k="pager.h1" /></h1>
     </div>
   </div>
 </header>
@@ -33,7 +35,7 @@ const { page } = Astro.props;
   <div class="row2">
     <div class="spine">
       <span class="no">01</span>
-      <span class="lab">Posts</span>
+      <span class="lab"><T k="pager.posts.lab" /></span>
     </div>
     <div>
       <div class="list">
@@ -51,15 +53,15 @@ const { page } = Astro.props;
 
       <nav class="pager">
         {page.url.prev ? (
-          <a class="pager-btn" href={page.currentPage === 2 ? '/' : page.url.prev}>← 较新</a>
+          <a class="pager-btn" href={page.currentPage === 2 ? '/' : page.url.prev}><T k="pager.newer" /></a>
         ) : (
-          <a class="pager-btn" href="/">← 首页</a>
+          <a class="pager-btn" href="/"><T k="pager.home" /></a>
         )}
         <span class="pager-cur">{page.currentPage} / {page.lastPage}</span>
         {page.url.next ? (
-          <a class="pager-btn" href={page.url.next}>较旧 →</a>
+          <a class="pager-btn" href={page.url.next}><T k="pager.older" /></a>
         ) : (
-          <span class="pager-btn pager-ghost">较旧 →</span>
+          <span class="pager-btn pager-ghost"><T k="pager.older" /></span>
         )}
       </nav>
     </div>

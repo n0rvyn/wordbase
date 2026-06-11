@@ -11,6 +11,7 @@ import {
   formatYear,
 } from '../../lib/app';
 import { buildSoftwareApplicationLd, buildBreadcrumbLd } from '../../lib/jsonld.js';
+import T from '../../components/T.astro';
 import '../../styles/app-detail.css';
 
 export async function getStaticPaths() {
@@ -66,7 +67,7 @@ const jsonLd = [
         <div class="spine">
           <span class="no">00</span>
           <span class="lab">{app.name}</span>
-          <span class="note">norvyn 作品</span>
+          <span class="note"><T k="apps.spineNote" /></span>
         </div>
         <div class="ad-hero">
           <div class="ad-main">
@@ -89,7 +90,7 @@ const jsonLd = [
               <div class="ad-meta">
                 {meta.map(cell => (
                   <div>
-                    <span class="k">{cell.k}</span>
+                    <span class="k"><T zh={cell.k} en={cell.kEn} /></span>
                     <span class="v">
                       {cell.star && (
                         <span class="star">
@@ -112,7 +113,7 @@ const jsonLd = [
                   <path d="M7 17 17 7M9 7h8v8"/>
                 </svg>
               </a>
-              <a class="btn btn-2" href="#about">了解更多</a>
+              <a class="btn btn-2" href="#about"><T k="apps.viewMore" /></a>
             </div>
           </div>
 
@@ -147,8 +148,8 @@ const jsonLd = [
         <div class="row2">
           <div class="spine">
             <span class="no">01</span>
-            <span class="lab">Features</span>
-            <span class="note">把一件事，做到刚好。</span>
+            <span class="lab"><T k="apps.features.lab" /></span>
+            <span class="note"><T k="apps.features.note" /></span>
           </div>
           <div class="list">
             {features.map(f => (
@@ -171,8 +172,8 @@ const jsonLd = [
         <div class="row2">
           <div class="spine">
             <span class="no">02</span>
-            <span class="lab">Screens</span>
-            <span class="note">左右滑动，看看它的样子。</span>
+            <span class="lab"><T k="apps.screens.lab" /></span>
+            <span class="note"><T k="apps.screens.note" /></span>
           </div>
           <div class="shots">
             {screenshots.map((url, i) => (
@@ -200,8 +201,8 @@ const jsonLd = [
       <div class="row2">
         <div class="spine">
           <span class="no">03</span>
-          <span class="lab">About</span>
-          <span class="note">它从哪来，为谁而做。</span>
+          <span class="lab"><T k="apps.about.lab" /></span>
+          <span class="note"><T k="apps.about.note" /></span>
         </div>
         <div>
           {paras.length > 0 && (
@@ -213,15 +214,15 @@ const jsonLd = [
           )}
           <div class="ad-credit">
             {formatYear(app.releaseDate) != null && (
-              <span>首发 {formatYear(app.releaseDate)}</span>
+              <span><T zh={`首发 ${formatYear(app.releaseDate)}`} en={`Released ${formatYear(app.releaseDate)}`} /></span>
             )}
             {app.currentVersionReleaseDate != null && (
-              <span>最近更新 {formatMonoDate(app.currentVersionReleaseDate)}</span>
+              <span><T zh={`最近更新 ${formatMonoDate(app.currentVersionReleaseDate)}`} en={`Last updated ${formatMonoDate(app.currentVersionReleaseDate)}`} /></span>
             )}
-            <span>开发者 norvyn</span>
+            <span><T zh="开发者 norvyn" en="Developer norvyn" /></span>
           </div>
           <div class="ad-share">
-            <span class="ad-share-label">分享</span>
+            <span class="ad-share-label"><T k="apps.share" /></span>
             <ShareButtons title={app.name} url={shareUrl} compact />
           </div>
         </div>
@@ -234,8 +235,8 @@ const jsonLd = [
         <div class="row2">
           <div class="spine">
             <span class="no">04</span>
-            <span class="lab">More</span>
-            <span class="note">其它作品。</span>
+            <span class="lab"><T k="apps.more.lab" /></span>
+            <span class="note"><T k="apps.more.note" /></span>
           </div>
           <div class="list">
             {moreApps.map(a => (

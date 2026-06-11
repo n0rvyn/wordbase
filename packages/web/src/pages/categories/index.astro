@@ -2,6 +2,8 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getCategories, getPosts, type Category } from '../../lib/api';
 import { decodeEntities } from '../../lib/home';
+import T from '../../components/T.astro';
+import { t } from '../../lib/i18n.js';
 
 const categories = await getCategories();
 
@@ -13,18 +15,18 @@ for (const cat of categories) {
 }
 ---
 
-<BaseLayout title="分类" description="全部文章分类。">
+<BaseLayout title="分类" titleEn={t('title.categories').en} description="全部文章分类。">
 
 <header class="sec wrap" style="border-top:none;padding-top:clamp(44px,6vw,80px)">
   <div class="row2">
     <div class="spine">
       <span class="no">00</span>
       <span class="lab">Categories</span>
-      <span class="note">{categories.length} 个分类。</span>
+      <span class="note"><T zh={`${categories.length} 个分类。`} en={`${categories.length} categories.`} /></span>
     </div>
     <div>
-      <div class="eyebrow">Writing · Topics</div>
-      <h1>分类</h1>
+      <div class="eyebrow"><T k="cat.index.eyebrow" /></div>
+      <h1><T k="cat.index.h1" /></h1>
     </div>
   </div>
 </header>
@@ -33,11 +35,11 @@ for (const cat of categories) {
   <div class="row2">
     <div class="spine">
       <span class="no">01</span>
-      <span class="lab">All</span>
+      <span class="lab"><T k="cat.index.all.lab" /></span>
     </div>
     <div>
       {categories.length === 0 ? (
-        <div class="empty">暂无分类。</div>
+        <div class="empty"><T k="cat.index.empty" /></div>
       ) : (
         <div class="list">
           {categories.map((cat: Category) => (
@@ -46,7 +48,7 @@ for (const cat of categories) {
                 <div class="item-title">{decodeEntities(cat.name)}</div>
                 {cat.description && <div class="item-sub">{cat.description}</div>}
               </div>
-              <div class="item-meta">{catCounts.get(cat.slug) ?? 0} 篇</div>
+              <div class="item-meta"><T zh={`${catCounts.get(cat.slug) ?? 0} 篇`} en={`${catCounts.get(cat.slug) ?? 0} posts`} /></div>
             </a>
           ))}
         </div>
