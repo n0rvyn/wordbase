@@ -1,0 +1,35 @@
+---
+// Dual-copy text component for site chrome bilingual rendering (Phase 1).
+//
+// Renders both the Chinese and English version of a string side-by-side, each
+// in a <span data-l="zh|en"> wrapper. The active language is hidden / shown
+// by the rules in styles/tokens.css at the :root[data-lang="…"] selector, so
+// the SSR HTML always contains both copies (no FOUC on first paint; the
+// active one is selected before paint by the head bootstrap setting
+// data-lang).
+//
+// Two ways to feed strings:
+//   <T k="home.hero.h1" />         — look up by key in lib/i18n.ts
+//   <T zh="…" en="…" />            — inline string (used when the Chinese
+//                                     value is built dynamically, e.g. with
+//                                     a count or category name; here the
+//                                     inline `zh` wins over `k`).
+//
+// Both spans use set:html so the dictionary may include inline markup like
+// <em> or <strong>. Active [data-l] is forced display:inline in the global
+// CSS, so the value MUST stay inline (no block-level elements).
+import { t } from '../lib/i18n.js';
+
+interface Props {
+  k?: string;
+  zh?: string;
+  en?: string;
+}
+
+const { k, zh, en } = Astro.props;
+const entry = k ? t(k) : null;
+const zhText = zh ?? entry?.zh ?? '';
+const enText = en ?? entry?.en ?? '';
+---
+
+<span class="i18n" data-i18n={k}><span data-l="zh" set:html={zhText}></span><span data-l="en" set:html={enText}></span></span>
