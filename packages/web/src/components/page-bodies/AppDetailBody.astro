@@ -1,0 +1,267 @@
+---
+// Shared app-detail body for pages/apps/[slug].astro (zh) and
+// pages/en/apps/[slug].astro (en). getStaticPaths + the SEO jsonLd stay in the
+// shells; the shells localize the app (en localizes tagline + features — name
+// and description are ASC-owned and stay as-is) and pass the localized app +
+// the raw moreApps list. This component derives the presentation data (colors,
+// meta cells, paragraphs, screenshots) and renders. Locale prefixes the
+// MORE-APPS links and the share URL with /en. Styles live in app-detail.css.
+import ShareButtons from '../ShareButtons.astro';
+import { formatMonoDate } from '../../lib/home';
+import {
+  parseJsonArray,
+  appColors,
+  buildMetaCells,
+  descriptionParagraphs,
+  formatYear,
+} from '../../lib/app';
+import { enHref, type Locale } from '../../lib/locale';
+import type { App } from '../../lib/api';
+import T from '../T.astro';
+import '../../styles/app-detail.css';
+
+interface Props {
+  locale: Locale;
+  app: App;
+  moreApps: App[];
+}
+
+const { locale, app, moreApps } = Astro.props;
+const lhref = (p: string) => (locale === 'en' ? enHref(p) : p);
+
+// macOS apps render screenshots in a Mac-window frame; iOS keeps the phone frame.
+const isMac = app.platform === 'macOS';
+
+// Parse JSON string fields
+const features = parseJsonArray<{ icon: string; title: string; blurb: string }>(app.features);
+const screenshots = parseJsonArray<string>(app.screenshots);
+
+// Per-app CSS colour vars
+const { app: appC, app2 } = appColors(app.accentColor);
+
+// Meta row cells
+const meta = buildMetaCells(app);
+
+// About paragraphs (description is ASC-owned, not localized)
+const paras = descriptionParagraphs(app.description);
+
+// App Store URL (construct fallback from appStoreId)
+const appStoreHref = app.appStoreUrl ?? (app.appStoreId ? `https://apps.apple.com/app/id${app.appStoreId}` : '#');
+
+// Canonical (locale-aware) page URL for sharing
+const shareUrl = new URL(lhref(`/apps/${app.slug}`), Astro.site).href;
+---
+
+<div id="top" style={`--app:${appC};--app-2:${app2}`}>
+
+  {/* 00 HERO */}
+  <header class="sec wrap" style="border-top:none;padding-top:clamp(40px,6vw,72px)">
+    <div class="row2">
+      <div class="spine">
+        <span class="no">00</span>
+        <span class="lab">{app.name}</span>
+        <span class="note"><T k="apps.spineNote" /></span>
+      </div>
+      <div class="ad-hero">
+        <div class="ad-main">
+          <div class="ad-id">
+            <div class="ad-icon">
+              {app.icon
+                ? <img src={app.icon} alt={app.name} />
+                : app.name.charAt(0)
+              }
+            </div>
+            <div>
+              <h1>{app.name}</h1>
+              {app.category && <span class="cat">{app.category}</span>}
+            </div>
+          </div>
+
+          {app.tagline && <p class="ad-tag">{app.tagline}</p>}
+
+          {meta.length > 0 && (
+            <div class="ad-meta">
+              {meta.map(cell => (
+                <div>
+                  <span class="k"><T zh={cell.k} en={cell.kEn} /></span>
+                  <span class="v">
+                    {cell.star && (
+                      <span class="star">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 2.5l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 18.6 6.1 21.3l1.2-6.6L2.5 9.5l6.6-.9z"/>
+                        </svg>
+                      </span>
+                    )}
+                    {cell.v}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div class="ad-cta">
+            <a class="btn btn-1" href={appStoreHref} target="_blank" rel="noopener noreferrer">
+              App Store
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M7 17 17 7M9 7h8v8"/>
+              </svg>
+            </a>
+            <a class="btn btn-2" href="#about"><T k="apps.viewMore" /></a>
+          </div>
+        </div>
+
+        {/* Preview: MacBook screen frame for macOS, phone frame otherwise */}
+        {isMac && screenshots.length > 0 ? (
+          <div class="mac-win">
+            <div class="mac-screen"><img src={screenshots[0]} alt={`${app.name} screenshot`} /></div>
+            <span class="mac-notch"></span>
+          </div>
+        ) : (
+          <div class="phone">
+            <div class="screen">
+              {screenshots.length > 0
+                ? <img src={screenshots[0]} alt={`${app.name} screenshot`} />
+                : (
+                  <>
+                    <div class="s-top"><span>9:41</span><span>{app.name}</span></div>
+                    <div class="ring"><div><span class="t">—</span><span class="c">Preview</span></div></div>
+                  </>
+                )
+              }
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  </header>
+
+  {/* 01 FEATURES */}
+  {features.length > 0 && (
+    <section class="sec wrap" id="features">
+      <div class="row2">
+        <div class="spine">
+          <span class="no">01</span>
+          <span class="lab"><T k="apps.features.lab" /></span>
+          <span class="note"><T k="apps.features.note" /></span>
+        </div>
+        <div class="list">
+          {features.map(f => (
+            <div class="item feat-row">
+              <div class="feat-ic">{f.icon || '·'}</div>
+              <div>
+                <div class="item-title">{f.title}</div>
+                <div class="item-sub">{f.blurb}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  {/* 02 SCREENSHOTS */}
+  {screenshots.length > 0 && (
+    <section class="sec wrap" id="screens">
+      <div class="row2">
+        <div class="spine">
+          <span class="no">02</span>
+          <span class="lab"><T k="apps.screens.lab" /></span>
+          <span class="note"><T k="apps.screens.note" /></span>
+        </div>
+        <div class="shots">
+          {screenshots.map((url, i) => (
+            <div class="shot">
+              {isMac ? (
+                <div class="mac-win">
+                  <div class="mac-screen"><img src={url} alt={`${app.name} screenshot ${i + 1}`} /></div>
+                  <span class="mac-notch"></span>
+                </div>
+              ) : (
+                <div class="shot-frame">
+                  <img src={url} alt={`${app.name} screenshot ${i + 1}`} />
+                </div>
+              )}
+              <span class="cap">{String(i + 1).padStart(2, '0')}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  {/* 03 ABOUT */}
+  <section class="sec wrap" id="about">
+    <div class="row2">
+      <div class="spine">
+        <span class="no">03</span>
+        <span class="lab"><T k="apps.about.lab" /></span>
+        <span class="note"><T k="apps.about.note" /></span>
+      </div>
+      <div>
+        {paras.length > 0 && (
+          <div class="about">
+            {paras.map(p => (
+              <p style="white-space:pre-line">{p}</p>
+            ))}
+          </div>
+        )}
+        <div class="ad-credit">
+          {formatYear(app.releaseDate) != null && (
+            <span><T zh={`首发 ${formatYear(app.releaseDate)}`} en={`Released ${formatYear(app.releaseDate)}`} /></span>
+          )}
+          {app.currentVersionReleaseDate != null && (
+            <span><T zh={`最近更新 ${formatMonoDate(app.currentVersionReleaseDate)}`} en={`Last updated ${formatMonoDate(app.currentVersionReleaseDate)}`} /></span>
+          )}
+          <span><T zh="开发者 norvyn" en="Developer norvyn" /></span>
+        </div>
+        <div class="ad-share">
+          <span class="ad-share-label"><T k="apps.share" /></span>
+          <ShareButtons title={app.name} url={shareUrl} compact />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {/* 04 MORE APPS */}
+  {moreApps.length > 0 && (
+    <section class="sec wrap" id="more">
+      <div class="row2">
+        <div class="spine">
+          <span class="no">04</span>
+          <span class="lab"><T k="apps.more.lab" /></span>
+          <span class="note"><T k="apps.more.note" /></span>
+        </div>
+        <div class="list">
+          {moreApps.map(a => (
+            <a class="item app" href={lhref(`/apps/${a.slug}`)}>
+              <div class="app-ic">
+                {a.icon
+                  ? <img src={a.icon} alt={a.name} />
+                  : a.name.charAt(0)
+                }
+              </div>
+              <div>
+                <div class="item-title">{a.name}</div>
+                {a.tagline && <div class="item-sub">{a.tagline}</div>}
+              </div>
+              <div class="app-r">
+                <span class="item-meta">
+                  {a.category ? a.category.split(' · ').pop() : ''}
+                  {a.category && formatYear(a.releaseDate) ? ' · ' : ''}
+                  {formatYear(a.releaseDate) ?? ''}
+                </span>
+                <span class="store">
+                  App Store
+                  <svg class="arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M7 17 17 7M9 7h8v8"/>
+                  </svg>
+                </span>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+</div>

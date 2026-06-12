@@ -1,0 +1,46 @@
+---
+// Shared companion-page body for pages/[slug].astro (zh) and
+// pages/en/[slug].astro (en). Companion pages have no internal navigation, so
+// the body is locale-identical — the shells parse the (localized) markdown and
+// pass the title + rendered HTML. prose.css is imported here so every consumer
+// gets the prose styling.
+import '../../styles/prose.css';
+
+interface Props {
+  title: string;
+  htmlContent: string;
+}
+
+const { title, htmlContent } = Astro.props;
+---
+
+<header class="sec wrap" style="border-top:none;padding-top:clamp(44px,6vw,80px)">
+  <div class="row2">
+    <div class="spine">
+      <span class="no">00</span>
+      <span class="lab">Page</span>
+    </div>
+    <div>
+      <h1>{title}</h1>
+    </div>
+  </div>
+</header>
+
+<section class="sec wrap">
+  <div class="row2">
+    <div class="spine"></div>
+    <div class="prose" set:html={htmlContent} />
+  </div>
+</section>
+
+<style>
+  /* ── Sections ─────────────────────────────────────────────────────────────── */
+  .sec { padding: clamp(44px, 6vw, 84px) 0; border-top: 1px solid var(--line); }
+
+  /* ── Hero ─────────────────────────────────────────────────────────────────── */
+  h1 {
+    font-family: var(--font-display); font-weight: 500;
+    font-size: clamp(40px, 6vw, 76px); line-height: 1.02;
+    letter-spacing: -.035em; margin: 0 0 22px; color: var(--ink);
+  }
+</style>

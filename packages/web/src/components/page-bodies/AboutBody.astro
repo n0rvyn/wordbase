@@ -1,0 +1,329 @@
+---
+// Shared about-page body. Single source of markup + scoped styles + the
+// accent-picker script for both the zh shell (pages/about.astro) and the en
+// shell (pages/en/about.astro). All copy renders through <T> dual-copy, and
+// there are no internal locale-prefixed links (contact is mailto/GitHub), so
+// the body is locale-identical — no props needed.
+import { ACCENTS } from '../../lib/theme';
+import T from '../T.astro';
+---
+
+<header class="sec wrap" style="border-top:none;padding-top:clamp(44px,6vw,80px)">
+  <div class="row2">
+    <div class="spine">
+      <span class="no">00</span>
+      <span class="lab">About</span>
+      <span class="note"><T k="about.spine.note" /></span>
+    </div>
+    <div class="ab-hero">
+      <div>
+        <div class="eyebrow"><T k="about.eyebrow" /></div>
+        <h1><T k="about.h1" /></h1>
+        <p class="lede"><T k="about.lede" /></p>
+      </div>
+      <div class="portrait">N</div>
+    </div>
+  </div>
+</header>
+
+<section class="sec wrap">
+  <div class="row2">
+    <div class="spine">
+      <span class="no">01</span>
+      <span class="lab"><T k="about.story.lab" /></span>
+      <span class="note"><T k="about.story.note" /></span>
+    </div>
+    <div class="prose-a">
+      <p><T k="about.story.p1" /></p>
+      <p><T k="about.story.p2" /></p>
+      <p><T k="about.story.p3" /></p>
+      <p><T k="about.story.p4" /></p>
+      <p><T k="about.story.p5" /></p>
+    </div>
+  </div>
+</section>
+
+<section class="sec wrap">
+  <div class="row2">
+    <div class="spine">
+      <span class="no">02</span>
+      <span class="lab"><T k="about.now.lab" /></span>
+      <span class="note"><T k="about.now.note" /></span>
+    </div>
+    <div class="now-list">
+      <div class="now-item">
+        <span class="nk"><T k="about.now.building" /></span>
+        <span class="nv"><T k="about.now.building.v" /></span>
+      </div>
+      <div class="now-item">
+        <span class="nk"><T k="about.now.rebuild" /></span>
+        <span class="nv"><T k="about.now.rebuild.v" /></span>
+      </div>
+      <div class="now-item">
+        <span class="nk"><T k="about.now.preparing" /></span>
+        <span class="nv"><T k="about.now.preparing.v" /></span>
+      </div>
+      <div class="now-item">
+        <span class="nk"><T k="about.now.writing" /></span>
+        <span class="nv"><T k="about.now.writing.v" /></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec wrap">
+  <div class="row2">
+    <div class="spine">
+      <span class="no">03</span>
+      <span class="lab"><T k="about.colophon.lab" /></span>
+      <span class="note"><T k="about.colophon.note" /></span>
+    </div>
+    <div class="colophon">
+      <div class="cl">
+        <span class="ck"><T k="about.colophon.design.k" /></span>
+        <span class="cv"><T k="about.colophon.design.v" /></span>
+      </div>
+      <div class="cl">
+        <span class="ck"><T k="about.colophon.type.k" /></span>
+        <span class="cv"><T k="about.colophon.type.v" /></span>
+      </div>
+      <div class="cl">
+        <span class="ck"><T k="about.colophon.theme.k" /></span>
+        <span class="cv"><T k="about.colophon.theme.v" /></span>
+      </div>
+      <div class="cl">
+        <span class="ck"><T k="about.colophon.accent.k" /></span>
+        <span class="cv">
+          <div class="sw-row" id="accentPicker">
+            {ACCENTS.map(a => (
+              <button
+                class="sw"
+                data-value={a.value}
+                title={a.name}
+                aria-label={a.name}
+                style={`background:${a.value}`}
+              ></button>
+            ))}
+          </div>
+        </span>
+      </div>
+      <div class="cl">
+        <span class="ck"><T k="about.colophon.build.k" /></span>
+        <span class="cv"><T k="about.colophon.build.v" /></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec wrap">
+  <div class="row2">
+    <div class="spine">
+      <span class="no">04</span>
+      <span class="lab"><T k="about.contact.lab" /></span>
+      <span class="note"><T k="about.contact.note" /></span>
+    </div>
+    <div>
+      <p class="prose-a" style="margin-bottom:24px"><T k="about.contact.lede" /></p>
+      <div class="contact-row">
+        <a class="cbtn pri" href="mailto:norvyn@norvyn.com">
+          <T k="about.contact.email" />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+        </a>
+        <a class="cbtn" href="https://github.com/n0rvyn" target="_blank" rel="noopener noreferrer">GitHub</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .sec {
+    padding: clamp(44px, 6vw, 84px) 0;
+    border-top: 1px solid var(--line);
+  }
+
+  /* ── Hero layout ── */
+  .ab-hero {
+    display: grid;
+    grid-template-columns: 1fr clamp(150px, 18vw, 200px);
+    gap: clamp(30px, 5vw, 60px);
+    align-items: center;
+  }
+  .ab-hero .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 20px;
+  }
+  .ab-hero h1 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(38px, 5.6vw, 72px);
+    line-height: 1.02;
+    letter-spacing: -.035em;
+    margin: 0 0 22px;
+  }
+  .ab-hero .lede {
+    font-family: var(--font-read);
+    font-size: clamp(17px, 1.8vw, 20px);
+    line-height: 1.7;
+    color: var(--ink-2);
+    max-width: 46ch;
+    margin: 0;
+  }
+  .portrait {
+    width: 100%;
+    max-width: 200px;
+    aspect-ratio: 1;
+    border-radius: 24px;
+    justify-self: center;
+    background: radial-gradient(120% 120% at 30% 0%, color-mix(in srgb, var(--accent) 18%, var(--surface-2)), var(--surface-2));
+    border: 1px solid var(--line);
+    display: grid;
+    place-items: center;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 64px;
+    color: var(--ink-3);
+  }
+
+  /* ── Prose ── */
+  .prose-a {
+    font-family: var(--font-read);
+    font-size: 17px;
+    line-height: 1.9;
+    color: var(--ink-2);
+    max-width: 60ch;
+  }
+  .prose-a p { margin: 0 0 1.3em; }
+  .prose-a strong { color: var(--ink); font-weight: 600; }
+
+  /* ── Now list ── */
+  .now-list { display: flex; flex-direction: column; }
+  .now-item {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 24px;
+    padding: 18px 4px;
+    border-top: 1px solid var(--line);
+    align-items: baseline;
+  }
+  .now-item:first-child { border-top: none; }
+  .now-item .nk {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .now-item .nv {
+    font-family: var(--font-read);
+    font-size: 15.5px;
+    color: var(--ink);
+    line-height: 1.6;
+  }
+  .now-item .nv b { font-weight: 600; }
+
+  /* ── Colophon ── */
+  .colophon { display: flex; flex-direction: column; gap: 14px; }
+  .colophon .cl {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 24px;
+    font-size: 14.5px;
+  }
+  .colophon .ck {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .colophon .cv { color: var(--ink-2); }
+
+  /* ── Accent swatches ── */
+  .sw-row { display: flex; gap: 9px; }
+  .sw {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform .15s;
+    position: relative;
+  }
+  .sw:hover { transform: scale(1.1); }
+  .sw.sel { border-color: var(--ink-3); }
+  .sw.sel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.15);
+  }
+
+  /* ── Contact ── */
+  .contact-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .cbtn {
+    font-family: var(--font-ui);
+    font-size: 15px;
+    font-weight: 600;
+    padding: 12px 20px;
+    border-radius: 99px;
+    border: 1px solid var(--line-2);
+    color: var(--ink);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform .18s var(--ease), border-color .2s, background .2s;
+  }
+  .cbtn:hover { transform: translateY(-1px); border-color: var(--ink-3); background: var(--surface-2); }
+  .cbtn.pri { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+  .cbtn svg { width: 14px; height: 14px; }
+
+  /* ── Responsive ── */
+  @media (max-width: 880px) {
+    .ab-hero { grid-template-columns: 1fr; gap: 30px; }
+    .ab-hero .portrait { order: -1; justify-self: start; }
+  }
+  @media (max-width: 560px) {
+    .now-item,
+    .colophon .cl { grid-template-columns: 1fr; gap: 5px; }
+  }
+</style>
+
+<script>
+  import {
+    persistAccent,
+    readPrefs,
+    resolveAccent,
+    isValidAccent,
+    THEME_LS_KEY,
+  } from '../../lib/theme';
+
+  const picker = document.getElementById('accentPicker');
+  if (picker) {
+    // Mark the currently active swatch as selected
+    const current = resolveAccent(readPrefs(localStorage.getItem(THEME_LS_KEY)));
+    picker.querySelectorAll<HTMLButtonElement>('.sw').forEach(btn => {
+      btn.classList.toggle('sel', btn.dataset.value === current);
+    });
+
+    // On swatch click: persist + apply + update selection
+    picker.addEventListener('click', (e) => {
+      const btn = (e.target as Element).closest<HTMLButtonElement>('.sw');
+      if (!btn) return;
+      const value = btn.dataset.value;
+      if (!value || !isValidAccent(value)) return;
+      localStorage.setItem(THEME_LS_KEY, persistAccent(localStorage.getItem(THEME_LS_KEY), value));
+      document.documentElement.style.setProperty('--accent', value);
+      picker.querySelectorAll('.sw').forEach(s => s.classList.remove('sel'));
+      btn.classList.add('sel');
+    });
+  }
+</script>

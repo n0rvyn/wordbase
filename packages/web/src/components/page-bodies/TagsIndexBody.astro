@@ -1,0 +1,83 @@
+---
+// Shared tags-index body for pages/tags/index.astro (zh) and
+// pages/en/tags/index.astro (en). Tag names are not translated, so the only
+// locale effect is the /en link prefix.
+import { decodeEntities } from '../../lib/home';
+import type { Tag } from '../../lib/api';
+import { enHref, type Locale } from '../../lib/locale';
+import T from '../T.astro';
+
+interface Props {
+  locale: Locale;
+  tags: Tag[];
+}
+
+const { locale, tags } = Astro.props;
+const lhref = (p: string) => (locale === 'en' ? enHref(p) : p);
+---
+
+<header class="sec wrap" style="border-top:none;padding-top:clamp(44px,6vw,80px)">
+  <div class="row2">
+    <div class="spine">
+      <span class="no">00</span>
+      <span class="lab">Tags</span>
+      <span class="note"><T zh={`${tags.length} 个标签。`} en={`${tags.length} tags.`} /></span>
+    </div>
+    <div>
+      <div class="eyebrow"><T k="tag.index.eyebrow" /></div>
+      <h1><T k="tag.index.h1" /></h1>
+    </div>
+  </div>
+</header>
+
+<section class="sec wrap">
+  <div class="row2">
+    <div class="spine">
+      <span class="no">01</span>
+      <span class="lab"><T k="tag.index.all.lab" /></span>
+    </div>
+    <div>
+      {tags.length === 0 ? (
+        <div class="empty"><T k="tag.index.empty" /></div>
+      ) : (
+        <div class="tag-cloud">
+          {tags.map((tag: Tag) => (
+            <a class="chip-f" href={lhref(`/tags/${tag.slug}`)}>{decodeEntities(tag.name)}</a>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+</section>
+
+<style>
+  /* ── Sections ─────────────────────────────────────────────────────────────── */
+  .sec { padding: clamp(44px, 6vw, 84px) 0; border-top: 1px solid var(--line); }
+
+  /* ── Hero ─────────────────────────────────────────────────────────────────── */
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 12.5px;
+    letter-spacing: .16em; text-transform: uppercase;
+    color: var(--ink-3); margin-bottom: 20px;
+  }
+  h1 {
+    font-family: var(--font-display); font-weight: 500;
+    font-size: clamp(40px, 6vw, 76px); line-height: 1.02;
+    letter-spacing: -.035em; margin: 0 0 22px;
+  }
+
+  /* ── Empty state ──────────────────────────────────────────────────────────── */
+  .empty { font-family: var(--font-read); color: var(--ink-3); font-size: 16px; padding: 48px 0; }
+
+  /* ── Tag cloud ────────────────────────────────────────────────────────────── */
+  .tag-cloud {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  }
+  .chip-f {
+    font-family: var(--font-mono); font-size: 11.5px; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--ink-2); background: transparent;
+    border: 1px solid var(--line-2); border-radius: 99px; padding: 8px 15px;
+    transition: all .2s var(--ease); display: inline-block;
+  }
+  .chip-f:hover { border-color: var(--ink-3); color: var(--ink); }
+</style>
