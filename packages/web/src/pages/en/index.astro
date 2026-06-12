@@ -1,0 +1,11 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import HomeBody from '../../components/page-bodies/HomeBody.astro';
+import { loadHomeData } from '../../lib/home';
+
+const data = await loadHomeData('en');
+---
+
+<BaseLayout title="norvyn" locale="en" description="Independent iOS developer — apps, writing, and a podcast. By norvyn.">
+  <HomeBody locale="en" {...data} />
+</BaseLayout>

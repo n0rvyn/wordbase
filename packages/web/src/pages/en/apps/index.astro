@@ -1,0 +1,16 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import AppsIndexBody from '../../../components/page-bodies/AppsIndexBody.astro';
+import { getApps, type App } from '../../../lib/api';
+import { selectFeaturedApp, restApps } from '../../../lib/home';
+import { localizeApp } from '../../../lib/localize';
+
+const { data: apps } = await getApps({ status: 'published' });
+const featuredApp = selectFeaturedApp(apps);
+const orderedRaw: App[] = featuredApp ? [featuredApp, ...restApps(apps, featuredApp)] : [...apps];
+const ordered = await Promise.all(orderedRaw.map((a) => localizeApp(a, 'en')));
+---
+
+<BaseLayout title="Apps" locale="en" hasEnTwin description="Small, restrained apps I build.">
+  <AppsIndexBody locale="en" apps={ordered} />
+</BaseLayout>

@@ -1,0 +1,11 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import WritingIndexBody from '../../../components/page-bodies/WritingIndexBody.astro';
+import { loadWritingIndexData } from '../../../lib/writing';
+
+const data = await loadWritingIndexData('en');
+---
+
+<BaseLayout title="Writing" locale="en" description="On design tradeoffs, engineering practice, and shipping solo.">
+  <WritingIndexBody locale="en" {...data} />
+</BaseLayout>

@@ -1,0 +1,82 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import PostDetailBody from '../../../components/page-bodies/PostDetailBody.astro';
+import { getPosts, getCategories, estimateReadTime, stripMarkdown, type Post, getSiteIdentity } from '../../../lib/api';
+import { injectHeadingIds, selectAdjacent } from '../../../lib/article';
+import { buildBlogPostingLd, buildBreadcrumbLd } from '../../../lib/jsonld.js';
+import { localizePost } from '../../../lib/localize';
+import { marked } from 'marked';
+
+export async function getStaticPaths() {
+  const { data: posts } = await getPosts({ status: 'published', limit: 10000 });
+  const sorted = [...posts].sort((a, b) => (b.publishedAt ?? 0) - (a.publishedAt ?? 0));
+  const orderedSlugs = sorted.map((p: Post) => p.slug);
+  const slugTitle: Record<string, string> = {};
+  sorted.forEach((p: Post) => { slugTitle[p.slug] = p.title; });
+
+  // Build per-post first-category map (categories are not localized here, only
+  // entity body text).
+  const allCats = await getCategories();
+  const postFirstCat: Record<string, string> = {};
+  for (const cat of allCats) {
+    const { data: catPosts } = await getPosts({ status: 'published', category: cat.slug, limit: 10000 });
+    for (const p of catPosts) {
+      if (!postFirstCat[p.id]) {
+        postFirstCat[p.id] = cat.name;
+      }
+    }
+  }
+
+  return sorted.map((post: Post) => ({
+    params: { slug: post.slug },
+    props: { post, orderedSlugs, slugTitle, postFirstCat },
+  }));
+}
+
+const { post, orderedSlugs, slugTitle, postFirstCat } = Astro.props as {
+  post: Post;
+  orderedSlugs: string[];
+  slugTitle: Record<string, string>;
+  postFirstCat: Record<string, string>;
+};
+
+// Localize the post body; falls back to source on a cache miss (build never aborts).
+const localized = await localizePost(post, 'en');
+const meta = localized.meta ? JSON.parse(localized.meta) : {};
+const description = localized.excerpt || meta.description || stripMarkdown(localized.content, 160);
+const readTime = estimateReadTime(localized.content);
+const { html, toc } = injectHeadingIds(marked.parse(localized.content) as string);
+const { newer, older } = selectAdjacent(orderedSlugs, localized.slug);
+const firstCat = postFirstCat[localized.id] || '';
+const origin = Astro.site!.href.replace(/\/$/, '');
+const id = await getSiteIdentity();
+const jsonLd = [
+  buildBlogPostingLd(localized, origin, id.author),
+  buildBreadcrumbLd([
+    { name: 'Writing', url: `${origin}/en/writing` },
+    { name: localized.title, url: `${origin}/en/posts/${localized.slug}` },
+  ]),
+];
+const article = {
+  publishedTime: localized.publishedAt ?? undefined,
+  modifiedTime: localized.updatedAt,
+  author: id.author,
+  section: firstCat || undefined,
+  tags: undefined,
+};
+---
+
+<BaseLayout title={localized.title} description={description} ogImage={localized.coverImage || undefined} ogType="article" article={article} jsonLd={jsonLd} locale="en">
+  <PostDetailBody
+    locale="en"
+    post={localized}
+    description={description}
+    readTime={readTime}
+    html={html}
+    toc={toc}
+    newer={newer}
+    older={older}
+    firstCat={firstCat}
+    slugTitle={slugTitle}
+  />
+</BaseLayout>

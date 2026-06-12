@@ -1,0 +1,29 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import CategoryDetailBody from '../../../components/page-bodies/CategoryDetailBody.astro';
+import { getCategories, getPosts, type Category } from '../../../lib/api';
+import { decodeEntities } from '../../../lib/home';
+import { localizePost } from '../../../lib/localize';
+
+export async function getStaticPaths() {
+  const categories = await getCategories();
+  return categories.map((cat: Category) => ({
+    params: { slug: cat.slug },
+    props: { category: cat },
+  }));
+}
+
+interface Props {
+  category: Category;
+}
+
+const { category } = Astro.props;
+const { data: postsRaw } = await getPosts({ status: 'published', category: category.slug, limit: 10000 });
+const sorted = [...postsRaw].sort((a, b) => (b.publishedAt ?? 0) - (a.publishedAt ?? 0));
+const posts = await Promise.all(sorted.map((p) => localizePost(p, 'en')));
+const catName = decodeEntities(category.name);
+---
+
+<BaseLayout title={catName} locale="en" description={category.description || undefined}>
+  <CategoryDetailBody locale="en" catName={catName} description={category.description} posts={posts} />
+</BaseLayout>

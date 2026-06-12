@@ -1,0 +1,36 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import AppDetailBody from '../../../components/page-bodies/AppDetailBody.astro';
+import { getApps, type App } from '../../../lib/api';
+import { localizeApp } from '../../../lib/localize';
+import { buildSoftwareApplicationLd, buildBreadcrumbLd } from '../../../lib/jsonld.js';
+
+export async function getStaticPaths() {
+  const { data: apps } = await getApps({ status: 'published', limit: 10000 });
+  return apps.map((app: App) => ({
+    params: { slug: app.slug },
+    props: {
+      app,
+      moreApps: apps.filter((a: App) => a.slug !== app.slug),
+    },
+  }));
+}
+
+const { app, moreApps } = Astro.props as { app: App; moreApps: App[] };
+
+// Localize tagline + features; name + description are ASC-owned and stay as-is.
+const localized = await localizeApp(app, 'en');
+
+const origin = Astro.site!.href.replace(/\/$/, '');
+const jsonLd = [
+  buildSoftwareApplicationLd(localized, origin),
+  buildBreadcrumbLd([
+    { name: 'Apps', url: `${origin}/en/apps` },
+    { name: localized.name, url: `${origin}/en/apps/${localized.slug}` },
+  ]),
+];
+---
+
+<BaseLayout title={`${localized.name} — norvyn`} description={localized.tagline ?? ''} jsonLd={jsonLd} locale="en">
+  <AppDetailBody locale="en" app={localized} moreApps={moreApps} />
+</BaseLayout>

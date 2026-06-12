@@ -1,0 +1,29 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import TagDetailBody from '../../../components/page-bodies/TagDetailBody.astro';
+import { getTags, getPosts, type Tag } from '../../../lib/api';
+import { decodeEntities } from '../../../lib/home';
+import { localizePost } from '../../../lib/localize';
+
+export async function getStaticPaths() {
+  const tags = await getTags();
+  return tags.map((tag: Tag) => ({
+    params: { slug: tag.slug },
+    props: { tag },
+  }));
+}
+
+interface Props {
+  tag: Tag;
+}
+
+const { tag } = Astro.props;
+const { data: postsRaw } = await getPosts({ status: 'published', tag: tag.slug, limit: 10000 });
+const sorted = [...postsRaw].sort((a, b) => (b.publishedAt ?? 0) - (a.publishedAt ?? 0));
+const posts = await Promise.all(sorted.map((p) => localizePost(p, 'en')));
+const tagName = decodeEntities(tag.name);
+---
+
+<BaseLayout title={tagName} locale="en">
+  <TagDetailBody locale="en" tagName={tagName} posts={posts} />
+</BaseLayout>

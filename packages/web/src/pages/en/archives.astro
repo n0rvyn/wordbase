@@ -1,0 +1,11 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ArchivesBody from '../../components/page-bodies/ArchivesBody.astro';
+import { loadArchivesData } from '../../lib/writing';
+
+const { groups, totalPosts } = await loadArchivesData('en');
+---
+
+<BaseLayout title="Archive" locale="en" hasEnTwin description="All posts, newest first.">
+  <ArchivesBody locale="en" groups={groups} totalPosts={totalPosts} />
+</BaseLayout>

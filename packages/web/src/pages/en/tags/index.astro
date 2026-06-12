@@ -1,0 +1,11 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import TagsIndexBody from '../../../components/page-bodies/TagsIndexBody.astro';
+import { getTags } from '../../../lib/api';
+
+const tags = await getTags();
+---
+
+<BaseLayout title="Tags" locale="en" description="All writing tags.">
+  <TagsIndexBody locale="en" tags={tags} />
+</BaseLayout>

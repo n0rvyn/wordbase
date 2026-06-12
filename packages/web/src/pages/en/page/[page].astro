@@ -1,0 +1,27 @@
+---
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import PagerBody from '../../../components/page-bodies/PagerBody.astro';
+import { getPosts, type Post } from '../../../lib/api';
+import { localizePost } from '../../../lib/localize';
+
+export const getStaticPaths = (async ({ paginate }) => {
+  const { data: posts } = await getPosts({ status: 'published', limit: 10000 });
+  const sorted = posts.sort((a, b) => (b.publishedAt || 0) - (a.publishedAt || 0));
+  return paginate(sorted, { pageSize: 10 });
+}) satisfies GetStaticPaths;
+
+const { page } = Astro.props;
+const posts = await Promise.all(page.data.map((p) => localizePost(p as Post, 'en')));
+---
+
+<BaseLayout title={`Page ${page.currentPage}`} locale="en">
+  <PagerBody
+    locale="en"
+    currentPage={page.currentPage}
+    lastPage={page.lastPage}
+    posts={posts}
+    urlPrev={page.url.prev}
+    urlNext={page.url.next}
+  />
+</BaseLayout>

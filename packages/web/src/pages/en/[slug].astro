@@ -1,0 +1,29 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import CompanionBody from '../../components/page-bodies/CompanionBody.astro';
+import { getPages, type Page } from '../../lib/api';
+import { localizePage } from '../../lib/localize';
+import { marked } from 'marked';
+
+export async function getStaticPaths() {
+  const pages = await getPages();
+  return pages
+    .filter((p: Page) => p.status === 'published')
+    .map((p: Page) => ({
+      params: { slug: p.slug },
+      props: { page: p },
+    }));
+}
+
+interface Props {
+  page: Page;
+}
+
+const { page } = Astro.props;
+const localized = await localizePage(page, 'en');
+const htmlContent = marked.parse(localized.content) as string;
+---
+
+<BaseLayout title={localized.title} locale="en">
+  <CompanionBody title={localized.title} htmlContent={htmlContent} />
+</BaseLayout>
