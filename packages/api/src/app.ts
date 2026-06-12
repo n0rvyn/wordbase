@@ -14,6 +14,7 @@ import { buildRouter } from './routes/build.js';
 import { redirectsRouter } from './routes/redirects.js';
 import { podcastsRouter } from './routes/podcasts.js';
 import { appsRouter } from './routes/apps.js';
+import { i18nRouter } from './routes/i18n.js';
 import { mcpHttpHandler } from './mcp/http.js';
 import { redirectMiddleware } from './middleware/redirect.js';
 import { errorMiddleware } from './middleware/error.js';
@@ -59,6 +60,10 @@ app.route('/api/media', mediaRouter);
 // `/api` comments mount so the exact path wins. Auth + scope-gating happen
 // inside the handler. See mcp/http.ts.
 app.on(['POST', 'GET', 'DELETE'], '/api/mcp', mcpHttpHandler);
+// i18n render/pending/cache — public render (no auth) + authed pending/cache.
+// Mounted before the broad `/api` comments router (mirrors the /api/mcp
+// ordering) so the exact path wins.
+app.route('/api/i18n', i18nRouter);
 app.route('/api', commentsRouter);
 app.route('/api/analytics', analyticsRouter);
 app.route('/api/observability', observabilityRouter);
