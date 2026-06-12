@@ -12,6 +12,7 @@ import * as appService from '../services/app.service.js';
 import * as appSyncService from '../services/app-sync.service.js';
 import * as pageService from '../services/page.service.js';
 import * as feedImportService from '../services/feed-import.service.js';
+import * as i18nContent from '../services/i18n-content.service.js';
 import { safeFetch } from '../lib/safe-fetch.js';
 import { hasScope } from '../middleware/auth.js';
 import { z, type ZodTypeAny } from 'zod';
@@ -88,6 +89,12 @@ const TOOL_SCOPES: Record<string, string> = {
   page_update: 'pages:write',
   page_delete: 'pages:write',
   page_publish: 'pages:write',
+  // i18n tools — mirrors the REST /api/i18n/* route scopes. i18n_render is
+  // public over REST (Phase 4 build needs no key) but MCP has no anonymous
+  // concept, so we require i18n:read here. Same service on both sides.
+  i18n_render: 'i18n:read',
+  i18n_pending: 'i18n:read',
+  i18n_put_cache: 'i18n:write',
 };
 
 export function registerTools(realServer: any, permissions: string[] = ['*']) {
@@ -1125,6 +1132,88 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
 
       const updated = await postService.updatePost(args.id as string, { meta: JSON.stringify(newMeta) });
       return { content: [{ type: 'text' as const, text: JSON.stringify(updated, null, 2) }] };
+    }
+  );
+
+  // i18n tools — entity-aware render/pending/cache. REST and MCP share the
+  // same i18n-content.service so source-unit policy lives in one place.
+  server.tool(
+    'i18n_render',
+    'Render a published entity field in `lang` using the i18n cache. Unpublished entities, unknown ids, and unsupported (type, field) pairs return isError (no auth required for the underlying REST route, but MCP requires i18n:read).',
+    {
+      type: { type: 'string', description: 'Entity type: post, page, or app' },
+      id: { type: 'string', description: 'Entity ID or slug' },
+      field: { type: 'string', description: 'Field to render: content (post/page markdown), title (post/page), tagline or features (app)' },
+      lang: { type: 'string', description: 'Target language code (e.g. en, ja). Empty / "zh" returns the source.' },
+    },
+    async (args: Record<string, unknown>) => {
+      const type = args.type as string | undefined;
+      const id = args.id as string | undefined;
+      const field = args.field as string | undefined;
+      if (type !== 'post' && type !== 'page' && type !== 'app') {
+        return { content: [{ type: 'text' as const, text: 'Unsupported type' }], isError: true };
+      }
+      if (field !== 'content' && field !== 'title' && field !== 'tagline' && field !== 'features') {
+        return { content: [{ type: 'text' as const, text: 'Unsupported field' }], isError: true };
+      }
+      if (!id) {
+        return { content: [{ type: 'text' as const, text: 'id is required' }], isError: true };
+      }
+      const result = await i18nContent.renderEntityField(
+        type,
+        id,
+        field,
+        (args.lang as string) ?? ''
+      );
+      if (!result) {
+        return { content: [{ type: 'text' as const, text: 'Not found' }], isError: true };
+      }
+      return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'i18n_pending',
+    'List translatable source units (across all published posts/pages/apps) that have no cache row for `lang`. Each item is { hash, text, ref }. Ref format: "type:id:field" (or "type:id:features.title|blurb").',
+    {
+      lang: { type: 'string', description: 'Target language code (e.g. en, ja)' },
+    },
+    async (args: Record<string, unknown>) => {
+      const lang = args.lang as string | undefined;
+      if (!lang) {
+        return { content: [{ type: 'text' as const, text: 'lang is required' }], isError: true };
+      }
+      const units = await i18nContent.listPendingUnits(lang);
+      return { content: [{ type: 'text' as const, text: JSON.stringify(units, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'i18n_put_cache',
+    'Write translation entries to the i18n cache. Each entry is { sourceHash, lang, text, model, humanEdited }. Preserves the human_edited guard (AI writes cannot overwrite a human row). entries must be a JSON-encoded string of an array (the MCP schema only carries string/number).',
+    {
+      entries: { type: 'string', description: 'JSON string: array of { sourceHash, lang, text, model, humanEdited }' },
+    },
+    async (args: Record<string, unknown>) => {
+      // toZodShape makes all fields optional, so an absent `entries` must be
+      // rejected explicitly before we try to parse it.
+      if (args.entries === undefined) {
+        return { content: [{ type: 'text' as const, text: 'entries is required' }], isError: true };
+      }
+      if (typeof args.entries !== 'string') {
+        return { content: [{ type: 'text' as const, text: 'entries must be a JSON string' }], isError: true };
+      }
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(args.entries);
+      } catch {
+        return { content: [{ type: 'text' as const, text: 'entries is not valid JSON' }], isError: true };
+      }
+      if (!Array.isArray(parsed)) {
+        return { content: [{ type: 'text' as const, text: 'entries must be a JSON array' }], isError: true };
+      }
+      const result = await i18nContent.putTranslations(parsed as Parameters<typeof i18nContent.putTranslations>[0]);
+      return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
     }
   );
 }
