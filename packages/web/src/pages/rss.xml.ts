@@ -1,3 +1,6 @@
+// Content-bilingual Phase 5: this feed stays zh-only. An English RSS feed is
+// intentionally NOT produced this phase (same deferral tier as podcast bilingual);
+// the bilingual surface is the /en HTML pages + sitemap hreflang alternates.
 import type { APIRoute } from 'astro';
 import { getPosts, getSiteIdentity } from '../lib/api';
 import { buildBlogRssXml } from '../lib/blog-feed';

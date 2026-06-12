@@ -1,3 +1,5 @@
+// Content-bilingual Phase 5: llms.txt stays zh-only this phase (no en variant);
+// the bilingual surface is the /en HTML pages + sitemap hreflang alternates.
 import type { APIRoute } from 'astro';
 import { getPosts, getApps, getPodcasts, getSiteIdentity } from '../lib/api';
 import { buildLlmsTxt } from '../lib/llms';
