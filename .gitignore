@@ -9,6 +9,8 @@ dist/
 # Uploads (managed separately)
 packages/api/data/uploads/*
 !packages/api/data/uploads/.gitkeep
+# repo-root runtime upload dir — media.service.ts writes cwd-relative (data/uploads)
+data/uploads/
 
 # Content-republish trigger marker (transient runtime artifact)
 packages/api/data/.rebuild-request
@@ -47,3 +49,6 @@ packages/web/.claude/
 # Internal AI-workflow planning docs (not for the public repo)
 docs/06-plans/
 docs/11-crystals/
+
+# Generated session reports (not for the public repo)
+docs/reports/
