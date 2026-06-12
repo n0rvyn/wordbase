@@ -298,6 +298,23 @@ export const shareEvents = sqliteTable('share_events', {
   targetIdx: index('ix_share_events_target').on(t.target, t.createdAt),
 }));
 
+// i18n_cache table — per-block translated text cache for the bilingual pipeline.
+// PK = (source_hash, lang): one row per source block per target language.
+// `model` records the provenance of the most recent write ('human' for hand edits
+// or a model identifier for AI translations). `human_edited` is a sticky flag:
+// once a row is human-edited, AI writes must not overwrite it (enforced in
+// services/i18n.service.ts putCache). See Phase 1 plan 2026-06-11.
+export const i18nCache = sqliteTable('i18n_cache', {
+  sourceHash: text('source_hash').notNull(),
+  lang: text('lang').notNull(),
+  text: text('text').notNull(),
+  model: text('model').notNull(),         // 'human' | 'claude-…'
+  humanEdited: integer('human_edited').notNull().default(0),
+  updatedAt: integer('updated_at').notNull(),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.sourceHash, t.lang] }),
+}));
+
 // Type exports for queries
 export type Post = typeof posts.$inferSelect;
 export type NewPost = typeof posts.$inferInsert;
@@ -323,3 +340,5 @@ export type NewPodcastEvent = typeof podcastEvents.$inferInsert;
 export type ShareEvent = typeof shareEvents.$inferSelect;
 export type NewShareEvent = typeof shareEvents.$inferInsert;
 export type NewApp = typeof apps.$inferInsert;
+export type I18nCache = typeof i18nCache.$inferSelect;
+export type NewI18nCache = typeof i18nCache.$inferInsert;

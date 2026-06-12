@@ -282,6 +282,16 @@ export function initializeDatabase() {
       featured INTEGER NOT NULL DEFAULT 0,
       last_synced_at INTEGER
     );
+
+    CREATE TABLE IF NOT EXISTS i18n_cache (
+      source_hash TEXT NOT NULL,
+      lang TEXT NOT NULL,
+      text TEXT NOT NULL,
+      model TEXT NOT NULL,
+      human_edited INTEGER NOT NULL DEFAULT 0,
+      updated_at INTEGER NOT NULL,
+      PRIMARY KEY (source_hash, lang)
+    );
   `);
 
   // Idempotent ALTER for apps table (handles existing production tables without new columns)
