@@ -2,6 +2,7 @@
 import '../styles/tokens.css';
 import { buildWebSiteLd, buildOrganizationLd } from '../lib/jsonld.js';
 import { getSiteIdentity } from '../lib/api';
+import { hreflangAlternates, stripEn } from '../lib/locale';
 import T from '../components/T.astro';
 
 interface Props {
@@ -20,10 +21,19 @@ interface Props {
   // Extra <link rel="alternate"> feeds beyond the site blog feed (e.g. the
   // podcast page injects its show feed, whose slug only the page knows).
   feeds?: { title: string; href: string }[];
+  /** Active page locale. Default 'zh' (zero-regression for existing zh +
+   *  admin pages). When 'en', the layout emits `<html lang="en" data-lang="en">`
+   *  so chrome is English at first paint. */
+  locale?: 'zh' | 'en';
+  /** True when this zh page has a /en/ twin (posts/[slug], [slug], apps/[slug],
+   *  index, about, 404, writing/index, categories/*, tags/*, page/[page]).
+   *  Adds the hreflang set pointing to the en twin, so the zh page also
+   *  declares its alternates. Bidirectional hreflang is required by Google. */
+  hasEnTwin?: boolean;
 }
 
 // 保留现有默认串逐字不变，避免回归既有页面 meta。
-const { title, titleEn, description = 'A personal blog powered by Wordbase', ogImage, ogType = 'website', article, jsonLd = [], feeds = [] } = Astro.props;
+const { title, titleEn, description = 'A personal blog powered by Wordbase', ogImage, ogType = 'website', article, jsonLd = [], feeds = [], locale = 'zh', hasEnTwin = false } = Astro.props;
 const id = await getSiteIdentity();
 const siteTitle = id.name;
 const fullTitle = title === siteTitle ? title : `${title} — ${siteTitle}`;
@@ -39,14 +49,34 @@ const canonicalUrl = new URL(currentPath, Astro.site).href;
 const ldOrigin = Astro.site!.href.replace(/\/$/, '');
 const isoMeta = (ts: number | undefined) => (ts ? new Date(ts * 1000).toISOString() : undefined);
 
+// navItems + footer items — locale-aware. En pages prefix /en on every
+// internal link except /podcast (no en twin). isActive strips the /en
+// prefix before comparing so the same nav item is active on /posts/foo
+// AND /en/posts/foo.
+const en = locale === 'en';
 const navItems = [
-  { href: '/apps',     label: 'Apps',    isActive: currentPath.startsWith('/apps') },
-  { href: '/writing',  label: 'Writing', isActive: currentPath.startsWith('/writing') },
-  { href: '/podcast',  label: 'Podcast', isActive: currentPath.startsWith('/podcast') },
+  { href: en ? '/en/apps'    : '/apps',    label: 'Apps',    isActive: stripEn(currentPath).startsWith('/apps') },
+  { href: en ? '/en/writing' : '/writing', label: 'Writing', isActive: stripEn(currentPath).startsWith('/writing') },
+  { href: '/podcast',                                       label: 'Podcast', isActive: currentPath.startsWith('/podcast') || stripEn(currentPath).startsWith('/podcast') },
 ];
+const footerLinks = {
+  apps:       en ? '/en/apps'       : '/apps',
+  writing:    en ? '/en/writing'    : '/writing',
+  // podcast has no en twin — both locales link to /podcast
+  podcast:    '/podcast',
+  about:      en ? '/en/about'      : '/about',
+  categories: en ? '/en/categories' : '/categories',
+  tags:       en ? '/en/tags'       : '/tags',
+  archives:   en ? '/en/archives'   : '/archives',
+};
+
+// hreflang set: only emit when this page declares itself as part of the
+// bilingual subtree. en pages always declare; zh pages only when hasEnTwin.
+const emitHreflang = en || hasEnTwin;
+const hreflangs = emitHreflang ? hreflangAlternates(currentPath, Astro.site) : [];
 ---
 
-<html lang="zh-CN" data-theme="light" data-title-en={fullTitleEn || undefined}>
+<html lang={en ? 'en' : 'zh-CN'} data-theme="light" data-lang={en ? 'en' : undefined} data-has-en-twin={(hasEnTwin && !en) ? 'true' : undefined} data-title-en={fullTitleEn || undefined}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -55,6 +85,9 @@ const navItems = [
     <link rel="alternate" type="application/rss+xml" title={`${siteTitle} — 文章`} href="/rss.xml" />
     {feeds.map((f) => (
       <link rel="alternate" type="application/rss+xml" title={f.title} href={f.href} />
+    ))}
+    {hreflangs.map((a) => (
+      <link rel="alternate" hreflang={a.hreflang} href={a.href} />
     ))}
     <meta property="og:type" content={ogType} />
     <meta property="og:site_name" content={siteTitle} />
@@ -99,19 +132,38 @@ const navItems = [
         var LS = 'norvyn-v2';
         var DEFAULT_THEME = 'light';
         var DEFAULT_ACCENT = '#3457B6';
+        // Phase 4: /en/ pages force lang='en' at first paint even if a
+        // returning visitor has lang='zh' in localStorage. Without this,
+        // the inline script would revert chrome to Chinese on /en/* and
+        // the chrome would flicker. The catch branch mirrors the same rule
+        // for the (rare) case where localStorage parsing throws.
+        var path = location.pathname;
+        var onEn = path === '/en' || path.indexOf('/en/') === 0;
         try {
           var stored = JSON.parse(localStorage.getItem(LS) || '{}');
           var theme = stored.theme || DEFAULT_THEME;
           var accent = stored.accent || DEFAULT_ACCENT;
           var lang = (stored.lang === 'zh' || stored.lang === 'en') ? stored.lang : (!navigator.language ? 'zh' : (navigator.language.toLowerCase().indexOf('zh') === 0 ? 'zh' : 'en'));
+          if (onEn) lang = 'en';
+          // Phase 5: en visitor (non-zh UA, no saved language pref) landing on a
+          // zh bilingual URL gets redirected once to its /en twin, before paint.
+          // Guards: only on pages that HAVE an en twin (data-has-en-twin, set on
+          // zh bilingual pages only); skip if a language was ever chosen (stored.lang);
+          // skip /en pages (no twin attr there). No loop: /en pages lack the attr.
+          var hasEnTwin = document.documentElement.getAttribute('data-has-en-twin') === 'true';
+          if (hasEnTwin && !onEn && !(stored && stored.lang) && navigator.language && navigator.language.toLowerCase().indexOf('zh') !== 0) {
+            location.replace('/en' + (path === '/' ? '' : path));
+            return;
+          }
           document.documentElement.setAttribute('data-theme', theme);
           document.documentElement.style.setProperty('--accent', accent);
           document.documentElement.setAttribute('data-lang', lang);
           document.documentElement.setAttribute('lang', lang === 'en' ? 'en' : 'zh-CN');
         } catch(e) {
           document.documentElement.setAttribute('data-theme', DEFAULT_THEME);
-          document.documentElement.setAttribute('data-lang', 'zh');
-          document.documentElement.setAttribute('lang', 'zh-CN');
+          var fallbackLang = onEn ? 'en' : 'zh';
+          document.documentElement.setAttribute('data-lang', fallbackLang);
+          document.documentElement.setAttribute('lang', fallbackLang === 'en' ? 'en' : 'zh-CN');
         }
       })();
     </script>
@@ -119,7 +171,7 @@ const navItems = [
   <body data-api-url={apiUrl}>
     <nav class="nav" id="nav">
       <div class="wrap nav-in">
-        <a class="brand" href="/">
+        <a class="brand" href={en ? '/en' : '/'}>
           <span>{siteTitle}</span><span class="dot"></span>
         </a>
         <div class="nav-r">
@@ -156,16 +208,16 @@ const navItems = [
         <div class="foot-cols">
           <div class="foot-col">
             <h4><T k="foot.colNav" /></h4>
-            <a href="/apps"><T k="foot.linkApps" /></a>
-            <a href="/writing"><T k="foot.linkWriting" /></a>
-            <a href="/podcast"><T k="foot.linkPodcast" /></a>
-            <a href="/about"><T k="foot.linkAbout" /></a>
+            <a href={footerLinks.apps}><T k="foot.linkApps" /></a>
+            <a href={footerLinks.writing}><T k="foot.linkWriting" /></a>
+            <a href={footerLinks.podcast}><T k="foot.linkPodcast" /></a>
+            <a href={footerLinks.about}><T k="foot.linkAbout" /></a>
           </div>
           <div class="foot-col">
             <h4><T k="foot.colMore" /></h4>
-            <a href="/categories"><T k="foot.linkCategories" /></a>
-            <a href="/tags"><T k="foot.linkTags" /></a>
-            <a href="/archives"><T k="foot.linkArchives" /></a>
+            <a href={footerLinks.categories}><T k="foot.linkCategories" /></a>
+            <a href={footerLinks.tags}><T k="foot.linkTags" /></a>
+            <a href={footerLinks.archives}><T k="foot.linkArchives" /></a>
           </div>
           <div class="foot-col">
             <h4><T k="foot.colElsewhere" /></h4>
@@ -197,6 +249,7 @@ const navItems = [
         nextLang,
         type Lang,
       } from '../lib/i18n';
+      import { enHref, stripEn, isEnPath } from '../lib/locale';
 
       function applyToDom(theme: string, accent: string) {
         document.documentElement.setAttribute('data-theme', theme);
@@ -259,6 +312,23 @@ const navItems = [
       if (langBtn) {
         langBtn.addEventListener('click', () => {
           const prefs = readPrefs(localStorage.getItem(THEME_LS_KEY));
+          const path = location.pathname;
+          const onEn = isEnPath(path);
+          // A bilingual page has a counterpart in the other language: /en pages
+          // always do; a zh page only when it declared data-has-en-twin. There,
+          // switching language NAVIGATES to the twin URL so chrome + body + URL
+          // change together (not just the CSS chrome). Persist the explicit
+          // choice so the destination honors it and the first-visit auto-redirect
+          // (see the inline bootstrap) won't bounce the user back.
+          const hasTwin = onEn || document.documentElement.getAttribute('data-has-en-twin') === 'true';
+          if (hasTwin) {
+            const targetLang: Lang = onEn ? 'zh' : 'en';
+            localStorage.setItem(THEME_LS_KEY, JSON.stringify(mergePrefs(prefs, { lang: targetLang })));
+            location.assign(onEn ? stripEn(path) : enHref(path));
+            return;
+          }
+          // Non-bilingual page (e.g. /podcast, which has no /en twin): keep the
+          // original chrome-only flip — there is nowhere to navigate to.
           const current = (document.documentElement.getAttribute('data-lang') as Lang) || 'zh';
           const lang = nextLang(current);
           localStorage.setItem(THEME_LS_KEY, JSON.stringify(mergePrefs(prefs, { lang })));

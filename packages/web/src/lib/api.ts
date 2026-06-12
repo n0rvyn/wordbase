@@ -72,6 +72,28 @@ async function fetchApi<T>(path: string): Promise<T> {
   return res.json();
 }
 
+// i18n rendition fetch — build-time only. Unlike fetchApi, this returns
+// `null` on any non-200 (incl. 404) instead of throwing. The build must never
+// abort a page just because a translation row is missing — callers fall back
+// to the source text. URL-encoded query so multi-byte / markdown titles are
+// safe in the path.
+export async function getRendition(
+  type: 'post' | 'page' | 'app',
+  id: string,
+  field: 'content' | 'title' | 'tagline' | 'features',
+  lang: 'en' | string,
+): Promise<string | null> {
+  try {
+    const qs = new URLSearchParams({ type, id, field, lang });
+    const res = await fetch(`${API_URL}/api/i18n/render?${qs.toString()}`);
+    if (!res.ok) return null;
+    const body = (await res.json()) as { value?: string };
+    return typeof body.value === 'string' ? body.value : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getPosts(params: {
   status?: string;
   category?: string;
