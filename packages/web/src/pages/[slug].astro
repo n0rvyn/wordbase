@@ -1,8 +1,8 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import CompanionBody from '../components/page-bodies/CompanionBody.astro';
 import { getPages, type Page } from '../lib/api';
 import { marked } from 'marked';
-import '../styles/prose.css';
 
 export async function getStaticPaths() {
   const pages = await getPages();
@@ -19,40 +19,9 @@ interface Props {
 }
 
 const { page } = Astro.props;
-const htmlContent = marked.parse(page.content);
+const htmlContent = marked.parse(page.content) as string;
 ---
 
-<BaseLayout title={page.title}>
-
-<header class="sec wrap" style="border-top:none;padding-top:clamp(44px,6vw,80px)">
-  <div class="row2">
-    <div class="spine">
-      <span class="no">00</span>
-      <span class="lab">Page</span>
-    </div>
-    <div>
-      <h1>{page.title}</h1>
-    </div>
-  </div>
-</header>
-
-<section class="sec wrap">
-  <div class="row2">
-    <div class="spine"></div>
-    <div class="prose" set:html={htmlContent} />
-  </div>
-</section>
-
+<BaseLayout title={page.title} hasEnTwin>
+  <CompanionBody title={page.title} htmlContent={htmlContent} />
 </BaseLayout>
-
-<style>
-  /* ── Sections ─────────────────────────────────────────────────────────────── */
-  .sec { padding: clamp(44px, 6vw, 84px) 0; border-top: 1px solid var(--line); }
-
-  /* ── Hero ─────────────────────────────────────────────────────────────────── */
-  h1 {
-    font-family: var(--font-display); font-weight: 500;
-    font-size: clamp(40px, 6vw, 76px); line-height: 1.02;
-    letter-spacing: -.035em; margin: 0 0 22px; color: var(--ink);
-  }
-</style>

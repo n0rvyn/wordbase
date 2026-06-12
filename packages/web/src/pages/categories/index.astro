@@ -1,13 +1,10 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { getCategories, getPosts, type Category } from '../../lib/api';
-import { decodeEntities } from '../../lib/home';
-import T from '../../components/T.astro';
+import CategoriesIndexBody from '../../components/page-bodies/CategoriesIndexBody.astro';
+import { getCategories, getPosts } from '../../lib/api';
 import { t } from '../../lib/i18n.js';
 
 const categories = await getCategories();
-
-// Get post counts per category
 const catCounts = new Map<string, number>();
 for (const cat of categories) {
   const { data } = await getPosts({ status: 'published', category: cat.slug, limit: 10000 });
@@ -15,70 +12,6 @@ for (const cat of categories) {
 }
 ---
 
-<BaseLayout title="分类" titleEn={t('title.categories').en} description="全部文章分类。">
-
-<header class="sec wrap" style="border-top:none;padding-top:clamp(44px,6vw,80px)">
-  <div class="row2">
-    <div class="spine">
-      <span class="no">00</span>
-      <span class="lab">Categories</span>
-      <span class="note"><T zh={`${categories.length} 个分类。`} en={`${categories.length} categories.`} /></span>
-    </div>
-    <div>
-      <div class="eyebrow"><T k="cat.index.eyebrow" /></div>
-      <h1><T k="cat.index.h1" /></h1>
-    </div>
-  </div>
-</header>
-
-<section class="sec wrap">
-  <div class="row2">
-    <div class="spine">
-      <span class="no">01</span>
-      <span class="lab"><T k="cat.index.all.lab" /></span>
-    </div>
-    <div>
-      {categories.length === 0 ? (
-        <div class="empty"><T k="cat.index.empty" /></div>
-      ) : (
-        <div class="list">
-          {categories.map((cat: Category) => (
-            <a class="item" href={`/categories/${cat.slug}`}>
-              <div>
-                <div class="item-title">{decodeEntities(cat.name)}</div>
-                {cat.description && <div class="item-sub">{cat.description}</div>}
-              </div>
-              <div class="item-meta"><T zh={`${catCounts.get(cat.slug) ?? 0} 篇`} en={`${catCounts.get(cat.slug) ?? 0} posts`} /></div>
-            </a>
-          ))}
-        </div>
-      )}
-    </div>
-  </div>
-</section>
-
+<BaseLayout title="分类" titleEn={t('title.categories').en} description="全部文章分类。" hasEnTwin>
+  <CategoriesIndexBody locale="zh" categories={categories} catCounts={catCounts} />
 </BaseLayout>
-
-<style>
-  /* ── Sections ─────────────────────────────────────────────────────────────── */
-  .sec { padding: clamp(44px, 6vw, 84px) 0; border-top: 1px solid var(--line); }
-
-  /* ── Hero ─────────────────────────────────────────────────────────────────── */
-  .eyebrow {
-    font-family: var(--font-mono); font-size: 12.5px;
-    letter-spacing: .16em; text-transform: uppercase;
-    color: var(--ink-3); margin-bottom: 20px;
-  }
-  h1 {
-    font-family: var(--font-display); font-weight: 500;
-    font-size: clamp(40px, 6vw, 76px); line-height: 1.02;
-    letter-spacing: -.035em; margin: 0 0 22px;
-  }
-
-  /* ── Empty state ──────────────────────────────────────────────────────────── */
-  .empty { font-family: var(--font-read); color: var(--ink-3); font-size: 16px; padding: 48px 0; }
-
-  /* ── Row list (local overrides — grid 2-col) ──────────────────────────────── */
-  .item { grid-template-columns: 1fr auto; gap: 6px 28px; }
-  .item-title { font-size: clamp(19px, 2vw, 24px); }
-</style>
