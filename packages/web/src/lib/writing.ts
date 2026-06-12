@@ -1,5 +1,7 @@
-import type { Post } from './api';
+import { getPosts, getCategories, getRendition, type Post } from './api';
 import { decodeEntities } from './home';
+import { localizePost } from './localize';
+import type { Locale } from './locale';
 
 export interface CategoryInput {
   slug: string;
@@ -88,4 +90,94 @@ export function selectFullYears(posts: Post[], k: number): number[] {
  */
 export function densityForYear(year: number, fullYears: number[]): 'full' | 'compact' {
   return fullYears.includes(year) ? 'full' : 'compact';
+}
+
+/**
+ * Load + locale-shape the archives page data. Single source for the zh shell
+ * (pages/archives.astro) and the en shell (pages/en/archives.astro). en
+ * localizes only the post title (content is used solely for read-time, which
+ * is language-agnostic); on a cache miss the title falls back to the source.
+ */
+export async function loadArchivesData(
+  locale: Locale,
+): Promise<{ groups: YearGroup[]; totalPosts: number }> {
+  const { data: postsRaw } = await getPosts({ status: 'published', limit: 10000 });
+  let posts = [...postsRaw].sort((a, b) => (b.publishedAt ?? 0) - (a.publishedAt ?? 0));
+  if (locale === 'en') {
+    posts = await Promise.all(
+      posts.map(async (p) => ({
+        ...p,
+        title: (await getRendition('post', p.id, 'title', 'en')) ?? p.title,
+      })),
+    );
+  }
+  return { groups: groupByYear(posts), totalPosts: posts.length };
+}
+
+export interface WritingIndexData {
+  topCats: CategoryItem[];
+  featuredVariants: { key: string; post: Post }[];
+  groups: YearGroup[];
+  fullYears: number[];
+  /** post id → all its category slugs (for the chip-filter data-cats attr). */
+  postCatSlugs: Map<string, string[]>;
+  /** post id → first category display name, decoded ('' when uncategorized). */
+  catNameById: Map<string, string>;
+}
+
+/**
+ * Load + locale-shape the writing-index data. Single source for the zh shell
+ * (pages/writing/index.astro) and the en shell (pages/en/writing/index.astro).
+ * en fully localizes each post (title + content/excerpt — the index shows
+ * both). Category names come from the source rows (categories are not yet
+ * translated). All the featured-variant / density / chip data is precomputed
+ * here so the shared body stays pure presentation.
+ */
+export async function loadWritingIndexData(locale: Locale): Promise<WritingIndexData> {
+  const { data: postsRaw } = await getPosts({ status: 'published', limit: 10000 });
+  const sorted = [...postsRaw].sort((a, b) => (b.publishedAt ?? 0) - (a.publishedAt ?? 0));
+  const posts = locale === 'en'
+    ? await Promise.all(sorted.map((p) => localizePost(p, 'en')))
+    : sorted;
+
+  // Per-post category slug list + per-category published count.
+  const cats = await getCategories();
+  const postCatSlugs = new Map<string, string[]>();
+  const catCount = new Map<string, number>();
+  for (const cat of cats) {
+    const { data: catPosts } = await getPosts({ status: 'published', category: cat.slug, limit: 10000 });
+    catCount.set(cat.slug, catPosts.length);
+    for (const p of catPosts) {
+      const existing = postCatSlugs.get(p.id) ?? [];
+      if (!existing.includes(cat.slug)) existing.push(cat.slug);
+      postCatSlugs.set(p.id, existing);
+    }
+  }
+
+  const topCats = selectTopCategories(
+    cats.map((c) => ({ slug: c.slug, name: c.name, count: catCount.get(c.slug) ?? 0 })),
+    6,
+  );
+
+  const featured = posts[0] ?? null;
+  const archive = posts.slice(1);
+  const featuredVariants = ([
+    { key: 'all', post: featured },
+    ...topCats.map((c) => ({
+      key: c.slug,
+      post: posts.find((p) => (postCatSlugs.get(p.id) ?? []).includes(c.slug)) ?? null,
+    })),
+  ].filter((v) => v.post) as { key: string; post: Post }[]);
+  const fullYears = selectFullYears(posts, 2);
+  const groups = groupByYear(archive);
+
+  // First-category display name per post (mirrors the old firstCatName helper).
+  const catNameById = new Map<string, string>();
+  for (const p of posts) {
+    const slug = (postCatSlugs.get(p.id) ?? [])[0];
+    const cat = slug ? cats.find((c) => c.slug === slug) : undefined;
+    catNameById.set(p.id, cat ? decodeEntities(cat.name) : '');
+  }
+
+  return { topCats, featuredVariants, groups, fullYears, postCatSlugs, catNameById };
 }
