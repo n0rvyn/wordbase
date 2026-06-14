@@ -43,7 +43,7 @@ export default function WorldMap({ regions }: { regions: Region[] }) {
         `}</style>
         <div class="wm-svg" dangerouslySetInnerHTML={{ __html: worldSvg }} />
 
-        {/* Country numbers live in the Top card's Countries tab — map is the glance. */}
+        {/* Country numbers live in the adjacent "Top countries" card in the geography row — map is the glance. */}
 
         <p class="text-[11px] text-ink-4 mt-4 leading-relaxed">
           This product includes GeoLite2 data created by MaxMind, available from{' '}

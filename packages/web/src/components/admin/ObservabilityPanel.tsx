@@ -73,7 +73,6 @@ const SHARE_META: Record<string, { label: string; color: string }> = {
 const TOP_DIMS = [
   { key: 'pages', label: 'Pages' },
   { key: 'referrers', label: 'Referrers' },
-  { key: 'countries', label: 'Countries' },
 ] as const;
 type TopDim = (typeof TOP_DIMS)[number]['key'];
 
@@ -94,6 +93,7 @@ const SERIES: { key: SeriesKey; label: string; color: string }[] = [
 
 export default function ObservabilityPanel() {
   const [period, setPeriod] = useState<Period>('daily');
+  const [tab, setTab] = useState<'audience' | 'health' | 'seo'>('audience');
   const [summary, setSummary] = useState<VisitorSummary | null>(null);
   const [trends, setTrends] = useState<TrendPoint[]>([]);
   const [topPages, setTopPages] = useState<TopPage[]>([]);
@@ -148,28 +148,30 @@ export default function ObservabilityPanel() {
   const topConfig = {
     pages: { accent: '#4f46e5', empty: 'No page views yet.', rows: topPages.map((p) => ({ label: p.label || p.path, value: p.views })) },
     referrers: { accent: '#10b981', empty: 'No referrers recorded — traffic is direct.', rows: referrers.map((r) => ({ label: r.host, value: r.count })) },
-    countries: { accent: '#6366f1', empty: 'No geolocated visits yet.', rows: regions.map((r) => ({ label: `${countryFlag(r.country)} ${r.country}`, value: r.count })) },
   }[topDim];
 
   return (
     <div>
-      {/* Header + period selector */}
-      <div class="flex flex-wrap items-end justify-between gap-3 mb-6">
+      {/* Top-level header: title + sub-tabs + (audience-only) range dropdown */}
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
-          <h2 class="text-xl font-semibold text-ink tracking-tight">Visit analytics</h2>
-          <p class="text-sm text-ink-3 mt-0.5">Site traffic from the page-view beacon · {PERIOD_LABEL[period]}</p>
+          <h2 class="text-xl font-semibold text-ink tracking-tight">Observability</h2>
+          <p class="text-sm text-ink-3 mt-0.5">Audience · System health · SEO</p>
         </div>
-        <div class="inline-flex rounded-lg bg-surface-2 p-1">
-          {(['daily', 'weekly', 'monthly'] as Period[]).map((p) => (
-            <button
-              onClick={() => setPeriod(p)}
-              class={`px-3.5 py-1.5 text-sm font-medium rounded-md transition-all ${
-                period === p ? 'bg-surface text-ink shadow-sm' : 'text-ink-3 hover:text-ink'
-              }`}
-            >
-              {p === 'daily' ? 'Daily' : p === 'weekly' ? 'Weekly' : 'Monthly'}
-            </button>
-          ))}
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="inline-flex rounded-lg bg-surface-2 p-1 flex-wrap">
+            {(['audience', 'health', 'seo'] as const).map((t) => (
+              <button
+                onClick={() => setTab(t)}
+                class={`px-3.5 py-1.5 text-sm font-medium rounded-md transition-all ${
+                  tab === t ? 'bg-surface text-ink shadow-sm' : 'text-ink-3 hover:text-ink'
+                }`}
+              >
+                {t === 'audience' ? 'Audience' : t === 'health' ? 'Health' : 'SEO'}
+              </button>
+            ))}
+          </div>
+          {tab === 'audience' && <RangeMenu period={period} onChange={setPeriod} />}
         </div>
       </div>
 
@@ -178,113 +180,169 @@ export default function ObservabilityPanel() {
         <ChartSkeleton />
       ) : (
         <>
-          {/* Summary cards with mini sparklines */}
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
-            {SERIES.map((s) => (
-              <SummaryCard
-                series={s}
-                value={summary ? summary[s.key] : 0}
-                trend={trends.map((t) => t[s.key])}
-              />
-            ))}
-          </div>
-
-          {/* Trend chart */}
-          <div class="bg-surface rounded-xl border border-line shadow-sm p-5 sm:p-6 mb-5">
-            <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
-              <h3 class="font-semibold text-ink">Trend</h3>
-              <div class="flex flex-wrap gap-x-4 gap-y-1">
+          {tab === 'audience' && (
+            <>
+              {/* Summary cards with mini sparklines */}
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
                 {SERIES.map((s) => (
-                  <span class="flex items-center gap-1.5 text-xs font-medium text-ink-3">
-                    <span class="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }} />
-                    {s.label}
-                  </span>
+                  <SummaryCard
+                    series={s}
+                    value={summary ? summary[s.key] : 0}
+                    trend={trends.map((t) => t[s.key])}
+                  />
                 ))}
               </div>
-            </div>
-            <TrendChart data={trends} period={period} />
-          </div>
 
-          {/* Top (pages/referrers/countries) + regions map */}
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
-            <BarList
-              title="Top"
-              accent={topConfig.accent}
-              empty={topConfig.empty}
-              rows={topConfig.rows}
-              tabs={TOP_DIMS.map((d) => ({ key: d.key, label: d.label }))}
-              activeTab={topDim}
-              onTab={(k) => setTopDim(k as TopDim)}
-            />
-            <WorldMap regions={regions} />
-          </div>
+              {/* Trend chart */}
+              <div class="bg-surface rounded-xl border border-line shadow-sm p-5 sm:p-6 mb-5">
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+                  <h3 class="font-semibold text-ink">Trend</h3>
+                  <div class="flex flex-wrap gap-x-4 gap-y-1">
+                    {SERIES.map((s) => (
+                      <span class="flex items-center gap-1.5 text-xs font-medium text-ink-3">
+                        <span class="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+                        {s.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <TrendChart data={trends} period={period} />
+              </div>
 
-          {/* Engagement strips: devices + share channels */}
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
-            <DeviceBreakdown rows={devices} />
-            <DeviceBreakdown
-              title="Shares by channel"
-              meta={SHARE_META}
-              rows={(shareStats?.byTarget ?? []).map((s) => ({ type: s.target, count: s.count }))}
-            />
-          </div>
+              {/* Top (pages/referrers) + devices */}
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+                <BarList
+                  title="Top"
+                  accent={topConfig.accent}
+                  empty={topConfig.empty}
+                  rows={topConfig.rows}
+                  tabs={TOP_DIMS.map((d) => ({ key: d.key, label: d.label }))}
+                  activeTab={topDim}
+                  onTab={(k) => setTopDim(k as TopDim)}
+                />
+                <DeviceBreakdown rows={devices} />
+              </div>
 
-          {/* Shares by page — full width */}
-          <BarList
-            title="Shares by page"
-            accent="#f59e0b"
-            empty="No shares recorded yet."
-            rows={(shareStats?.byPage ?? []).map((s) => ({ label: s.path, value: s.count }))}
-          />
+              {/* Geography row: map + country ranking */}
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+                <WorldMap regions={regions} />
+                <BarList
+                  title="Top countries"
+                  accent="#6366f1"
+                  empty="No geolocated visits yet."
+                  rows={regions.map((r) => ({ label: `${countryFlag(r.country)} ${r.country}`, value: r.count }))}
+                />
+              </div>
 
-          {/* ---- Podcast (downloads + RSS feed polls, distinct from page-view beacons) ---- */}
-          <div class="mt-10 mb-6">
-            <h2 class="text-xl font-semibold text-ink tracking-tight">Podcast</h2>
-            <p class="text-sm text-ink-3 mt-0.5">Deduped episode downloads &amp; active-subscriber estimate · {PERIOD_LABEL[period]}</p>
-          </div>
+              {/* Engagement: shares by channel + shares by page */}
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+                <DeviceBreakdown
+                  title="Shares by channel"
+                  meta={SHARE_META}
+                  rows={(shareStats?.byTarget ?? []).map((s) => ({ type: s.target, count: s.count }))}
+                />
+                <BarList
+                  title="Shares by page"
+                  accent="#f59e0b"
+                  empty="No shares recorded yet."
+                  rows={(shareStats?.byPage ?? []).map((s) => ({ label: s.path, value: s.count }))}
+                />
+              </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
-            <SummaryCard
-              series={{ key: 'totalDownloads', label: 'Total downloads', color: '#8b5cf6' }}
-              value={podSummary ? podSummary.totalDownloads : 0}
-              trend={podTrends.map((t) => t.downloads)}
-            />
-            <SummaryCard
-              series={{ key: 'windowDownloads', label: `Downloads · ${PERIOD_LABEL[period].toLowerCase()}`, color: '#6366f1' }}
-              value={podSummary ? podSummary.windowDownloads : 0}
-              trend={podTrends.map((t) => t.downloads)}
-            />
-            <SummaryCard
-              series={{ key: 'subscriberEstimate', label: `Subscribers (est., ${podSummary?.subscriberWindowDays ?? 7}d)`, color: '#ec4899' }}
-              value={podSummary ? podSummary.subscriberEstimate : 0}
-              trend={podTrends.map((t) => t.feedPolls)}
-            />
-          </div>
+              {/* ---- Podcast (downloads + RSS feed polls, distinct from page-view beacons) ---- */}
+              <div class="mt-10 mb-6">
+                <h3 class="text-lg font-semibold text-ink tracking-tight">Podcast</h3>
+                <p class="text-sm text-ink-3 mt-0.5">Deduped episode downloads &amp; active-subscriber estimate · {PERIOD_LABEL[period]}</p>
+              </div>
 
-          <div class="mb-5">
-            <DeviceBreakdown title="Client distribution" meta={CLIENT_META} rows={podClients} />
-          </div>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+                <SummaryCard
+                  series={{ key: 'totalDownloads', label: 'Total downloads', color: '#8b5cf6' }}
+                  value={podSummary ? podSummary.totalDownloads : 0}
+                  trend={[]}
+                />
+                <SummaryCard
+                  series={{ key: 'windowDownloads', label: `Downloads · ${PERIOD_LABEL[period].toLowerCase()}`, color: '#6366f1' }}
+                  value={podSummary ? podSummary.windowDownloads : 0}
+                  trend={podTrends.map((t) => t.downloads)}
+                />
+                <SummaryCard
+                  series={{ key: 'subscriberEstimate', label: `Subscribers (est., ${podSummary?.subscriberWindowDays ?? 7}d)`, color: '#ec4899' }}
+                  value={podSummary ? podSummary.subscriberEstimate : 0}
+                  trend={podTrends.map((t) => t.feedPolls)}
+                />
+              </div>
 
-          {/* Episodes sorted by downloads — doubles as the top-episodes ranking */}
-          <EpisodeTable rows={[...episodeTable].sort((a, b) => b.downloads - a.downloads)} />
+              <div class="mb-5">
+                <DeviceBreakdown title="Client distribution" meta={CLIENT_META} rows={podClients} />
+              </div>
 
-          {/* ---- API requests (server-side, distinct from the visit beacons above) ---- */}
-          <div class="mt-10 mb-6">
-            <h2 class="text-xl font-semibold text-ink tracking-tight">API requests</h2>
-            <p class="text-sm text-ink-3 mt-0.5">Server-side request timing · last 24 hours · separate from the visit beacons above</p>
-          </div>
-          <RequestSection data={requests} />
+              {/* Episodes sorted by downloads — doubles as the top-episodes ranking */}
+              <EpisodeTable rows={[...episodeTable].sort((a, b) => b.downloads - a.downloads)} />
+            </>
+          )}
 
-          {/* ---- System & operations ---- */}
-          <div class="mt-10 mb-6">
-            <h2 class="text-xl font-semibold text-ink tracking-tight">System &amp; operations</h2>
-            <p class="text-sm text-ink-3 mt-0.5">Process, database, and content-pipeline status · read-only</p>
-          </div>
-          <SystemSection data={system} />
+          {tab === 'health' && (
+            <>
+              {/* ---- API requests (server-side, distinct from the visit beacons above) ---- */}
+              <div class="mb-6">
+                <h3 class="text-lg font-semibold text-ink tracking-tight">API requests</h3>
+                <p class="text-sm text-ink-3 mt-0.5">Server-side request timing · last 24 hours · separate from the visit beacons above</p>
+              </div>
+              <RequestSection data={requests} />
 
-          {/* ---- SEO health (read-only) ---- */}
-          <SeoHealthSection data={seoHealth} />
+              {/* ---- System & operations ---- */}
+              <div class="mt-10 mb-6">
+                <h3 class="text-lg font-semibold text-ink tracking-tight">System &amp; operations</h3>
+                <p class="text-sm text-ink-3 mt-0.5">Process, database, and content-pipeline status · read-only</p>
+              </div>
+              <SystemSection data={system} />
+            </>
+          )}
+
+          {tab === 'seo' && <SeoHealthSection data={seoHealth} />}
         </>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- range dropdown (period selector) ---------------- */
+
+function RangeMenu({ period, onChange }: { period: Period; onChange: (p: Period) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    function onDoc(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+  return (
+    <div ref={ref} class="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        class="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm font-medium text-ink-2 hover:text-ink hover:border-line-2 transition-colors"
+      >
+        {PERIOD_LABEL[period]}
+        <svg class={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7.5 10 12.5 15 7.5" /></svg>
+      </button>
+      {open && (
+        <div class="absolute right-0 z-20 mt-1.5 w-44 rounded-lg border border-line bg-surface shadow-lg p-1">
+          {(['daily', 'weekly', 'monthly'] as Period[]).map((p) => (
+            <button
+              onClick={() => { onChange(p); setOpen(false); }}
+              class={`flex w-full items-center justify-between rounded-md px-3 py-1.5 text-sm text-left transition-colors ${
+                period === p ? 'bg-surface-2 text-ink font-medium' : 'text-ink-2 hover:bg-surface-2 hover:text-ink'
+              }`}
+            >
+              {PERIOD_LABEL[p]}
+              {period === p && <span class="text-accent">✓</span>}
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );
