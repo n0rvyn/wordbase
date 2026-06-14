@@ -987,10 +987,12 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
   // Page tools (companion pages: privacy/terms/help/...)
   server.tool(
     'page_list',
-    'List all WordBase pages (companion pages: privacy/terms/help/...)',
-    {},
-    async () => {
-      const pages = await pageService.listPages();
+    'List WordBase pages (companion pages: privacy/terms/help/...). Optional `status` filters; omit it to list all.',
+    {
+      status: { type: 'string', description: 'Filter by status: draft or published (omit for all)' },
+    },
+    async (args: Record<string, unknown>) => {
+      const pages = await pageService.listPages({ status: args.status as string | undefined });
       return { content: [{ type: 'text' as const, text: JSON.stringify(pages, null, 2) }] };
     }
   );
@@ -1048,6 +1050,8 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
         status: args.status as string | undefined,
         meta: metaStr,
       });
+      // Mirror routes/pages.ts: a page created published rebuilds the site.
+      if (page.status === 'published') buildService.triggerBuild();
       return { content: [{ type: 'text' as const, text: JSON.stringify(page, null, 2) }] };
     }
   );
@@ -1065,6 +1069,7 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
       meta: { type: 'string', description: 'JSON metadata string' },
     },
     async (args: Record<string, unknown>) => {
+      const before = await pageService.getPage(args.id as string);
       const page = await pageService.updatePage(args.id as string, {
         title: args.title as string | undefined,
         slug: args.slug as string | undefined,
@@ -1076,6 +1081,10 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
       if (!page) {
         return { content: [{ type: 'text' as const, text: 'Page not found' }], isError: true };
       }
+      // Rebuild whenever the change touches the public site: still published, OR
+      // it was published and is now unpublished (so the site drops it). Mirrors
+      // the REST PUT route's before/after check.
+      if (page.status === 'published' || before?.status === 'published') buildService.triggerBuild();
       return { content: [{ type: 'text' as const, text: JSON.stringify(page, null, 2) }] };
     }
   );
@@ -1091,13 +1100,16 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
       if (!deleted) {
         return { content: [{ type: 'text' as const, text: 'Page not found' }], isError: true };
       }
+      // The returned row carries its pre-delete status; deleting a published page
+      // must drop it from the static site (mirror routes/pages.ts).
+      if (deleted.status === 'published') buildService.triggerBuild();
       return { content: [{ type: 'text' as const, text: JSON.stringify({ success: true, id: args.id }, null, 2) }] };
     }
   );
 
   server.tool(
     'page_publish',
-    'Publish a companion page (sets status=published). Run the build-trigger tool afterward to render it at its public URL.',
+    'Publish a companion page (sets status=published) and rebuilds the static site so it renders at its public URL.',
     {
       id: { type: 'string', description: 'Page ID' },
     },
@@ -1106,6 +1118,8 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
       if (!page) {
         return { content: [{ type: 'text' as const, text: 'Page not found' }], isError: true };
       }
+      // Mirror the REST route (routes/pages.ts): publishing rebuilds the static site.
+      buildService.triggerBuild();
       return { content: [{ type: 'text' as const, text: JSON.stringify(page, null, 2) }] };
     }
   );
