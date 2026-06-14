@@ -98,6 +98,7 @@ export function initializeDatabase() {
       sort_order INTEGER DEFAULT 0,
       status TEXT NOT NULL DEFAULT 'draft',
       meta TEXT,
+      published_at INTEGER,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
@@ -336,6 +337,14 @@ export function initializeDatabase() {
   }
   if (!podcastCols.has('spotify_url')) {
     sqlite.exec('ALTER TABLE podcasts ADD COLUMN spotify_url TEXT;');
+  }
+
+  // Idempotent ALTER for pages.published_at (existing prod tables predate it).
+  const pagesCols = new Set(
+    (sqlite.prepare("PRAGMA table_info(pages)").all() as { name: string }[]).map(c => c.name)
+  );
+  if (!pagesCols.has('published_at')) {
+    sqlite.exec('ALTER TABLE pages ADD COLUMN published_at INTEGER;');
   }
 
   // Issue #2: enforce App Store ID uniqueness so concurrent /discover cannot

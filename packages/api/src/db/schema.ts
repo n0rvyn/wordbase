@@ -85,6 +85,7 @@ export const pages = sqliteTable('pages', {
   sortOrder: integer('sort_order').default(0),
   status: text('status').notNull().default('draft'),
   meta: text('meta'), // JSON
+  publishedAt: integer('published_at'),
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at').notNull(),
 });
