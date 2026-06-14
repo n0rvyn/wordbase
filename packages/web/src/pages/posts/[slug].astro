@@ -61,7 +61,7 @@ const article = {
 };
 ---
 
-<BaseLayout title={post.title} description={description} ogImage={post.coverImage || undefined} ogType="article" article={article} jsonLd={jsonLd} hasEnTwin>
+<BaseLayout title={post.title} description={description} ogImage={post.coverImage || `/og/${post.slug}.png`} ogType="article" article={article} jsonLd={jsonLd} hasEnTwin>
   <PostDetailBody
     locale="zh"
     post={post}
