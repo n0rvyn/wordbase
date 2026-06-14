@@ -88,3 +88,43 @@ describe('getTopPosts — unchanged, post-only (MCP regression guard)', () => {
     expect(rows[0]).toMatchObject({ slug: 'hello-world', title: 'Hello World', views: 5 });
   });
 });
+
+// Rows with an explicit userAgent (for bot/locale cases). userAgent null = non-bot.
+function uaView(path: string, n: number, userAgent: string | null) {
+  return Array.from({ length: n }, () => ({
+    path, referrer: null, userAgent, ipHash: null, createdAt: now,
+  }));
+}
+
+describe('getTopPosts — aggregate by post (dedup across locales) + bot filter', () => {
+  it('counts a post once, summing zh /posts/<slug> and en /en/posts/<slug>', async () => {
+    await db.insert(pageViews).values([
+      ...uaView('/posts/hello-world', 3, 'Mozilla/5.0'),
+      ...uaView('/en/posts/hello-world', 2, 'Mozilla/5.0'),
+    ]);
+    const rows = await getTopPosts(10);
+    const hw = rows.filter(r => r.slug === 'hello-world');
+    expect(hw).toHaveLength(1);          // one row, not one-per-locale-path
+    expect(hw[0].views).toBe(5);         // 3 + 2 summed
+  });
+
+  it('excludes bot views from a post total', async () => {
+    await db.insert(pageViews).values([
+      ...uaView('/posts/hello-world', 5, 'Mozilla/5.0'),
+      ...uaView('/posts/hello-world', 4, 'Mozilla/5.0 (compatible; Googlebot/2.1)'),
+    ]);
+    const rows = await getTopPosts(10);
+    expect(rows.find(r => r.slug === 'hello-world')!.views).toBe(5); // bots not counted
+  });
+
+  it('resolves percent-encoded CJK slug paths to their post', async () => {
+    await db.insert(posts).values({
+      id: 'p2', slug: '午夜', title: '午夜', content: '#',
+      status: 'published', createdAt: now, updatedAt: now,
+    });
+    const encoded = '/posts/' + encodeURIComponent('午夜');
+    await db.insert(pageViews).values(uaView(encoded, 7, 'Mozilla/5.0'));
+    const rows = await getTopPosts(10);
+    expect(rows.find(r => r.slug === '午夜')?.views).toBe(7); // currently dropped (raw %.. won't match)
+  });
+});

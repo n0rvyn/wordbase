@@ -10,6 +10,27 @@ import { cached } from '../lib/ttl-cache.js';
 // of re-scanning the raw event tables. Transparent — cached values equal the live result.
 const OBS_CACHE_TTL_MS = 60_000;
 
+// Bot user-agent classification (read-side only; the single shared definition).
+// FALSE for null UA, so unknown-UA hits stay counted (matching getDeviceBreakdown's
+// null→'unknown', not 'bot', branch). Consumed by the PV aggregations (getTopPosts /
+// getTotalPageViews / getTodayPageViews / getTrends / getRegions / getTopPages, which
+// exclude bots so the headline numbers mean real readers) AND by getVisitorSummary /
+// getVisitTrends / getDeviceBreakdown. NOTE: getVisitorSummary/getVisitTrends keep
+// RAW pageViews (bots counted) intentionally — only their UV/sessions use this.
+// Hoisted here so the earlier-defined aggregations can reference it.
+const isBotSql = sql`(${pageViews.userAgent} is not null and (
+  lower(${pageViews.userAgent}) like '%bot%'
+  or lower(${pageViews.userAgent}) like '%spider%'
+  or lower(${pageViews.userAgent}) like '%crawl%'
+  or lower(${pageViews.userAgent}) like '%facebookexternalhit%'
+  or lower(${pageViews.userAgent}) like '%curl/%'
+  or lower(${pageViews.userAgent}) like '%wget%'
+  or lower(${pageViews.userAgent}) like '%python-requests%'
+  or lower(${pageViews.userAgent}) like '%go-http-client%'
+  or lower(${pageViews.userAgent}) like '%node-fetch%'
+  or lower(${pageViews.userAgent}) like '%headlesschrome%'
+  or lower(${pageViews.userAgent}) like '%slurp%'))`;
+
 // Share-button channels we accept; anything else is rejected so the by-target
 // breakdown stays clean (path carries page/episode context, not target).
 export const SHARE_TARGETS = ['x', 'wechat', 'copy', 'native'] as const;
@@ -43,7 +64,8 @@ export async function recordPageView(input: RecordPageViewInput) {
 }
 
 export async function getTotalPageViews() {
-  const [result] = await db.select({ count: sql<number>`count(*)` }).from(pageViews);
+  const [result] = await db.select({ count: sql<number>`count(*)` }).from(pageViews)
+    .where(sql`not (${isBotSql})`);
   return result.count;
 }
 
@@ -104,7 +126,7 @@ export async function getRegions(days: number = 30) {
     country: pageViews.country,
     count: sql<number>`count(*)`,
   }).from(pageViews)
-    .where(and(gte(pageViews.createdAt, since), sql`${pageViews.country} is not null`))
+    .where(and(gte(pageViews.createdAt, since), sql`${pageViews.country} is not null`, sql`not (${isBotSql})`))
     .groupBy(pageViews.country)
     .orderBy(desc(sql`count(*)`));
 
@@ -114,7 +136,8 @@ export async function getRegions(days: number = 30) {
 
 export async function getTodayPageViews() {
   const todayStart = getTodayStart();
-  const [result] = await db.select({ count: sql<number>`count(*)` }).from(pageViews).where(gte(pageViews.createdAt, todayStart));
+  const [result] = await db.select({ count: sql<number>`count(*)` }).from(pageViews)
+    .where(and(gte(pageViews.createdAt, todayStart), sql`not (${isBotSql})`));
   return result.count;
 }
 
@@ -144,32 +167,37 @@ export async function getPostPageViews(postId: string) {
 }
 
 export async function getTopPosts(limit: number = 10) {
-  // Group page views by path, extract post slug, join with posts
+  // Count views per path (bots excluded), then aggregate BY POST: the same article
+  // is reachable via several paths (zh /posts/<slug>, en /en/posts/<slug>, and
+  // .html / query variants), so grouping by path alone double-counts a post. Fetch
+  // all post-matching paths (cardinality is bounded by distinct paths, not rows) and
+  // sum each post's variants before ranking.
   const results = await db.select({
     path: pageViews.path,
     count: sql<number>`count(*)`,
   }).from(pageViews)
+    .where(sql`not (${isBotSql})`)
     .groupBy(pageViews.path)
-    .orderBy(desc(sql`count(*)`))
-    .limit(limit * 2); // Get extra to filter non-post paths
+    .orderBy(desc(sql`count(*)`));
 
-  // Match paths to posts
   const allPosts = await db.select().from(posts).where(eq(posts.status, 'published'));
   const postsBySlug = new Map(allPosts.map(p => [p.slug, p]));
 
-  const topPosts = [];
+  const byPost = new Map<string, { postId: string; title: string; slug: string; views: number }>();
   for (const row of results) {
-    // Extract slug from path like /posts/my-slug or /blog/my-slug
-    const segments = row.path.split('/').filter(Boolean);
+    // Decode percent-encoded (CJK) slugs, drop a trailing .html and any ?query,
+    // then take the last segment as the slug.
+    const clean = decodePath(row.path).split('?')[0].replace(/\.html$/i, '');
+    const segments = clean.split('/').filter(Boolean);
     const slug = segments[segments.length - 1];
-    const post = postsBySlug.get(slug);
-    if (post) {
-      topPosts.push({ postId: post.id, title: post.title, slug: post.slug, views: row.count });
-      if (topPosts.length >= limit) break;
-    }
+    const post = slug ? postsBySlug.get(slug) : undefined;
+    if (!post) continue;
+    const entry = byPost.get(post.id) ?? { postId: post.id, title: post.title, slug: post.slug, views: 0 };
+    entry.views += row.count;
+    byPost.set(post.id, entry);
   }
 
-  return topPosts;
+  return [...byPost.values()].sort((a, b) => b.views - a.views).slice(0, limit);
 }
 
 // Friendly labels for known static (non-post) pages so the Top pages widget
@@ -211,6 +239,7 @@ export async function getTopPages(limit: number = 10) {
     .where(and(
       sql`${pageViews.path} NOT LIKE '/admin/%'`,
       sql`${pageViews.path} NOT LIKE '/api/%'`,
+      sql`not (${isBotSql})`,
     ))
     .groupBy(pageViews.path)
     .orderBy(desc(sql`count(*)`))
@@ -254,6 +283,7 @@ export async function getTrends(period: string = 'daily') {
     period: sql<string>`strftime('${sql.raw(groupFormat)}', datetime(${pageViews.createdAt}, 'unixepoch'))`,
     count: sql<number>`count(*)`,
   }).from(pageViews)
+    .where(sql`not (${isBotSql})`)
     .groupBy(sql`strftime('${sql.raw(groupFormat)}', datetime(${pageViews.createdAt}, 'unixepoch'))`)
     .orderBy(desc(sql`strftime('${sql.raw(groupFormat)}', datetime(${pageViews.createdAt}, 'unixepoch'))`))
     .limit(groupCount);
@@ -283,13 +313,7 @@ const SESSION_WINDOW_SECONDS = 1800; // 30 min — a refresh/re-read inside this
 // docs/06-plans/2026-06-06-real-client-ip-proxy-protocol-deferred.md.)
 const visitorKeySql = sql<string>`coalesce(${pageViews.visitorId}, ${pageViews.ipHash})`;
 
-// Bot user-agent classification (read-side only; shared with getDeviceBreakdown so the
-// predicate has a single definition). FALSE for null UA, so unknown-UA hits stay counted
-// in UV — matching getDeviceBreakdown's null→'unknown' (not 'bot') branch.
-const isBotSql = sql`(${pageViews.userAgent} is not null and (
-  lower(${pageViews.userAgent}) like '%bot%'
-  or lower(${pageViews.userAgent}) like '%spider%'
-  or lower(${pageViews.userAgent}) like '%crawl%'))`;
+// (isBotSql is hoisted near the top of this module so the PV aggregations can use it.)
 
 // SQL fragment for the per-row session fingerprint. The visitor key may be null
 // (unknown IP and no visitor_id); SQLite skips null keys in COUNT(DISTINCT), which is the
