@@ -137,7 +137,12 @@ All endpoints at `/api/*`. Auth via `Authorization: Bearer <api-key>`.
 | `/api/posts/:id/archive` | POST | Yes | Archive post |
 | `/api/categories` | GET/POST | GET:No, POST:Yes | Category CRUD |
 | `/api/tags` | GET/POST | GET:No, POST:Yes | Tag CRUD |
-| `/api/pages` | GET/POST | GET:No, POST:Yes | Static page CRUD |
+| `/api/pages` | GET | No | List pages (filter: status) |
+| `/api/pages/:idOrSlug` | GET | No | Get page by ID or slug |
+| `/api/pages` | POST | Yes | Create page |
+| `/api/pages/:id` | PUT | Yes | Update page |
+| `/api/pages/:id` | DELETE | Yes | Delete page |
+| `/api/pages/:id/publish` | POST | Yes | Publish page (rebuilds the site) |
 | `/api/media` | GET/POST/DELETE | Yes | Media upload + library |
 | `/api/posts/:id/comments` | GET | No | List approved comments |
 | `/api/posts/:id/comments` | POST | No | Submit comment (pending) |
