@@ -357,6 +357,70 @@ describe('registerTools — handler behavior (Phase 8)', () => {
     expect(result.isError).toBe(true);
   });
 
+  it('page_publish triggers a rebuild when the page exists', async () => {
+    const { publishPage } = await import('../services/page.service.js');
+    const { triggerBuild } = await import('../services/build.service.js');
+    (publishPage as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: 'page1', status: 'published' });
+    const handler = server.getHandler('page_publish')!;
+    await handler({ id: 'page1' });
+    expect(triggerBuild).toHaveBeenCalledOnce();
+  });
+
+  it('page_create published triggers a rebuild; draft does not', async () => {
+    const { triggerBuild } = await import('../services/build.service.js');
+    const handler = server.getHandler('page_create')!;
+    // createPage mock echoes the input data, so status flows through.
+    await handler({ title: 'P', content: 'x', status: 'published' });
+    expect(triggerBuild).toHaveBeenCalledOnce();
+
+    (triggerBuild as ReturnType<typeof vi.fn>).mockClear();
+    await handler({ title: 'P2', content: 'x' });
+    expect(triggerBuild).not.toHaveBeenCalled();
+  });
+
+  it('page_update to published triggers a rebuild', async () => {
+    const { updatePage } = await import('../services/page.service.js');
+    const { triggerBuild } = await import('../services/build.service.js');
+    (updatePage as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: 'page1', status: 'published' });
+    const handler = server.getHandler('page_update')!;
+    await handler({ id: 'page1', status: 'published' });
+    expect(triggerBuild).toHaveBeenCalledOnce();
+  });
+
+  it('page_update unpublish (published→draft) triggers a rebuild so the site drops it', async () => {
+    const { getPage, updatePage } = await import('../services/page.service.js');
+    const { triggerBuild } = await import('../services/build.service.js');
+    (getPage as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: 'page1', status: 'published' });
+    (updatePage as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: 'page1', status: 'draft' });
+    const handler = server.getHandler('page_update')!;
+    await handler({ id: 'page1', status: 'draft' });
+    expect(triggerBuild).toHaveBeenCalledOnce();
+  });
+
+  it('page_update draft content edit (was draft) does NOT rebuild', async () => {
+    const { getPage, updatePage } = await import('../services/page.service.js');
+    const { triggerBuild } = await import('../services/build.service.js');
+    (getPage as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: 'page1', status: 'draft' });
+    (updatePage as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: 'page1', status: 'draft' });
+    const handler = server.getHandler('page_update')!;
+    await handler({ id: 'page1', content: 'edited' });
+    expect(triggerBuild).not.toHaveBeenCalled();
+  });
+
+  it('page_delete of a published page triggers a rebuild; a draft does not', async () => {
+    const { deletePage } = await import('../services/page.service.js');
+    const { triggerBuild } = await import('../services/build.service.js');
+    (deletePage as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: 'page1', status: 'published' });
+    const handler = server.getHandler('page_delete')!;
+    await handler({ id: 'page1' });
+    expect(triggerBuild).toHaveBeenCalledOnce();
+
+    (triggerBuild as ReturnType<typeof vi.fn>).mockClear();
+    (deletePage as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: 'page2', status: 'draft' });
+    await handler({ id: 'page2' });
+    expect(triggerBuild).not.toHaveBeenCalled();
+  });
+
   it('podcast_get_feedback is registered and reachable (full-admin scope)', async () => {
     const server = buildCapturingServer();
     registerTools(server, ['*']);
