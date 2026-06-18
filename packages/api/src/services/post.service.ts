@@ -167,9 +167,23 @@ export async function deletePost(id: string) {
   return deleted || null;
 }
 
+export async function getPostWithTerms(idOrSlug: string) {
+  const post = await getPost(idOrSlug);
+  if (!post) return null;
+  const tagRows = await db.select({ id: tags.id, slug: tags.slug, name: tags.name })
+    .from(postTags).innerJoin(tags, eq(postTags.tagId, tags.id))
+    .where(eq(postTags.postId, post.id));
+  const catRows = await db.select({ id: categories.id, slug: categories.slug, name: categories.name })
+    .from(postCategories).innerJoin(categories, eq(postCategories.categoryId, categories.id))
+    .where(eq(postCategories.postId, post.id));
+  return { ...post, tags: tagRows, categories: catRows };
+}
+
 export async function publishPost(id: string) {
   const now = Math.floor(Date.now() / 1000);
-  const [post] = await db.update(posts).set({ status: 'published', publishedAt: now, updatedAt: now }).where(eq(posts.id, id)).returning();
+  // COALESCE preserves an already-set publishedAt (imported posts, re-publishes),
+  // matching publishEpisode and updatePost's stamp-on-first-publish semantics.
+  const [post] = await db.update(posts).set({ status: 'published', publishedAt: sql`COALESCE(${posts.publishedAt}, ${now})`, updatedAt: now }).where(eq(posts.id, id)).returning();
   return post || null;
 }
 

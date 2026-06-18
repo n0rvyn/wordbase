@@ -199,13 +199,19 @@ Mint a key with `pnpm --filter api cli key:create <name>` (printed once). The se
 
 ### Available Tools
 
-**Blog / media / comments / analytics (18)**
+**Blog / media / comments / analytics (23)**
 
 | Tool | Description |
 |------|------------|
-| `blog_list_posts` | List posts with filtering (status, category, tag, search) |
-| `blog_get_post` | Get post by ID or slug |
-| `blog_create_post` | Create a new post (Markdown) |
+| `post_list` | List posts with filtering (status, category, tag, search) |
+| `post_get` | Get post by ID or slug (returns tags and categories) |
+| `post_search` | Full-text search published posts (LIKE; returns title + snippet) |
+| `post_create` | Create a new post (Markdown; supports categoryIds/tagIds) |
+| `post_update` | Update post editorial fields (title/content/slug/excerpt/status/tagIds/categoryIds) |
+| `post_publish` | Publish a draft post (idempotent; stamps publishedAt; rebuilds) |
+| `post_archive` | Archive a post (rebuilds only if previously published) |
+| `post_delete` | Delete a post (rebuilds only if previously published) |
+| `post_update_meta` | Update post SEO metadata (description / og:title / og:image) |
 | `blog_list_media` | List media library |
 | `blog_upload_media` | Upload file (base64 encoded) |
 | `blog_delete_media` | Delete media item |
@@ -220,7 +226,6 @@ Mint a key with `pnpm --filter api cli key:create <name>` (printed once). The se
 | `blog_trigger_build` | Trigger Astro site rebuild |
 | `blog_build_status` | Check build status |
 | `blog_manage_redirects` | List, create, or delete URL redirects |
-| `blog_update_post_meta` | Update post SEO metadata |
 
 **Podcast (7)**
 
@@ -333,14 +338,14 @@ myRouter.get('/', authMiddleware, async (c) => { /* ... */ });
 
 ```
 AI creates post via MCP          User writes in admin UI
-  blog_create_post ──┐              POST /api/posts ──┐
+  post_create ──┐              POST /api/posts ──┐
                      ▼                                ▼
               postService.createPost()
                      │
                      ▼
               SQLite (blog.db)
                      │
-              blog_publish_post / POST /api/posts/:id/publish
+              post_publish / POST /api/posts/:id/publish
                      │
                      ▼
               blog_trigger_build / POST /api/build/trigger

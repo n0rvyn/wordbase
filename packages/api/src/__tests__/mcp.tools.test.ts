@@ -154,10 +154,10 @@ describe('registerTools — tool name registration', () => {
     const server = buildFakeServer();
     registerTools(server);
     const names = server.getNames();
-    expect(names).toContain('blog_create_post');
+    expect(names).toContain('post_create');
     expect(names).toContain('blog_upload_media');
-    expect(names).toContain('blog_list_posts');
-    expect(names).toContain('blog_get_post');
+    expect(names).toContain('post_list');
+    expect(names).toContain('post_get');
     expect(names).toContain('blog_list_media');
     expect(names).toContain('blog_trigger_build');
   });
@@ -223,7 +223,7 @@ describe('registerTools — real tools/list serialization', () => {
   // The 5 tools whose input schema carries a `title` field — the exact ones that
   // previously produced the `annotations.title` invalid_type crash.
   const TITLE_TOOLS = [
-    'blog_create_post',
+    'post_create',
     'podcast_create_show',
     'podcast_create_episode',
     'page_create',
@@ -252,7 +252,7 @@ describe('registerTools — real tools/list serialization', () => {
 
   it('input schema descriptions survive into the emitted JSON', async () => {
     const tools = await listToolsViaRealSdk();
-    const createPost = tools.find((t) => t.name === 'blog_create_post')!;
+    const createPost = tools.find((t) => t.name === 'post_create')!;
     const props = createPost.inputSchema.properties as Record<string, { description?: string }>;
     expect(props.title.description).toBe('Post title');
     expect(props.content.description).toBe('Post content in Markdown');

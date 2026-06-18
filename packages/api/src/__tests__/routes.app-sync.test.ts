@@ -142,6 +142,6 @@ describe('MCP registerTools includes app_sync and app_sync_all', () => {
     expect(registeredTools).toContain('app_sync_all');
     // Existing tools must still be present
     expect(registeredTools).toContain('app_create');
-    expect(registeredTools).toContain('blog_create_post');
+    expect(registeredTools).toContain('post_create');
   });
 });

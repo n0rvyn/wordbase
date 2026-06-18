@@ -42,11 +42,15 @@ function toZodShape(shape: Record<string, PropDescriptor>): Record<string, ZodTy
 // Required scope per MCP tool — mirrors the REST route scopes. Before this, MCP
 // tools ran with zero scope checks (#6); the wrapper below enforces them.
 export const TOOL_SCOPES: Record<string, string> = {
-  blog_list_posts: 'posts:read',
-  blog_get_post: 'posts:read',
+  post_list: 'posts:read',
+  post_get: 'posts:read',
   post_search: 'posts:read',
-  blog_create_post: 'posts:write',
-  blog_update_post_meta: 'posts:write',
+  post_create: 'posts:write',
+  post_update: 'posts:write',
+  post_update_meta: 'posts:write',
+  post_publish: 'posts:write',
+  post_archive: 'posts:write',
+  post_delete: 'posts:write',
   blog_list_media: 'media:read',
   blog_upload_media: 'media:write',
   blog_delete_media: 'media:write',
@@ -130,7 +134,7 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
   };
 
   server.tool(
-    'blog_list_posts',
+    'post_list',
     'List blog posts with optional filtering',
     {
       status: { type: 'string', description: 'Filter by status: draft, published, archived' },
@@ -154,13 +158,13 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
   );
 
   server.tool(
-    'blog_get_post',
-    'Get a single blog post by ID or slug',
+    'post_get',
+    'Get a single blog post by ID or slug, including its tags and categories',
     {
       idOrSlug: { type: 'string', description: 'Post ID or slug' },
     },
     async (args: { idOrSlug: string }) => {
-      const post = await postService.getPost(args.idOrSlug);
+      const post = await postService.getPostWithTerms(args.idOrSlug);
       if (!post) {
         return { content: [{ type: 'text' as const, text: 'Post not found' }], isError: true };
       }
@@ -185,7 +189,7 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
   );
 
   server.tool(
-    'blog_create_post',
+    'post_create',
     'Create a new blog post',
     {
       title: { type: 'string', description: 'Post title' },
@@ -205,6 +209,87 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
         tagIds: args.tagIds ? (args.tagIds as string).split(',').map(s => s.trim()) : undefined,
       });
       return { content: [{ type: 'text' as const, text: JSON.stringify(post, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'post_update',
+    'Update a blog post (editorial fields: title/content/slug/excerpt/status/tags/categories). For SEO meta use post_update_meta.',
+    {
+      id: { type: 'string', description: 'Post ID' },
+      title: { type: 'string', description: 'New title' },
+      content: { type: 'string', description: 'New Markdown content' },
+      slug: { type: 'string', description: 'New slug (normalized)' },
+      excerpt: { type: 'string', description: 'New excerpt' },
+      status: { type: 'string', description: 'draft | published | archived' },
+      categoryIds: { type: 'string', description: 'Comma-separated category IDs; empty string clears all, omit keeps' },
+      tagIds: { type: 'string', description: 'Comma-separated tag IDs; empty string clears all, omit keeps' },
+    },
+    async (args: Record<string, unknown>) => {
+      const id = args.id as string;
+      const before = await postService.getPost(id);
+      if (!before) return { content: [{ type: 'text' as const, text: 'Post not found' }], isError: true };
+      // DP-004: term IDs are comma-strings (matches post_create). undefined=keep,
+      // ''=clear ([]), 'a,b'=set — the `=== undefined` check is what distinguishes
+      // clear from keep (a plain falsy check would make '' a no-op, losing clear).
+      const splitIds = (v: unknown) =>
+        v === undefined ? undefined : (v as string).split(',').map(s => s.trim()).filter(Boolean);
+      const updated = await postService.updatePost(id, {
+        title: args.title as string | undefined,
+        content: args.content as string | undefined,
+        slug: args.slug as string | undefined,
+        excerpt: args.excerpt as string | undefined,
+        status: args.status as string | undefined,
+        categoryIds: splitIds(args.categoryIds),
+        tagIds: splitIds(args.tagIds),
+      });
+      if (updated && (updated.status === 'published' || before.status === 'published')) buildService.triggerBuild();
+      return { content: [{ type: 'text' as const, text: JSON.stringify(updated, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'post_publish',
+    'Publish a draft blog post (idempotent: already-published returns as-is). Rebuilds the static site.',
+    { id: { type: 'string', description: 'Post ID' } },
+    async (args: Record<string, unknown>) => {
+      const id = args.id as string;
+      const before = await postService.getPost(id);
+      if (!before) return { content: [{ type: 'text' as const, text: 'Post not found' }], isError: true };
+      if (before.status === 'published') {
+        return { content: [{ type: 'text' as const, text: JSON.stringify({ ...before, alreadyPublished: true }, null, 2) }] };
+      }
+      const post = await postService.publishPost(id);
+      buildService.triggerBuild();
+      return { content: [{ type: 'text' as const, text: JSON.stringify(post, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'post_archive',
+    'Archive a blog post. Rebuilds the static site only if the post was previously published (so the live page is removed).',
+    { id: { type: 'string', description: 'Post ID' } },
+    async (args: Record<string, unknown>) => {
+      const id = args.id as string;
+      const before = await postService.getPost(id);
+      if (!before) return { content: [{ type: 'text' as const, text: 'Post not found' }], isError: true };
+      const post = await postService.archivePost(id);
+      if (before.status === 'published') buildService.triggerBuild();
+      return { content: [{ type: 'text' as const, text: JSON.stringify(post, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'post_delete',
+    'Delete a blog post. Rebuilds the static site only if the post was previously published (so the live page is removed).',
+    { id: { type: 'string', description: 'Post ID' } },
+    async (args: Record<string, unknown>) => {
+      const id = args.id as string;
+      const before = await postService.getPost(id);
+      if (!before) return { content: [{ type: 'text' as const, text: 'Post not found' }], isError: true };
+      const deleted = await postService.deletePost(id);
+      if (before.status === 'published') buildService.triggerBuild();
+      return { content: [{ type: 'text' as const, text: JSON.stringify({ success: true, id }, null, 2) }] };
     }
   );
 
@@ -1144,7 +1229,7 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
 
   // Post meta tool
   server.tool(
-    'blog_update_post_meta',
+    'post_update_meta',
     'Update SEO metadata for a post (og:title, og:description, og:image)',
     {
       id: { type: 'string', description: 'Post ID' },
