@@ -13,6 +13,7 @@ import * as appSyncService from '../services/app-sync.service.js';
 import * as pageService from '../services/page.service.js';
 import * as feedImportService from '../services/feed-import.service.js';
 import * as i18nContent from '../services/i18n-content.service.js';
+import * as searchService from '../services/search.service.js';
 import { safeFetch } from '../lib/safe-fetch.js';
 import { hasScope } from '../middleware/auth.js';
 import { z, type ZodTypeAny } from 'zod';
@@ -40,9 +41,10 @@ function toZodShape(shape: Record<string, PropDescriptor>): Record<string, ZodTy
 
 // Required scope per MCP tool — mirrors the REST route scopes. Before this, MCP
 // tools ran with zero scope checks (#6); the wrapper below enforces them.
-const TOOL_SCOPES: Record<string, string> = {
+export const TOOL_SCOPES: Record<string, string> = {
   blog_list_posts: 'posts:read',
   blog_get_post: 'posts:read',
+  post_search: 'posts:read',
   blog_create_post: 'posts:write',
   blog_update_post_meta: 'posts:write',
   blog_list_media: 'media:read',
@@ -163,6 +165,22 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
         return { content: [{ type: 'text' as const, text: 'Post not found' }], isError: true };
       }
       return { content: [{ type: 'text' as const, text: JSON.stringify(post, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'post_search',
+    'Full-text search published blog posts (LIKE). Returns title + snippet.',
+    {
+      q: { type: 'string', description: 'Search query (Chinese supported)' },
+      limit: { type: 'number', description: 'Max results (default 20, max 50)' },
+    },
+    async (args: Record<string, unknown>) => {
+      const results = await searchService.searchPosts(
+        (args.q as string) ?? '',
+        args.limit as number | undefined,
+      );
+      return { content: [{ type: 'text' as const, text: JSON.stringify(results, null, 2) }] };
     }
   );
 

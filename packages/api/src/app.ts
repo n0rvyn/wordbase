@@ -15,6 +15,7 @@ import { redirectsRouter } from './routes/redirects.js';
 import { podcastsRouter } from './routes/podcasts.js';
 import { appsRouter } from './routes/apps.js';
 import { i18nRouter } from './routes/i18n.js';
+import { searchRouter } from './routes/search.js';
 import { mcpHttpHandler } from './mcp/http.js';
 import { redirectMiddleware } from './middleware/redirect.js';
 import { errorMiddleware } from './middleware/error.js';
@@ -64,6 +65,7 @@ app.on(['POST', 'GET', 'DELETE'], '/api/mcp', mcpHttpHandler);
 // Mounted before the broad `/api` comments router (mirrors the /api/mcp
 // ordering) so the exact path wins.
 app.route('/api/i18n', i18nRouter);
+app.route('/api/search', searchRouter);
 app.route('/api', commentsRouter);
 app.route('/api/analytics', analyticsRouter);
 app.route('/api/observability', observabilityRouter);

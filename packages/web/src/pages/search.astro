@@ -1,0 +1,97 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+<BaseLayout title="搜索" description="搜索站内的文章">
+  <header class="sec wrap" style="border-top:none;padding-top:clamp(44px,6vw,80px)">
+    <div class="row2">
+      <div class="spine">
+        <span class="no">00</span>
+        <span class="lab">Search</span>
+        <span class="note">在标题与正文中查找。</span>
+      </div>
+      <div>
+        <div class="eyebrow">站内</div>
+        <h1>搜索</h1>
+        <p class="lede-w">边打字边出结果。空输入不发起请求。</p>
+        <input id="q" class="search-input" type="search" placeholder="输入关键词" autocomplete="off" aria-label="搜索" />
+      </div>
+    </div>
+  </header>
+
+  <section class="sec wrap">
+    <div class="row2">
+      <div class="spine">
+        <span class="no">01</span>
+        <span class="lab">Results</span>
+      </div>
+      <div>
+        <div id="results" class="list"></div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    type Hit = { slug: string; title: string; snippet: string; publishedAt: number | null; category: string | null };
+    const ENT: Record<string, string> = { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' };
+    const esc = (s: unknown): string => String(s ?? '').replace(/[&<>"']/g, (c) => ENT[c] ?? c);
+    const fmtDate = (ts: number | null): string => (ts ? new Date(ts * 1000).toISOString().slice(0, 10) : '');
+
+    const api = document.body.dataset.apiUrl;
+    const input = document.getElementById('q') as HTMLInputElement | null;
+    const out = document.getElementById('results');
+    if (api && input && out) {
+      let t: ReturnType<typeof setTimeout> | undefined;
+      input.addEventListener('input', () => {
+        clearTimeout(t);
+        const q = input.value.trim();
+        if (!q) { out.innerHTML = ''; return; }
+        t = setTimeout(async () => {
+          try {
+            const r = await fetch(`${api}/api/search?q=${encodeURIComponent(q)}`);
+            const { results } = await r.json();
+            out.innerHTML = ((results || []) as Hit[]).map((h) => {
+              const meta = [fmtDate(h.publishedAt), h.category].filter(Boolean).map((x) => esc(x)).join(' · ');
+              return `<a class="item post" href="/posts/${encodeURIComponent(h.slug)}">
+                <div class="item-title">${esc(h.title)}</div>
+                <div class="item-sub">${esc(h.snippet)}</div>
+                ${meta ? `<div class="item-meta">${meta}</div>` : ''}
+              </a>`;
+            }).join('');
+          } catch { /* 降级:静默 */ }
+        }, 250);
+      });
+    }
+  </script>
+</BaseLayout>
+
+<style>
+  .sec { padding: clamp(44px, 6vw, 84px) 0; border-top: 1px solid var(--line); }
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 12.5px;
+    letter-spacing: .16em; text-transform: uppercase;
+    color: var(--ink-3); margin-bottom: 20px;
+  }
+  h1 {
+    font-family: var(--font-display); font-weight: 500;
+    font-size: clamp(40px, 6vw, 76px); line-height: 1.02;
+    letter-spacing: -.035em; margin: 0 0 22px;
+  }
+  .lede-w {
+    font-family: var(--font-read); font-size: clamp(16px, 1.6vw, 19px);
+    line-height: 1.75; color: var(--ink-2); max-width: 46ch; margin: 0 0 28px;
+  }
+  .search-input {
+    width: 100%; max-width: 560px;
+    font-family: var(--font-display); font-size: clamp(19px, 2vw, 24px);
+    color: var(--ink); background: var(--surface);
+    border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px 18px; outline: none;
+    transition: border-color .2s;
+    -webkit-appearance: none;
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .post { grid-template-columns: 1fr; gap: 6px 28px; }
+  .post .item-title { font-size: clamp(19px, 2vw, 24px); margin-bottom: 6px; }
+  .post .item-sub { font-size: 15px; }
+  .post .item-meta { padding-top: 6px; }
+</style>
