@@ -15,7 +15,9 @@ export const GET: APIRoute = async ({ props }) => {
     title: post.title,
     dateLabel: fmtDateUTC(post.publishedAt ?? post.createdAt),
   });
-  return new Response(png, {
+  // @types/node made Buffer generic (Buffer<ArrayBufferLike>), which no longer
+  // satisfies BodyInit; copy into a Uint8Array<ArrayBuffer> (the assignable form).
+  return new Response(new Uint8Array(png), {
     headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=3600' },
   });
 };
