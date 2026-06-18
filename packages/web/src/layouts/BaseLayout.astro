@@ -486,13 +486,17 @@ const hreflangs = emitHreflang ? hreflangAlternates(currentPath, Astro.site) : [
     background: var(--accent); margin-top: 1px;
   }
   .nav-r { display: flex; align-items: center; gap: 4px; }
-  .nav-r a {
+  /* Text-link styling is for the MENU links only (`.nav-links a`). The search
+     icon is also an <a> in `.nav-r`, but it's an `.icon-btn` — scoping these to
+     `.nav-links a` keeps the asymmetric link padding off it, so the magnifier
+     stays centered in its 36×36 circle like the theme/language buttons. */
+  .nav-links a {
     font-size: 14.5px; color: var(--ink-2);
     padding: 8px 13px; border-radius: 99px;
     transition: color .2s, background .2s;
   }
-  .nav-r a:hover { color: var(--ink); background: var(--surface-2); }
-  .nav-r a.active { color: var(--accent); font-weight: 500; }
+  .nav-links a:hover { color: var(--ink); background: var(--surface-2); }
+  .nav-links a.active { color: var(--accent); font-weight: 500; }
   .icon-btn {
     width: 36px; height: 36px; display: grid; place-items: center;
     border: 1px solid var(--line); background: var(--surface);
@@ -527,7 +531,11 @@ const hreflangs = emitHreflang ? hreflangAlternates(currentPath, Astro.site) : [
       transition: opacity .18s var(--ease), transform .18s var(--ease), visibility .18s;
     }
     .nav.menu-open .nav-links { opacity: 1; visibility: visible; transform: translateY(0); }
-    .nav-r a { width: 100%; padding: 10px 14px; border-radius: 10px; }
+    /* Full-width applies to the STACKED dropdown menu links only. Scoped to
+       `.nav-links a` (not `.nav-r a`) so the search icon — an <a> that lives
+       directly in `.nav-r`, a sibling of `.nav-links` — keeps its 36×36 icon-btn
+       shape instead of stretching into a full-width box on phones. */
+    .nav-links a { width: 100%; padding: 10px 14px; border-radius: 10px; }
   }
 
   /* ── Language toggle (中 / EN) ──
