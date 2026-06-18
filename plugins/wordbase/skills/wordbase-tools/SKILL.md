@@ -6,7 +6,7 @@ description: Reference catalog of the WordBase MCP tools (blog, podcast, apps, p
 
 # WordBase MCP tool catalog
 
-The `wordbase` MCP server exposes **52 tools** across five groups. Each tool is scope-gated by the API key's permissions (`domain:read` / `domain:write`, or `*` for full access). A call made with an out-of-scope key returns a permission-denied error result.
+The `wordbase` MCP server exposes **60 tools** across six groups (Blog, Podcast, Apps, Pages, i18n, Taxonomy). Each tool is scope-gated by the API key's permissions (`domain:read` / `domain:write`, or `*` for full access). A call made with an out-of-scope key returns a permission-denied error result.
 
 ## Blog (23) — scopes: `posts:*`, `media:*`, `comments:*`, `analytics:read`, `build:*`, `redirects:write`
 `post_list` · `post_get` (returns tags and categories) · `post_search` · `post_create` · `post_update` · `post_publish` · `post_archive` · `post_delete` · `post_update_meta` · `blog_list_media` · `blog_upload_media` · `blog_delete_media` · `blog_list_comments` · `blog_moderate_comment` · `blog_reply_comment` · `blog_delete_comment` · `blog_analytics_overview` · `blog_analytics_top_posts` · `blog_analytics_trends` · `blog_content_stats` · `blog_trigger_build` · `blog_build_status` · `blog_manage_redirects`
@@ -23,7 +23,13 @@ The `wordbase` MCP server exposes **52 tools** across five groups. Each tool is 
 ## i18n (3) — scopes: `i18n:read` / `i18n:write`
 `i18n_render` · `i18n_pending` · `i18n_put_cache`
 
+## Taxonomy (8) — scopes: `tags:read` / `tags:write` / `categories:read` / `categories:write`
+`tag_list` · `tag_create` · `tag_update` · `tag_delete` · `category_list` · `category_create` · `category_update` · `category_delete`
+
+Tag and category tools return usage counts; rename/delete trigger a site rebuild only when the term is attached to a published post. `tag_create` is idempotent (create-or-attach); `category_create` is NOT — repeated calls with the same slug return an error result.
+
 ## Notes
 - Content changes (publish, create, update) do not appear on the live site until a rebuild runs. Use `blog_trigger_build` / the `wb-rebuild` skill.
 - App `description`, `screenshots`, and `icon` are sync-owned (from App Store Connect) and not editable via `app_update`.
+- Merging tags (e.g. replacing one tag across all posts and deleting the source) is a session-orchestrated workflow: `tag_list` → `post_list` (filter by source tag) → `post_update` (reassign `tagIds`) → `tag_delete`. See the blog MCP parity dev-guide Phase 3 for the full SOP.
 - For common workflows, prefer the dedicated skills: `wb-status`, `wb-rebuild`, `wb-publish`, `wb-apps-sync`.

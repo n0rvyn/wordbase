@@ -46,7 +46,7 @@ wordbase/
 │   │   │   ├── routes/         # REST API endpoints
 │   │   │   ├── services/       # Business logic
 │   │   │   ├── middleware/     # Auth, redirects, error handling
-│   │   │   ├── mcp/           # MCP server + 18 tools
+│   │   │   ├── mcp/           # MCP server + 60 tools
 │   │   │   ├── cli/           # API key management CLI
 │   │   │   └── db/            # Drizzle schema + migrations
 │   │   └── data/
@@ -159,7 +159,7 @@ All endpoints at `/api/*`. Auth via `Authorization: Bearer <api-key>`.
 
 ## MCP Server
 
-42 tools for AI-powered content management (blog · podcast · apps · companion pages) via the MCP stdio protocol. An MCP client discovers the full, authoritative tool list at runtime via `tools/list`; the tables below mirror it for quick reference.
+60 tools for AI-powered content management (blog · podcast · apps · companion pages · taxonomy) via the MCP stdio protocol. An MCP client discovers the full, authoritative tool list at runtime via `tools/list`; the tables below mirror it for quick reference.
 
 ### Setup (Claude Desktop)
 
@@ -262,6 +262,21 @@ Mint a key with `pnpm --filter api cli key:create <name>` (printed once). The se
 | `page_delete` | Delete a page |
 | `page_publish` | Publish a page (run a build afterward to render it at its public URL) |
 
+**Taxonomy (8)** — tags & categories, scoped per-term. `tag_create` is create-or-attach (idempotent); `category_create` is not — repeating a slug returns an error result.
+
+| Tool | Description |
+|------|------------|
+| `tag_list` | List all tags with usage count |
+| `tag_create` | Create a tag (or return the existing one if the slug already exists) |
+| `tag_update` | Rename or re-slug a tag; rebuilds the site only when the tag is attached to a published post |
+| `tag_delete` | Delete a tag (cascades the post↔tag junction); rebuilds only when the tag was on a published post |
+| `category_list` | List all categories with usage count |
+| `category_create` | Create a category (CJK-aware slug; non-idempotent on slug collision) |
+| `category_update` | Rename or re-slug a category; rebuilds the site only when the category is attached to a published post |
+| `category_delete` | Delete a category (cascades the post↔category junction); rebuilds only when the category was on a published post |
+
+**Merging / mojibake cleanup:** there is no dedicated merge tool — it is a session-orchestrated workflow (`tag_list` → `post_list` filter by source tag → `post_update` reassign `tagIds` → `tag_delete` source). See the [blog MCP parity dev-guide](docs/06-plans/2026-06-18-blog-mcp-parity-dev-guide.md) Phase 3 for the full SOP.
+
 ## AI Integration Architecture
 
 This system is designed from the ground up for AI management. Three interfaces provide the same capabilities at different levels:
@@ -270,7 +285,7 @@ This system is designed from the ground up for AI management. Three interfaces p
 AI Agent (Claude, GPT, etc.)
     │
     ├── MCP (stdio) ──→ packages/api/src/mcp/server.ts
-    │                     └── tools.ts (18 tools)
+    │                     └── tools.ts (60 tools)
     │                           └── imports from services/*
     │
     ├── REST API ─────→ packages/api/src/routes/*

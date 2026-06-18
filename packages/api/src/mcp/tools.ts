@@ -1,4 +1,6 @@
 import * as postService from '../services/post.service.js';
+import * as tagService from '../services/tag.service.js';
+import * as categoryService from '../services/category.service.js';
 import * as mediaService from '../services/media.service.js';
 import * as commentService from '../services/comment.service.js';
 import * as analyticsService from '../services/analytics.service.js';
@@ -51,6 +53,24 @@ export const TOOL_SCOPES: Record<string, string> = {
   post_publish: 'posts:write',
   post_archive: 'posts:write',
   post_delete: 'posts:write',
+  // Phase 3 (Taxonomy over MCP) — read scopes for the taxonomy list tools.
+  tag_list: 'tags:read',
+  category_list: 'categories:read',
+  // Phase 3 (Taxonomy over MCP) — write scopes for create/update/delete tools.
+  // tag_create is create-or-attach (idempotent); category_create is NOT
+  // create-or-attach — the adapter catches the UNIQUE error and returns isError
+  // so callers see a clean MCP result instead of a bare exception.
+  tag_create: 'tags:write',
+  category_create: 'categories:write',
+  // Phase 3 — rename of a term attached to a published post rebuilds the site
+  // (post page shows the term; tag/category index pages list it).
+  tag_update: 'tags:write',
+  category_update: 'categories:write',
+  // Phase 3 — delete of a term attached to a published post rebuilds the site
+  // (post page loses the term; term-listing pages also drop it). Junction rows
+  // are cleared by the DB ON DELETE CASCADE — the adapter doesn't touch them.
+  tag_delete: 'tags:write',
+  category_delete: 'categories:write',
   blog_list_media: 'media:read',
   blog_upload_media: 'media:write',
   blog_delete_media: 'media:write',
@@ -289,6 +309,198 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
       if (!before) return { content: [{ type: 'text' as const, text: 'Post not found' }], isError: true };
       const deleted = await postService.deletePost(id);
       if (before.status === 'published') buildService.triggerBuild();
+      return { content: [{ type: 'text' as const, text: JSON.stringify({ success: true, id }, null, 2) }] };
+    }
+  );
+
+  // Taxonomy tools (Phase 3)
+  server.tool(
+    'tag_list',
+    'List all tags with the number of posts that use each (postCount).',
+    {},
+    async () => {
+      const tags = await tagService.listTagsWithCounts();
+      return { content: [{ type: 'text' as const, text: JSON.stringify(tags, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'category_list',
+    'List all categories with the number of posts in each (postCount).',
+    {},
+    async () => {
+      const categories = await categoryService.listCategoriesWithCounts();
+      return { content: [{ type: 'text' as const, text: JSON.stringify(categories, null, 2) }] };
+    }
+  );
+
+  // tag_create: wrap createTag. createTag is create-or-attach by design (tag.service:67),
+  // so re-posting an existing name returns the same row instead of throwing.
+  server.tool(
+    'tag_create',
+    'Create a tag. If a tag with the same slug already exists, returns the existing one (create-or-attach, idempotent).',
+    {
+      name: { type: 'string', description: 'Tag name' },
+      slug: { type: 'string', description: 'URL slug (auto-generated from name if omitted)' },
+    },
+    async (args: Record<string, unknown>) => {
+      const tag = await tagService.createTag({
+        name: args.name as string,
+        slug: args.slug as string | undefined,
+      });
+      return { content: [{ type: 'text' as const, text: JSON.stringify(tag, null, 2) }] };
+    }
+  );
+
+  // category_create: wrap createCategory. Unlike createTag, createCategory is NOT
+  // create-or-attach — it inserts directly and a duplicate slug throws on the
+  // UNIQUE constraint. Catch and surface as MCP isError (verifier NICE-4) so
+  // callers don't see a bare exception. CJK names work via the slugifyCategory
+  // helper in category.service.ts (DP-005).
+  server.tool(
+    'category_create',
+    'Create a category. NOT idempotent — posting a duplicate slug returns isError (no create-or-attach).',
+    {
+      name: { type: 'string', description: 'Category name' },
+      slug: { type: 'string', description: 'URL slug (auto-generated from name if omitted)' },
+      description: { type: 'string', description: 'Optional description' },
+      sortOrder: { type: 'number', description: 'Sort order (default: 0)' },
+    },
+    async (args: Record<string, unknown>) => {
+      try {
+        const cat = await categoryService.createCategory({
+          name: args.name as string,
+          slug: args.slug as string | undefined,
+          description: args.description as string | undefined,
+          sortOrder: args.sortOrder as number | undefined,
+        });
+        return { content: [{ type: 'text' as const, text: JSON.stringify(cat, null, 2) }] };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Create failed';
+        // SQLite UNIQUE failures surface here as raw error text; map to a clean
+        // MCP isError so clients don't crash on a thrown exception.
+        if (/UNIQUE/i.test(message)) {
+          return { content: [{ type: 'text' as const, text: `category slug already exists` }], isError: true };
+        }
+        return { content: [{ type: 'text' as const, text: `Create failed: ${message}` }], isError: true };
+      }
+    }
+  );
+
+  // tag_update: wrap updateTag. Before mutating, check usedByPublished: if the
+  // tag is on any published post, the static site must rebuild so the tag name
+  // and any tag-listing pages stay consistent (routes/posts.ts mirrors this
+  // before-status check on post edits).
+  server.tool(
+    'tag_update',
+    "Update a tag's name or slug. Rebuilds the static site only if the tag is attached to at least one published post.",
+    {
+      id: { type: 'string', description: 'Tag ID' },
+      name: { type: 'string', description: 'New tag name' },
+      slug: { type: 'string', description: 'New URL slug' },
+    },
+    async (args: Record<string, unknown>) => {
+      const id = args.id as string;
+      // Pre-check usedByPublished (before update) — after the rename we could
+      // still query, but the tag's junction rows are unaffected by tag edits,
+      // so either order works. Pre-check is simpler and matches how
+      // routes/posts.ts reads `before.status` before mutating.
+      const used = await tagService.tagUsedByPublished(id);
+      try {
+        const tag = await tagService.updateTag(id, {
+          name: args.name as string | undefined,
+          slug: args.slug as string | undefined,
+        });
+        if (!tag) {
+          return { content: [{ type: 'text' as const, text: 'Tag not found' }], isError: true };
+        }
+        if (used) buildService.triggerBuild();
+        return { content: [{ type: 'text' as const, text: JSON.stringify(tag, null, 2) }] };
+      } catch (error) {
+        // An explicit duplicate `slug` throws a raw UNIQUE error; map to isError
+        // for symmetry with category_create (G-1) so it never crosses MCP raw.
+        const message = error instanceof Error ? error.message : 'Update failed';
+        if (/UNIQUE/i.test(message)) {
+          return { content: [{ type: 'text' as const, text: `tag slug already exists` }], isError: true };
+        }
+        return { content: [{ type: 'text' as const, text: `Update failed: ${message}` }], isError: true };
+      }
+    }
+  );
+
+  // category_update: wrap updateCategory with the same usedByPublished guard.
+  server.tool(
+    'category_update',
+    "Update a category's name, slug, description, or sortOrder. Rebuilds the static site only if the category is attached to at least one published post.",
+    {
+      id: { type: 'string', description: 'Category ID' },
+      name: { type: 'string', description: 'New category name' },
+      slug: { type: 'string', description: 'New URL slug' },
+      description: { type: 'string', description: 'New description' },
+      sortOrder: { type: 'number', description: 'New sort order' },
+    },
+    async (args: Record<string, unknown>) => {
+      const id = args.id as string;
+      const used = await categoryService.categoryUsedByPublished(id);
+      try {
+        const cat = await categoryService.updateCategory(id, {
+          name: args.name as string | undefined,
+          slug: args.slug as string | undefined,
+          description: args.description as string | undefined,
+          sortOrder: args.sortOrder as number | undefined,
+        });
+        if (!cat) {
+          return { content: [{ type: 'text' as const, text: 'Category not found' }], isError: true };
+        }
+        if (used) buildService.triggerBuild();
+        return { content: [{ type: 'text' as const, text: JSON.stringify(cat, null, 2) }] };
+      } catch (error) {
+        // Duplicate `slug` → raw UNIQUE; map to isError, symmetric with category_create (G-1).
+        const message = error instanceof Error ? error.message : 'Update failed';
+        if (/UNIQUE/i.test(message)) {
+          return { content: [{ type: 'text' as const, text: `category slug already exists` }], isError: true };
+        }
+        return { content: [{ type: 'text' as const, text: `Update failed: ${message}` }], isError: true };
+      }
+    }
+  );
+
+  // tag_delete: wrap deleteTag. Reads usedByPublished BEFORE deleting (after
+  // delete the junction is gone and the helper would return false — Threat
+  // Model 2 stale-site regression). DB ON DELETE CASCADE clears post_tags rows.
+  server.tool(
+    'tag_delete',
+    'Delete a tag. The DB cascades to drop the tag from any posts that referenced it; rebuilds the static site only if the tag was attached to at least one published post.',
+    {
+      id: { type: 'string', description: 'Tag ID' },
+    },
+    async (args: Record<string, unknown>) => {
+      const id = args.id as string;
+      const used = await tagService.tagUsedByPublished(id);
+      const tag = await tagService.deleteTag(id);
+      if (!tag) {
+        return { content: [{ type: 'text' as const, text: 'Tag not found' }], isError: true };
+      }
+      if (used) buildService.triggerBuild();
+      return { content: [{ type: 'text' as const, text: JSON.stringify({ success: true, id }, null, 2) }] };
+    }
+  );
+
+  // category_delete: mirror tag_delete with categoryUsedByPublished.
+  server.tool(
+    'category_delete',
+    'Delete a category. The DB cascades to drop the category from any posts that referenced it; rebuilds the static site only if the category was attached to at least one published post.',
+    {
+      id: { type: 'string', description: 'Category ID' },
+    },
+    async (args: Record<string, unknown>) => {
+      const id = args.id as string;
+      const used = await categoryService.categoryUsedByPublished(id);
+      const cat = await categoryService.deleteCategory(id);
+      if (!cat) {
+        return { content: [{ type: 'text' as const, text: 'Category not found' }], isError: true };
+      }
+      if (used) buildService.triggerBuild();
       return { content: [{ type: 'text' as const, text: JSON.stringify({ success: true, id }, null, 2) }] };
     }
   );
