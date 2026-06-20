@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.1.0 (2026-06-20)
+## v1.1.1 (2026-06-20)
+
+### Bug Fixes
+
+- fix(seo): real per-page meta descriptions, OG images, and app titles (0cb858f)
 
 ### Features
 
