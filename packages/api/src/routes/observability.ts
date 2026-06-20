@@ -56,9 +56,10 @@ observabilityRouter.get('/regions', async (c) => {
   return c.json(await analyticsService.getRegions(days));
 });
 
-// GET /devices — bot / mobile / desktop / unknown breakdown
+// GET /devices?days=30 — bot / mobile / desktop / unknown breakdown
 observabilityRouter.get('/devices', async (c) => {
-  return c.json(await analyticsService.getDeviceBreakdown());
+  const days = Math.max(1, Math.min(365, Number(c.req.query('days')) || 30));
+  return c.json(await analyticsService.getDeviceBreakdown(days));
 });
 
 // GET /content — publish frequency, tag distribution, post counts by status

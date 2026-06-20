@@ -186,11 +186,14 @@ export async function getTopPosts(limit: number = 10) {
   const byPost = new Map<string, { postId: string; title: string; slug: string; views: number }>();
   for (const row of results) {
     // Decode percent-encoded (CJK) slugs, drop a trailing .html and any ?query,
-    // then take the last segment as the slug.
+    // then take the last segment as the slug. Anchor on the `posts` parent
+    // segment (zh /posts/<slug>, en /en/posts/<slug>) so a non-post page like
+    // /tags/<x> is never mis-resolved to a post that happens to be slugged <x>.
     const clean = decodePath(row.path).split('?')[0].replace(/\.html$/i, '');
     const segments = clean.split('/').filter(Boolean);
     const slug = segments[segments.length - 1];
-    const post = slug ? postsBySlug.get(slug) : undefined;
+    const isPostRoute = segments[segments.length - 2] === 'posts';
+    const post = (slug && isPostRoute) ? postsBySlug.get(slug) : undefined;
     if (!post) continue;
     const entry = byPost.get(post.id) ?? { postId: post.id, title: post.title, slug: post.slug, views: 0 };
     entry.views += row.count;
@@ -242,22 +245,39 @@ export async function getTopPages(limit: number = 10) {
       sql`not (${isBotSql})`,
     ))
     .groupBy(pageViews.path)
-    .orderBy(desc(sql`count(*)`))
-    .limit(limit);
+    .orderBy(desc(sql`count(*)`));
 
   const allPosts = await db.select().from(posts).where(eq(posts.status, 'published'));
   const postsBySlug = new Map(allPosts.map(p => [p.slug, p]));
 
-  return results.map(row => {
+  // Posts: aggregate variant paths by post id (sum views, keep the dominant
+  // variant as the display path). Non-post paths: one row each, as before.
+  const byPost = new Map<string, { path: string; label: string; views: number; top: number }>();
+  const others: { path: string; label: string; views: number }[] = [];
+
+  for (const row of results) {
     const path = decodePath(row.path);
-    const segments = path.split('/').filter(Boolean);
+    const slugSrc = path.split('?')[0].replace(/\.html$/i, '');
+    const segments = slugSrc.split('/').filter(Boolean);
     const slug = segments[segments.length - 1];
-    const post = slug ? postsBySlug.get(slug) : undefined;
-    const label = post
-      ? post.title
-      : (STATIC_PAGE_LABELS[path] ?? path);
-    return { path, label, views: row.count };
-  });
+    // Anchor on the `posts` parent segment so /tags/<x>, /categories/<x>, etc.
+    // are never folded into a post slugged <x> (they stay their own rows).
+    const isPostRoute = segments[segments.length - 2] === 'posts';
+    const post = (slug && isPostRoute) ? postsBySlug.get(slug) : undefined;
+    if (post) {
+      const entry = byPost.get(post.id) ?? { path, label: post.title, views: 0, top: 0 };
+      entry.views += row.count;
+      if (row.count > entry.top) { entry.top = row.count; entry.path = path; }
+      byPost.set(post.id, entry);
+    } else {
+      others.push({ path, label: STATIC_PAGE_LABELS[path] ?? path, views: row.count });
+    }
+  }
+
+  return [
+    ...[...byPost.values()].map(({ path, label, views }) => ({ path, label, views })),
+    ...others,
+  ].sort((a, b) => b.views - a.views).slice(0, limit);
   });
 }
 
@@ -408,8 +428,9 @@ export async function getReferrers(limit: number = 10) {
   });
 }
 
-export async function getDeviceBreakdown() {
-  return cached('deviceBreakdown', OBS_CACHE_TTL_MS, async () => {
+export async function getDeviceBreakdown(days: number = 365) {
+  return cached(`deviceBreakdown:${days}`, OBS_CACHE_TTL_MS, async () => {
+  const since = Math.floor(Date.now() / 1000) - days * 86400;
   const deviceType = sql<string>`case
     when ${pageViews.userAgent} is null then 'unknown'
     when ${isBotSql} then 'bot'
@@ -423,6 +444,7 @@ export async function getDeviceBreakdown() {
     type: deviceType,
     count: sql<number>`count(*)`,
   }).from(pageViews)
+    .where(gte(pageViews.createdAt, since))
     .groupBy(deviceType)
     .orderBy(desc(sql`count(*)`));
 

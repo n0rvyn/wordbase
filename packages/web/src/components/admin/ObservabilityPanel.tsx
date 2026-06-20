@@ -125,7 +125,7 @@ export default function ObservabilityPanel() {
         adminFetch<Referrer[]>('/api/observability/referrers?limit=10'),
         adminFetch<ShareStats>(`/api/observability/shares?days=${PERIOD_DAYS[p]}`),
         adminFetch<Region[]>(`/api/observability/regions?days=${PERIOD_DAYS[p]}`),
-        adminFetch<DeviceRow[]>('/api/observability/devices'),
+        adminFetch<DeviceRow[]>(`/api/observability/devices?days=${PERIOD_DAYS[p]}`),
         adminFetch<RequestMetrics>('/api/observability/requests?hours=24'),
         adminFetch<SystemStatus>('/api/observability/system'),
         adminFetch<PodcastSummary>(`/api/observability/podcast/summary?days=${PERIOD_DAYS[p]}`),

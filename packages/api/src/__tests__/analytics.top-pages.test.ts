@@ -76,6 +76,53 @@ describe('getTopPages — all visited pages', () => {
   });
 });
 
+describe('getTopPages — aggregate a post across its locale/variant paths', () => {
+  it('counts a post once, summing zh /posts/<slug> + en /en/posts/<slug>, dominant path as display', async () => {
+    await db.insert(pageViews).values([
+      ...uaView('/posts/hello-world', 5, 'Mozilla/5.0'),
+      ...uaView('/en/posts/hello-world', 2, 'Mozilla/5.0'),
+      ...uaView('/about', 3, 'Mozilla/5.0'),
+    ]);
+    const rows = await getTopPages(10);
+    const hw = rows.filter(r => r.label === 'Hello World');
+    expect(hw).toHaveLength(1);            // one row, not one-per-locale
+    expect(hw[0].views).toBe(7);           // 5 + 2 summed
+    expect(hw[0].path).toBe('/posts/hello-world'); // dominant (5 > 2) variant
+    // /about stays its own non-post row
+    expect(rows.find(r => r.path === '/about')?.views).toBe(3);
+  });
+
+  it('sums a .html variant into the same post', async () => {
+    await db.insert(pageViews).values([
+      ...uaView('/posts/hello-world', 4, 'Mozilla/5.0'),
+      ...uaView('/posts/hello-world.html', 1, 'Mozilla/5.0'),
+    ]);
+    const rows = await getTopPages(10);
+    const hw = rows.filter(r => r.label === 'Hello World');
+    expect(hw).toHaveLength(1);
+    expect(hw[0].views).toBe(5);
+  });
+
+  it('does NOT fold /tags/<x> into a post slugged <x> (anchors on the /posts/ route)', async () => {
+    // A published post whose slug collides with a tag name.
+    await db.insert(posts).values({
+      id: 'p-swift', slug: 'swift', title: 'Swift', content: '#',
+      status: 'published', createdAt: now, updatedAt: now,
+    });
+    await db.insert(pageViews).values([
+      ...uaView('/posts/swift', 6, 'Mozilla/5.0'), // the real post
+      ...uaView('/tags/swift', 4, 'Mozilla/5.0'),  // a tag page — must NOT merge in
+    ]);
+    const rows = await getTopPages(10);
+    const post = rows.find(r => r.path === '/posts/swift');
+    const tag = rows.find(r => r.path === '/tags/swift');
+    expect(post?.views).toBe(6);          // post keeps only its own views (not 10)
+    expect(post?.label).toBe('Swift');
+    expect(tag?.views).toBe(4);           // tag row survives as its own raw-path row
+    expect(tag?.label).toBe('/tags/swift');
+  });
+});
+
 describe('getTopPosts — unchanged, post-only (MCP regression guard)', () => {
   it('returns only paths that resolve to a published post', async () => {
     await db.insert(pageViews).values([
