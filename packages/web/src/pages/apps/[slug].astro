@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import AppDetailBody from '../../components/page-bodies/AppDetailBody.astro';
-import { getApps, type App } from '../../lib/api';
+import { getApps, stripMarkdown, type App } from '../../lib/api';
 import { buildSoftwareApplicationLd, buildBreadcrumbLd } from '../../lib/jsonld.js';
 
 export async function getStaticPaths() {
@@ -17,6 +17,14 @@ export async function getStaticPaths() {
 
 const { app, moreApps } = Astro.props as { app: App; moreApps: App[] };
 
+// Per-app meta description: prefer the short tagline, else a trimmed excerpt of
+// the App Store description, else the subtitle. Empty → BaseLayout site default.
+const metaDescription =
+  app.tagline ||
+  (app.description ? stripMarkdown(app.description, 155) : '') ||
+  app.subtitle ||
+  undefined;
+
 const origin = Astro.site!.href.replace(/\/$/, '');
 const jsonLd = [
   buildSoftwareApplicationLd(app, origin),
@@ -27,6 +35,6 @@ const jsonLd = [
 ];
 ---
 
-<BaseLayout title={`${app.name} — norvyn`} description={app.tagline ?? ''} jsonLd={jsonLd} hasEnTwin>
+<BaseLayout title={app.name} description={metaDescription} ogImage={app.icon ?? undefined} twitterCard="summary" jsonLd={jsonLd} hasEnTwin>
   <AppDetailBody locale="zh" app={app} moreApps={moreApps} />
 </BaseLayout>

@@ -30,11 +30,17 @@ interface Props {
    *  Adds the hreflang set pointing to the en twin, so the zh page also
    *  declares its alternates. Bidirectional hreflang is required by Google. */
   hasEnTwin?: boolean;
+  /** Twitter card type. Defaults to summary_large_image (wide cover). Pages
+   *  whose OG image is a square asset (e.g. an app icon) pass 'summary' so it
+   *  renders as a clean square card instead of a cropped wide one. */
+  twitterCard?: 'summary' | 'summary_large_image';
 }
 
-// 保留现有默认串逐字不变，避免回归既有页面 meta。
-const { title, titleEn, description = 'A personal blog powered by Wordbase', ogImage, ogType = 'website', article, jsonLd = [], feeds = [], locale = 'zh', hasEnTwin = false } = Astro.props;
+const { title, titleEn, description: descriptionProp, ogImage, ogType = 'website', article, jsonLd = [], feeds = [], locale = 'zh', hasEnTwin = false, twitterCard = 'summary_large_image' } = Astro.props;
 const id = await getSiteIdentity();
+// Fallback to the site's real description (settings-driven) when a page passes
+// none — never a generic placeholder. Page-specific descriptions still win.
+const description = descriptionProp ?? id.description;
 const siteTitle = id.name;
 const fullTitle = title === siteTitle ? title : `${title} — ${siteTitle}`;
 // Mirror the same join rule for the English title so 'Apps — norvyn' style
@@ -106,7 +112,7 @@ const hreflangs = emitHreflang ? hreflangAlternates(currentPath, Astro.site) : [
         ))}
       </>
     )}
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:card" content={twitterCard} />
     <meta name="twitter:title" content={fullTitle} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageUrl} />

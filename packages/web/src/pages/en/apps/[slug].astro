@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import AppDetailBody from '../../../components/page-bodies/AppDetailBody.astro';
-import { getApps, type App } from '../../../lib/api';
+import { getApps, stripMarkdown, type App } from '../../../lib/api';
 import { localizeApp } from '../../../lib/localize';
 import { buildSoftwareApplicationLd, buildBreadcrumbLd } from '../../../lib/jsonld.js';
 
@@ -21,6 +21,12 @@ const { app, moreApps } = Astro.props as { app: App; moreApps: App[] };
 // Localize tagline + features; name + description are ASC-owned and stay as-is.
 const localized = await localizeApp(app, 'en');
 
+const metaDescription =
+  localized.tagline ||
+  (localized.description ? stripMarkdown(localized.description, 155) : '') ||
+  localized.subtitle ||
+  undefined;
+
 const origin = Astro.site!.href.replace(/\/$/, '');
 const jsonLd = [
   buildSoftwareApplicationLd(localized, origin),
@@ -31,6 +37,6 @@ const jsonLd = [
 ];
 ---
 
-<BaseLayout title={`${localized.name} — norvyn`} description={localized.tagline ?? ''} jsonLd={jsonLd} locale="en">
+<BaseLayout title={localized.name} description={metaDescription} ogImage={localized.icon ?? undefined} twitterCard="summary" jsonLd={jsonLd} locale="en">
   <AppDetailBody locale="en" app={localized} moreApps={moreApps} />
 </BaseLayout>

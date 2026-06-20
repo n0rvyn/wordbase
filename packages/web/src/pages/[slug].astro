@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import CompanionBody from '../components/page-bodies/CompanionBody.astro';
-import { getPages, type Page } from '../lib/api';
+import { getPages, stripMarkdown, type Page } from '../lib/api';
 import { marked } from 'marked';
 
 export async function getStaticPaths() {
@@ -20,8 +20,14 @@ interface Props {
 
 const { page } = Astro.props;
 const htmlContent = marked.parse(page.content) as string;
+
+// Meta description: an explicit meta.description if the editor set one, else a
+// trimmed plain-text excerpt of the page body. Falls back to the site default.
+let metaDescription: string | undefined;
+try { metaDescription = page.meta ? JSON.parse(page.meta)?.description : undefined; } catch { /* malformed meta JSON */ }
+if (!metaDescription) metaDescription = stripMarkdown(page.content, 155) || undefined;
 ---
 
-<BaseLayout title={page.title} hasEnTwin>
+<BaseLayout title={page.title} description={metaDescription} hasEnTwin>
   <CompanionBody title={page.title} htmlContent={htmlContent} />
 </BaseLayout>
