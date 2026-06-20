@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.2.0 (2026-06-20)
+## v1.3.0 (2026-06-20)
+
+### Features
+
+- feat(seo): rich-result structured data, social meta, image lazy-loading (af716b0)
 
 ### Features
 
