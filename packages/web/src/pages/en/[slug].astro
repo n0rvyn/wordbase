@@ -3,7 +3,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import CompanionBody from '../../components/page-bodies/CompanionBody.astro';
 import { getPages, stripMarkdown, type Page } from '../../lib/api';
 import { localizePage } from '../../lib/localize';
-import { marked } from 'marked';
+import { markdownToHtml } from '../../lib/render-markdown';
 
 export async function getStaticPaths() {
   const pages = await getPages();
@@ -21,7 +21,7 @@ interface Props {
 
 const { page } = Astro.props;
 const localized = await localizePage(page, 'en');
-const htmlContent = marked.parse(localized.content) as string;
+const htmlContent = markdownToHtml(localized.content);
 const metaDescription = stripMarkdown(localized.content, 155) || undefined;
 ---
 

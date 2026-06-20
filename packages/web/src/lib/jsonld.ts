@@ -3,7 +3,23 @@ import type { Post, App, Podcast, Episode, SiteIdentity } from './api.js';
 const iso = (ts: number | null | undefined): string | undefined =>
   ts ? new Date(ts * 1000).toISOString() : undefined;
 
-export function buildBlogPostingLd(post: Post, origin: string, author: string) {
+// Raster logo for publisher/Organization JSON-LD (Google requires an
+// ImageObject, not an SVG). Served from public/.
+const LOGO_PATH = '/apple-touch-icon.png';
+const orgPublisher = (origin: string, id: SiteIdentity) => ({
+  '@type': 'Organization',
+  name: id.name,
+  url: origin,
+  logo: { '@type': 'ImageObject', url: `${origin}${LOGO_PATH}` },
+});
+
+export function buildBlogPostingLd(
+  post: Post,
+  origin: string,
+  author: string,
+  id: SiteIdentity,
+  opts: { description?: string; section?: string } = {},
+) {
   const url = `${origin}/posts/${post.slug}`;
   return {
     '@context': 'https://schema.org',
@@ -12,19 +28,12 @@ export function buildBlogPostingLd(post: Post, origin: string, author: string) {
     datePublished: iso(post.publishedAt),
     dateModified: iso(post.updatedAt),
     author: { '@type': 'Person', name: author },
+    publisher: orgPublisher(origin, id),
     mainEntityOfPage: { '@type': 'WebPage', '@id': url },
     url,
+    ...(opts.description ? { description: opts.description } : {}),
+    ...(opts.section ? { articleSection: opts.section } : {}),
     ...(post.coverImage ? { image: post.coverImage } : {}),
-  } as {
-    '@context': string;
-    '@type': string;
-    headline: string;
-    datePublished: string | undefined;
-    dateModified: string | undefined;
-    author: { '@type': string; name: string };
-    mainEntityOfPage: { '@type': string; '@id': string };
-    url: string;
-    image?: string;
   };
 }
 
@@ -41,8 +50,11 @@ export function buildSoftwareApplicationLd(app: App, origin: string) {
     ...(app.platform ? { operatingSystem: app.platform } : {}),
     ...(app.appStoreUrl ? { downloadUrl: app.appStoreUrl } : {}),
   };
+  // Only emit aggregateRating when there is a real rating: a ratingValue of 0
+  // with ratingCount 0 is invalid structured data and trips Google's validator.
+  const hasRating = app.rating != null && app.rating > 0 && (app.ratingCount ?? 0) > 0;
   const withRating =
-    app.rating != null
+    hasRating
       ? {
           ...base,
           aggregateRating: {
@@ -78,6 +90,7 @@ export function buildPodcastLd(show: Podcast, episodes: Episode[], origin: strin
       ...(ep.episodeNumber != null ? { episodeNumber: ep.episodeNumber } : {}),
       ...(ep.seasonNumber != null ? { seasonNumber: ep.seasonNumber } : {}),
       ...(ep.duration != null ? { duration: ep.duration } : {}),
+      partOfSeries: { '@type': 'PodcastSeries', name: show.title, url },
       associatedMedia: {
         '@type': 'MediaObject',
         contentUrl: ep.audioUrl,
@@ -126,6 +139,15 @@ export function buildWebSiteLd(origin: string, id: SiteIdentity) {
     '@type': 'WebSite',
     name: id.name,
     url: origin,
+    // Enables Google's sitelinks search box pointing at the on-site /search page.
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: `${origin}/search?q={search_term_string}`,
+      },
+      'query-input': 'required name=search_term_string',
+    },
   };
 }
 
@@ -135,6 +157,7 @@ export function buildOrganizationLd(origin: string, id: SiteIdentity) {
     '@type': 'Organization',
     name: id.name,
     url: origin,
+    logo: { '@type': 'ImageObject', url: `${origin}${LOGO_PATH}` },
     sameAs: [id.github],
   };
 }

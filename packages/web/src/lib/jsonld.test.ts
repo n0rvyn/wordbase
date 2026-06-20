@@ -131,15 +131,23 @@ function makeEpisode(overrides: Partial<Episode> = {}): Episode {
 }
 
 describe('buildBlogPostingLd', () => {
-  it('emits BlogPosting with headline, dates, author, mainEntityOfPage', () => {
+  it('emits BlogPosting with headline, dates, author, publisher, mainEntityOfPage', () => {
     const post = makePost();
-    const ld = buildBlogPostingLd(post, SITE, ID.author);
+    const ld = buildBlogPostingLd(post, SITE, ID.author, ID, { description: 'a desc', section: 'Tech' });
     expect(ld['@context']).toBe('https://schema.org');
     expect(ld['@type']).toBe('BlogPosting');
     expect(ld.headline).toBe(post.title);
     expect(ld.datePublished).toBe(new Date(post.publishedAt! * 1000).toISOString());
     expect(ld.dateModified).toBe(new Date(post.updatedAt * 1000).toISOString());
     expect(ld.author).toEqual({ '@type': 'Person', name: 'norvyn' });
+    expect(ld.publisher).toEqual({
+      '@type': 'Organization',
+      name: ID.name,
+      url: SITE,
+      logo: { '@type': 'ImageObject', url: `${SITE}/apple-touch-icon.png` },
+    });
+    expect(ld.description).toBe('a desc');
+    expect(ld.articleSection).toBe('Tech');
     expect(ld.mainEntityOfPage).toEqual({
       '@type': 'WebPage',
       '@id': `${SITE}/posts/${post.slug}`,
@@ -147,8 +155,14 @@ describe('buildBlogPostingLd', () => {
     expect(ld.url).toBe(`${SITE}/posts/${post.slug}`);
   });
 
+  it('omits description/articleSection when not provided', () => {
+    const ld = buildBlogPostingLd(makePost(), SITE, ID.author, ID);
+    expect('description' in ld).toBe(false);
+    expect('articleSection' in ld).toBe(false);
+  });
+
   it('omits image when coverImage is null', () => {
-    const ld = buildBlogPostingLd(makePost({ coverImage: null }), SITE, ID.author);
+    const ld = buildBlogPostingLd(makePost({ coverImage: null }), SITE, ID.author, ID);
     expect('image' in ld).toBe(false);
   });
 
@@ -157,6 +171,7 @@ describe('buildBlogPostingLd', () => {
       makePost({ coverImage: 'https://norvyn.com/cover.png' }),
       SITE,
       ID.author,
+      ID,
     );
     expect(ld.image).toBe('https://norvyn.com/cover.png');
   });
@@ -186,6 +201,11 @@ describe('buildSoftwareApplicationLd', () => {
     const ld = buildSoftwareApplicationLd(makeApp({ rating: null }), SITE);
     expect('aggregateRating' in ld).toBe(false);
   });
+
+  it('omits aggregateRating for a zero rating with no reviews (invalid LD)', () => {
+    const ld = buildSoftwareApplicationLd(makeApp({ rating: 0, ratingCount: 0 }), SITE);
+    expect('aggregateRating' in ld).toBe(false);
+  });
 });
 
 describe('buildPodcastLd', () => {
@@ -203,6 +223,11 @@ describe('buildPodcastLd', () => {
     expect(ld.episode).toHaveLength(2);
     expect(ld.episode[0]['@type']).toBe('PodcastEpisode');
     expect(ld.episode[0].name).toBe('EP.1');
+    expect(ld.episode[0].partOfSeries).toEqual({
+      '@type': 'PodcastSeries',
+      name: '拾余光',
+      url: `${SITE}/podcast`,
+    });
   });
 });
 
@@ -241,17 +266,21 @@ describe('buildPodcastEpisodeLd', () => {
 });
 
 describe('buildWebSiteLd / buildOrganizationLd', () => {
-  it('WebSite has @type WebSite and url=site', () => {
+  it('WebSite has @type WebSite, url=site, and a SearchAction', () => {
     const ld = buildWebSiteLd(SITE, ID);
     expect(ld['@type']).toBe('WebSite');
     expect(ld.url).toBe(SITE);
+    expect(ld.potentialAction['@type']).toBe('SearchAction');
+    expect(ld.potentialAction.target.urlTemplate).toBe(`${SITE}/search?q={search_term_string}`);
+    expect(ld.potentialAction['query-input']).toBe('required name=search_term_string');
   });
 
-  it('Organization has name=norvyn, sameAs includes GitHub, url=site', () => {
+  it('Organization has name=norvyn, logo, sameAs includes GitHub, url=site', () => {
     const ld = buildOrganizationLd(SITE, ID);
     expect(ld['@type']).toBe('Organization');
     expect(ld.name).toBe(ID.name);
     expect(ld.url).toBe(SITE);
+    expect(ld.logo).toEqual({ '@type': 'ImageObject', url: `${SITE}/apple-touch-icon.png` });
     expect(Array.isArray(ld.sameAs)).toBe(true);
     expect(ld.sameAs).toContain(ID.github);
   });

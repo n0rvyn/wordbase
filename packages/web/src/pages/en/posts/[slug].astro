@@ -5,7 +5,7 @@ import { getPosts, getCategories, estimateReadTime, stripMarkdown, type Post, ge
 import { injectHeadingIds, selectAdjacent } from '../../../lib/article';
 import { buildBlogPostingLd, buildBreadcrumbLd } from '../../../lib/jsonld.js';
 import { localizePost } from '../../../lib/localize';
-import { marked } from 'marked';
+import { markdownToHtml } from '../../../lib/render-markdown';
 
 export async function getStaticPaths() {
   const { data: posts } = await getPosts({ status: 'published', limit: 10000 });
@@ -45,13 +45,13 @@ const localized = await localizePost(post, 'en');
 const meta = localized.meta ? JSON.parse(localized.meta) : {};
 const description = localized.excerpt || meta.description || stripMarkdown(localized.content, 160);
 const readTime = estimateReadTime(localized.content);
-const { html, toc } = injectHeadingIds(marked.parse(localized.content) as string);
+const { html, toc } = injectHeadingIds(markdownToHtml(localized.content));
 const { newer, older } = selectAdjacent(orderedSlugs, localized.slug);
 const firstCat = postFirstCat[localized.id] || '';
 const origin = Astro.site!.href.replace(/\/$/, '');
 const id = await getSiteIdentity();
 const jsonLd = [
-  buildBlogPostingLd(localized, origin, id.author),
+  buildBlogPostingLd(localized, origin, id.author, id, { description, section: firstCat || undefined }),
   buildBreadcrumbLd([
     { name: 'Writing', url: `${origin}/en/writing` },
     { name: localized.title, url: `${origin}/en/posts/${localized.slug}` },

@@ -30,10 +30,15 @@ interface Props {
    *  Adds the hreflang set pointing to the en twin, so the zh page also
    *  declares its alternates. Bidirectional hreflang is required by Google. */
   hasEnTwin?: boolean;
+  /** Emit <meta name="robots" content="noindex, follow"> for thin/utility
+   *  pages that shouldn't be indexed (e.g. /search). Links are still followed. */
+  noindex?: boolean;
 }
 
-const { title, titleEn, description: descriptionProp, ogImage, ogType = 'website', article, jsonLd = [], feeds = [], locale = 'zh', hasEnTwin = false } = Astro.props;
+const { title, titleEn, description: descriptionProp, ogImage, ogType = 'website', article, jsonLd = [], feeds = [], locale = 'zh', hasEnTwin = false, noindex = false } = Astro.props;
 const id = await getSiteIdentity();
+// X/Twitter handle for card attribution.
+const TWITTER_HANDLE = '@NorvynZhang';
 // Fallback to the site's real description (settings-driven) when a page passes
 // none — never a generic placeholder. Page-specific descriptions still win.
 const description = descriptionProp ?? id.description;
@@ -76,12 +81,16 @@ const footerLinks = {
 // bilingual subtree. en pages always declare; zh pages only when hasEnTwin.
 const emitHreflang = en || hasEnTwin;
 const hreflangs = emitHreflang ? hreflangAlternates(currentPath, Astro.site) : [];
+// og:locale (+ alternate when the page has a twin in the other language).
+const ogLocale = en ? 'en_US' : 'zh_CN';
+const ogLocaleAlt = en ? 'zh_CN' : 'en_US';
 ---
 
 <html lang={en ? 'en' : 'zh-CN'} data-theme="light" data-lang={en ? 'en' : undefined} data-has-en-twin={(hasEnTwin && !en) ? 'true' : undefined} data-title-en={fullTitleEn || undefined}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {noindex && <meta name="robots" content="noindex, follow" />}
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalUrl} />
     <link rel="alternate" type="application/rss+xml" title={`${siteTitle} — 文章`} href="/rss.xml" />
@@ -97,6 +106,9 @@ const hreflangs = emitHreflang ? hreflangAlternates(currentPath, Astro.site) : [
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:alt" content={fullTitle} />
+    <meta property="og:locale" content={ogLocale} />
+    {emitHreflang && <meta property="og:locale:alternate" content={ogLocaleAlt} />}
     {ogType === 'article' && article && (
       <>
         {isoMeta(article.publishedTime) && <meta property="article:published_time" content={isoMeta(article.publishedTime)} />}
@@ -109,6 +121,8 @@ const hreflangs = emitHreflang ? hreflangAlternates(currentPath, Astro.site) : [
       </>
     )}
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content={TWITTER_HANDLE} />
+    <meta name="twitter:creator" content={TWITTER_HANDLE} />
     <meta name="twitter:title" content={fullTitle} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageUrl} />

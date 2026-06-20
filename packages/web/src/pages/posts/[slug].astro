@@ -4,7 +4,7 @@ import PostDetailBody from '../../components/page-bodies/PostDetailBody.astro';
 import { getPosts, getCategories, estimateReadTime, stripMarkdown, type Post, getSiteIdentity } from '../../lib/api';
 import { injectHeadingIds, selectAdjacent } from '../../lib/article';
 import { buildBlogPostingLd, buildBreadcrumbLd } from '../../lib/jsonld.js';
-import { marked } from 'marked';
+import { markdownToHtml } from '../../lib/render-markdown';
 
 export async function getStaticPaths() {
   const { data: posts } = await getPosts({ status: 'published', limit: 10000 });
@@ -40,13 +40,13 @@ const { post, orderedSlugs, slugTitle, postFirstCat } = Astro.props as {
 const meta = post.meta ? JSON.parse(post.meta) : {};
 const description = post.excerpt || meta.description || stripMarkdown(post.content, 160);
 const readTime = estimateReadTime(post.content);
-const { html, toc } = injectHeadingIds(marked.parse(post.content) as string);
+const { html, toc } = injectHeadingIds(markdownToHtml(post.content));
 const { newer, older } = selectAdjacent(orderedSlugs, post.slug);
 const firstCat = postFirstCat[post.id] || '';
 const origin = Astro.site!.href.replace(/\/$/, '');
 const id = await getSiteIdentity();
 const jsonLd = [
-  buildBlogPostingLd(post, origin, id.author),
+  buildBlogPostingLd(post, origin, id.author, id, { description, section: firstCat || undefined }),
   buildBreadcrumbLd([
     { name: 'Writing', url: `${origin}/writing` },
     { name: post.title, url: `${origin}/posts/${post.slug}` },

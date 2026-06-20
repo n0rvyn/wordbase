@@ -2,7 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import CompanionBody from '../components/page-bodies/CompanionBody.astro';
 import { getPages, stripMarkdown, type Page } from '../lib/api';
-import { marked } from 'marked';
+import { markdownToHtml } from '../lib/render-markdown';
 
 export async function getStaticPaths() {
   const pages = await getPages();
@@ -19,7 +19,7 @@ interface Props {
 }
 
 const { page } = Astro.props;
-const htmlContent = marked.parse(page.content) as string;
+const htmlContent = markdownToHtml(page.content);
 
 // Meta description: an explicit meta.description if the editor set one, else a
 // trimmed plain-text excerpt of the page body. Falls back to the site default.

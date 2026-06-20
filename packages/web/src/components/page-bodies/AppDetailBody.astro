@@ -173,12 +173,12 @@ const shareUrl = new URL(lhref(`/apps/${app.slug}`), Astro.site).href;
             <div class="shot">
               {isMac ? (
                 <div class="mac-win">
-                  <div class="mac-screen"><img src={url} alt={`${app.name} screenshot ${i + 1}`} /></div>
+                  <div class="mac-screen"><img src={url} alt={`${app.name} screenshot ${i + 1}`} loading="lazy" decoding="async" /></div>
                   <span class="mac-notch"></span>
                 </div>
               ) : (
                 <div class="shot-frame">
-                  <img src={url} alt={`${app.name} screenshot ${i + 1}`} />
+                  <img src={url} alt={`${app.name} screenshot ${i + 1}`} loading="lazy" decoding="async" />
                 </div>
               )}
               <span class="cap">{String(i + 1).padStart(2, '0')}</span>
@@ -236,7 +236,7 @@ const shareUrl = new URL(lhref(`/apps/${app.slug}`), Astro.site).href;
             <a class="item app" href={lhref(`/apps/${a.slug}`)}>
               <div class="app-ic">
                 {a.icon
-                  ? <img src={a.icon} alt={a.name} />
+                  ? <img src={a.icon} alt={a.name} loading="lazy" decoding="async" />
                   : a.name.charAt(0)
                 }
               </div>
