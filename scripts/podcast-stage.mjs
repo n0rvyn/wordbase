@@ -65,20 +65,27 @@ function run(cmd, args) {
 
 // ---- discovery -------------------------------------------------------------
 // Anchor on the audio file; require a sibling transcript of the same base name.
+// New organization (2026-06-20): candidates live under <SOURCE_DIR>/episodes/.
+// Fall back to the top of SOURCE_DIR for the old flat layout.
 function scanSource() {
   const cands = [];
-  for (const f of readdirSync(SOURCE_DIR)) {
-    const m = f.match(/^(\d{4}-\d{2}-\d{2})-(.+)\.([A-Za-z0-9]+)$/);
-    if (!m) continue;
-    const [, date, title, extRaw] = m;
-    const ext = extRaw.toLowerCase();
-    if (!AUDIO_EXT.has(ext)) continue;
-    const base = f.slice(0, -(extRaw.length + 1));
-    let textFile = null;
-    for (const te of TEXT_EXT) {
-      if (existsSync(join(SOURCE_DIR, `${base}.${te}`))) { textFile = `${base}.${te}`; break; }
+  const subDir = join(SOURCE_DIR, 'episodes');
+  const roots = existsSync(subDir) && statSync(subDir).isDirectory() ? [subDir] : [];
+  roots.push(SOURCE_DIR);
+  for (const root of roots) {
+    for (const f of readdirSync(root)) {
+      const m = f.match(/^(\d{4}-\d{2}-\d{2})-(.+)\.([A-Za-z0-9]+)$/);
+      if (!m) continue;
+      const [, date, title, extRaw] = m;
+      const ext = extRaw.toLowerCase();
+      if (!AUDIO_EXT.has(ext)) continue;
+      const base = f.slice(0, -(extRaw.length + 1));
+      let textFile = null;
+      for (const te of TEXT_EXT) {
+        if (existsSync(join(root, `${base}.${te}`))) { textFile = `${base}.${te}`; break; }
+      }
+      cands.push({ date, title, audioFile: f, audioExt: ext, textFile, _root: root });
     }
-    cands.push({ date, title, audioFile: f, audioExt: ext, textFile });
   }
   // Chronological: by date, then by audio mtime (so same-day morning sorts before evening).
   cands.sort((a, b) =>
@@ -148,7 +155,7 @@ function evaluate(c) {
   const info = {};
   if (!c.textFile) { reasons.push('no transcript'); return { pass: false, reasons, info }; }
 
-  const audioPath = join(SOURCE_DIR, c.audioFile);
+  const audioPath = join(c._root, c.audioFile);
   const dur = probeDuration(audioPath);
   info.dur = dur;
   if (dur === null) reasons.push('duration unreadable');
@@ -233,8 +240,9 @@ function main() {
   // rolling the audio back if the transcript move fails, so a pair is never half-staged.
   let staged = 0;
   for (const mv of moves) {
-    const aSrc = join(SOURCE_DIR, mv.c.audioFile), aDst = join(MEDIA_DIR, mv.audioDst);
-    const tSrc = join(SOURCE_DIR, mv.c.textFile), tDst = join(MEDIA_DIR, mv.textDst);
+    const root = mv.c._root || SOURCE_DIR;
+    const aSrc = join(root, mv.c.audioFile), aDst = join(MEDIA_DIR, mv.audioDst);
+    const tSrc = join(root, mv.c.textFile), tDst = join(MEDIA_DIR, mv.textDst);
     if (existsSync(aDst) || existsSync(tDst)) { console.log(`  ⚠️  EP.${mv.nn} target exists — skipped`); continue; }
     try {
       movePreserve(aSrc, aDst);
