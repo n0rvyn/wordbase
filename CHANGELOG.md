@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.1.1 (2026-06-20)
+## v1.2.0 (2026-06-20)
+
+### Features
+
+- feat(seo): landscape OG social cards for app pages (4253eb2)
 
 ### Bug Fixes
 
