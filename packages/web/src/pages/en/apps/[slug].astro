@@ -37,6 +37,6 @@ const jsonLd = [
 ];
 ---
 
-<BaseLayout title={localized.name} description={metaDescription} ogImage={localized.icon ?? undefined} twitterCard="summary" jsonLd={jsonLd} locale="en">
+<BaseLayout title={localized.name} description={metaDescription} ogImage={`/og/en/apps/${app.slug}.png`} jsonLd={jsonLd} locale="en">
   <AppDetailBody locale="en" app={localized} moreApps={moreApps} />
 </BaseLayout>

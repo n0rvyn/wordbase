@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { renderPostOgImage } from './og-image.js';
+import { renderPostOgImage, renderAppOgImage } from './og-image.js';
 
 // PNG signature: 89 50 4E 47 0D 0A 1A 0A
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -41,5 +41,30 @@ describe('renderPostOgImage', () => {
     const { width, height } = pngDimensions(buf);
     expect(width).toBe(1200);
     expect(height).toBe(630);
+  });
+});
+
+describe('renderAppOgImage', () => {
+  // iconUrl: null exercises the text-only path — no network fetch in tests.
+  it('returns a valid 1200x630 PNG (text-only, no icon)', async () => {
+    const buf = await renderAppOgImage({ name: 'Delphi - 认识你自己', tagline: '记录点滴，让思想生根发芽。', iconUrl: null });
+    expect(buf.subarray(0, 8)).toEqual(PNG_MAGIC);
+    const { width, height } = pngDimensions(buf);
+    expect(width).toBe(1200);
+    expect(height).toBe(630);
+  });
+
+  it('renders without a tagline (single hero line)', async () => {
+    const buf = await renderAppOgImage({ name: 'Cashie', tagline: '', iconUrl: null });
+    const { width, height } = pngDimensions(buf);
+    expect(width).toBe(1200);
+    expect(height).toBe(630);
+  });
+
+  it('degrades to text-only when the icon URL is unreachable', async () => {
+    const buf = await renderAppOgImage({ name: '测试 App', tagline: '一句话标语', iconUrl: 'https://invalid.invalid/nope.png' });
+    expect(buf.subarray(0, 8)).toEqual(PNG_MAGIC);
+    const { width } = pngDimensions(buf);
+    expect(width).toBe(1200);
   });
 });
