@@ -2,6 +2,7 @@
   "name": "wordbase",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "pnpm@10.28.2",
   "scripts": {
     "dev:api": "pnpm --filter api dev",
     "dev:web": "pnpm --filter web dev",
