@@ -52,7 +52,7 @@ const MEAN_FLOOR = -45;        // dB — mean loudness must clear this
 const MAX_FLOOR = -10;         // dB — a real peak should approach 0
 const SILENCE_DB = -45;        // dB — threshold for "silence"
 const SILENCE_MAX_SEC = 30;    // a single dead stretch this long ⇒ dropout
-const ASR_CLIP_SEC = 60;       // transcribe the first minute
+const ASR_CLIP_SEC = 45;       // transcribe the first 45 s; 60s clips systematically truncate to ~9 CJK (asr-check.swift)
 const ASR_MIN_CJK = 20;        // expect at least this many Chinese chars from it
 
 if (!existsSync(SOURCE_DIR)) { console.error(`✗ source dir not found: ${SOURCE_DIR}`); process.exit(1); }
