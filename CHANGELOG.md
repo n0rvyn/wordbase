@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.4.0 (2026-09-05)
+## v1.4.1 (2026-09-05)
+
+### Bug Fixes
+
+- fix(podcast): shorten ASR clip to avoid CJK transcription truncation (70e1c31)
 
 ### Features
 
