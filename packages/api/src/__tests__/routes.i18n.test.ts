@@ -61,6 +61,19 @@ async function openMcpSession(raw: string): Promise<string> {
   return sid!;
 }
 
+// tools/list names visible to a given key's already-open session — Task 3
+// moved scope enforcement from "registered but isError at call time" to
+// "not registered at all", so denial now shows up as absence from this list.
+async function listToolNames(raw: string, sid: string): Promise<string[]> {
+  const res = await app.request('/api/mcp', {
+    method: 'POST', headers: mcpHeaders(raw, sid),
+    body: JSON.stringify({ jsonrpc: '2.0', id: 99, method: 'tools/list' }),
+  });
+  expect(res.status).toBe(200);
+  const json = (await res.json()) as { result?: { tools?: { name: string }[] } };
+  return (json.result?.tools ?? []).map((t) => t.name);
+}
+
 beforeAll(async () => {
   await seedKey(KEYS.full, 'i18n-full', '["*"]');
   await seedKey(KEYS.ro, 'i18n-readonly', '["i18n:read"]');
@@ -357,7 +370,7 @@ describe('MCP i18n tools (via /api/mcp)', () => {
     expect(rjson.result?.isError).toBeFalsy();
     const text = rjson.result?.content?.[0]?.text ?? '';
     expect(text).toContain('[en] heading');
-    expect(text).toContain('"hit": 1');
+    expect(text).toContain('"hit":1');
   });
 
   it('i18n_render field=title round-trip: write a translation, i18n_render returns the translated text', async () => {
@@ -403,7 +416,7 @@ describe('MCP i18n tools (via /api/mcp)', () => {
     expect(rjson.result?.isError).toBeFalsy();
     const text = rjson.result?.content?.[0]?.text ?? '';
     expect(text).toContain('[en] mcp title');
-    expect(text).toContain('"hit": 1');
+    expect(text).toContain('"hit":1');
   });
 
   it('i18n_render field=title on a draft returns isError (not a leak)', async () => {
@@ -453,33 +466,27 @@ describe('MCP i18n tools (via /api/mcp)', () => {
     expect(j.result?.isError).toBe(true);
   });
 
-  it('scope: i18n_put_cache denied to an i18n:read-only key', async () => {
+  it('scope: i18n_put_cache is not registered for an i18n:read-only key', async () => {
     const sid = await openMcpSession(KEYS.ro);
-    const res = await app.request('/api/mcp', {
-      method: 'POST', headers: mcpHeaders(KEYS.ro, sid),
-      body: JSON.stringify({
-        jsonrpc: '2.0', id: 7, method: 'tools/call',
-        params: { name: 'i18n_put_cache', arguments: { entries: '[]' } },
-      }),
-    });
-    expect(res.status).toBe(200);
-    const j = (await res.json()) as { result?: { isError?: boolean; content?: { text?: string }[] } };
-    expect(j.result?.isError).toBe(true);
-    expect(j.result?.content?.[0]?.text).toContain('i18n:write');
+    const names = await listToolNames(KEYS.ro, sid);
+    expect(names).toContain('i18n_pending');
+    expect(names).not.toContain('i18n_put_cache');
+
+    const sidFull = await openMcpSession(KEYS.full);
+    const fullNames = await listToolNames(KEYS.full, sidFull);
+    expect(fullNames).toContain('i18n_pending');
+    expect(fullNames).toContain('i18n_put_cache');
   });
 
-  it('scope: i18n_pending denied to an i18n:write-only key', async () => {
+  it('scope: i18n_pending is not registered for an i18n:write-only key', async () => {
     const sid = await openMcpSession(KEYS.wo);
-    const res = await app.request('/api/mcp', {
-      method: 'POST', headers: mcpHeaders(KEYS.wo, sid),
-      body: JSON.stringify({
-        jsonrpc: '2.0', id: 8, method: 'tools/call',
-        params: { name: 'i18n_pending', arguments: { lang: 'en' } },
-      }),
-    });
-    expect(res.status).toBe(200);
-    const j = (await res.json()) as { result?: { isError?: boolean; content?: { text?: string }[] } };
-    expect(j.result?.isError).toBe(true);
-    expect(j.result?.content?.[0]?.text).toContain('i18n:read');
+    const names = await listToolNames(KEYS.wo, sid);
+    expect(names).toContain('i18n_put_cache');
+    expect(names).not.toContain('i18n_pending');
+
+    const sidFull = await openMcpSession(KEYS.full);
+    const fullNames = await listToolNames(KEYS.full, sidFull);
+    expect(fullNames).toContain('i18n_put_cache');
+    expect(fullNames).toContain('i18n_pending');
   });
 });

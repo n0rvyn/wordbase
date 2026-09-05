@@ -8,8 +8,10 @@ type AnyObj = Record<string, unknown>;
 
 // Mock app-sync.service before importing app
 vi.mock('../services/app-sync.service.js', () => ({
-  syncApp: vi.fn().mockResolvedValue(undefined),
-  syncAllApps: vi.fn().mockResolvedValue({ synced: 1, failed: [] }),
+  // syncApp/syncAllApps now report field-level changes so the adapter can decide
+  // whether a rebuild is warranted — an unchanged sync must not rebuild the site.
+  syncApp: vi.fn().mockResolvedValue({ appId: 'app1', slug: 'app-1', status: 'published', fields: [] }),
+  syncAllApps: vi.fn().mockResolvedValue({ synced: 1, failed: [], changes: [] }),
 }));
 
 // Mock build.service before importing app
@@ -125,8 +127,11 @@ describe('POST /api/apps/sync', () => {
   });
 });
 
-describe('MCP registerTools includes app_sync and app_sync_all', () => {
-  it('registers app_sync, app_sync_all, and keeps existing tools', async () => {
+// app_sync_all was merged into app_sync (id optional: given = one app, omitted =
+// all). One tool now maps to both REST endpoints, matching analytics_query and
+// observability_query. Pin its absence so the merge cannot silently regress.
+describe('MCP registerTools exposes the merged app_sync', () => {
+  it('registers app_sync, no longer registers app_sync_all, and keeps existing tools', async () => {
     const { registerTools } = await import('../mcp/tools.js');
 
     const registeredTools: string[] = [];
@@ -139,7 +144,7 @@ describe('MCP registerTools includes app_sync and app_sync_all', () => {
     registerTools(fakeServer as Parameters<typeof registerTools>[0]);
 
     expect(registeredTools).toContain('app_sync');
-    expect(registeredTools).toContain('app_sync_all');
+    expect(registeredTools).not.toContain('app_sync_all');
     // Existing tools must still be present
     expect(registeredTools).toContain('app_create');
     expect(registeredTools).toContain('post_create');

@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs';
 import { nanoid } from 'nanoid';
 import { db } from '../db/index.js';
 import { apiKeys } from '../db/schema.js';
+import { sessions, evictSessions, SESSION_TTL_MS, SESSION_MAX } from '../mcp/http.js';
+import { TOOL_SCOPES } from '../mcp/tools.js';
 
 const { app } = await import('../app.js');
 
@@ -11,6 +13,7 @@ const KEYS = {
   full: 'mcpfull-aaaaaaaa', // ["*"]
   apps: 'mcpapps-bbbbbbbb', // ["apps:read","apps:write"]
   pod: 'mcppods-cccccccc', // ["podcasts:read","podcasts:write"] — no observability:read
+  full2: 'mcpfulb-dddddddd', // ["*"] — a second, distinct full key (session-binding test)
 };
 
 async function seedKey(raw: string, name: string, permissions: string) {
@@ -49,10 +52,25 @@ async function openSession(raw: string): Promise<string> {
   return sid!;
 }
 
+// tools/list names visible to a given key's already-open session — the tool
+// set is now scope-filtered at registration time, so this is the surface
+// that "does a narrow key see fewer tools" assertions read from.
+async function listToolNames(raw: string, sid: string): Promise<string[]> {
+  const res = await app.request('/api/mcp', {
+    method: 'POST',
+    headers: headers(raw, sid),
+    body: JSON.stringify({ jsonrpc: '2.0', id: 9, method: 'tools/list' }),
+  });
+  expect(res.status).toBe(200);
+  const json = (await res.json()) as { result?: { tools?: { name: string }[] } };
+  return (json.result?.tools ?? []).map((t) => t.name);
+}
+
 beforeAll(async () => {
   await seedKey(KEYS.full, 'mcp-full', '["*"]');
   await seedKey(KEYS.apps, 'mcp-apps', '["apps:read","apps:write"]');
   await seedKey(KEYS.pod, 'mcp-pod', '["podcasts:read","podcasts:write"]');
+  await seedKey(KEYS.full2, 'mcp-full-2', '["*"]');
 });
 
 describe('MCP-over-HTTP route (/api/mcp)', () => {
@@ -78,7 +96,7 @@ describe('MCP-over-HTTP route (/api/mcp)', () => {
     expect(json.result?.serverInfo?.name).toBe('wordbase-blog');
   });
 
-  it('lists all 60 tools on the established session', async () => {
+  it('lists exactly the TOOL_SCOPES-registered tools on the established session', async () => {
     const sid = await openSession(KEYS.full);
     const res = await app.request('/api/mcp', {
       method: 'POST',
@@ -87,41 +105,110 @@ describe('MCP-over-HTTP route (/api/mcp)', () => {
     });
     expect(res.status).toBe(200);
     const json = (await res.json()) as { result?: { tools?: unknown[] } };
-    expect(json.result?.tools?.length).toBe(60);
+    expect(json.result?.tools?.length).toBe(Object.keys(TOOL_SCOPES).length);
   });
 
-  it('scope-gates tool execution: an apps-only key is denied a posts tool', async () => {
+  // Task 3: scope enforcement moved from "registered but isError at call time"
+  // to "not registered at all" — a narrow key's tools/list is a strictly
+  // smaller set, not a full set with landmines in it. Both polarities are
+  // asserted (contains its own domain, excludes the other) plus a '*' control
+  // so a regression that silently drops post_list itself would also fail.
+  it('scope-gates tool registration: an apps-only key sees its own domain but not posts', async () => {
     const sid = await openSession(KEYS.apps);
-    const res = await app.request('/api/mcp', {
-      method: 'POST',
-      headers: headers(KEYS.apps, sid),
-      body: JSON.stringify({
-        jsonrpc: '2.0', id: 3, method: 'tools/call',
-        params: { name: 'post_list', arguments: {} },
-      }),
-    });
-    expect(res.status).toBe(200);
-    const json = (await res.json()) as { result?: { isError?: boolean; content?: { text?: string }[] } };
-    expect(json.result?.isError).toBe(true);
-    expect(json.result?.content?.[0]?.text).toContain('posts:read');
+    const names = await listToolNames(KEYS.apps, sid);
+    expect(names).toContain('app_list');
+    expect(names).not.toContain('post_list');
+
+    const sidFull = await openSession(KEYS.full);
+    const fullNames = await listToolNames(KEYS.full, sidFull);
+    expect(fullNames).toContain('app_list');
+    expect(fullNames).toContain('post_list');
   });
 
   // podcast_analytics serves the same data as the REST /api/observability/podcast/*
   // routes (observability:read). A podcasts-scoped key must NOT reach it via MCP —
-  // otherwise it's a scope-mismatch escalation (MCP grants what REST denies).
-  it('scope-gates podcast_analytics: a podcasts-only key is denied (needs observability:read)', async () => {
+  // otherwise it's a scope-mismatch escalation (MCP grants what REST denies). With
+  // Task 3's registration-time gate, "denied" now means the tool never appears in
+  // tools/list.
+  it('scope-gates tool registration: a podcasts-only key sees podcast_list_shows but not podcast_analytics (needs observability:read)', async () => {
     const sid = await openSession(KEYS.pod);
+    const names = await listToolNames(KEYS.pod, sid);
+    expect(names).toContain('podcast_list_shows');
+    expect(names).not.toContain('podcast_analytics');
+
+    const sidFull = await openSession(KEYS.full);
+    const fullNames = await listToolNames(KEYS.full, sidFull);
+    expect(fullNames).toContain('podcast_list_shows');
+    expect(fullNames).toContain('podcast_analytics');
+  });
+
+  // A session id is only as safe as the header carrying it. If it leaks (logs,
+  // proxies, a shared terminal), a different — even if otherwise valid — key
+  // must not be able to ride the creator's permissions on it.
+  it('rejects a different API key reusing another key\'s session id (401)', async () => {
+    const sid = await openSession(KEYS.full);
     const res = await app.request('/api/mcp', {
       method: 'POST',
-      headers: headers(KEYS.pod, sid),
-      body: JSON.stringify({
-        jsonrpc: '2.0', id: 3, method: 'tools/call',
-        params: { name: 'podcast_analytics', arguments: {} },
-      }),
+      headers: headers(KEYS.full2, sid),
+      body: JSON.stringify({ jsonrpc: '2.0', id: 4, method: 'tools/list' }),
+    });
+    expect(res.status).toBe(401);
+    const json = (await res.json()) as { error?: { code?: number } };
+    expect(json.error?.code).toBe(-32001);
+  });
+
+  it('allows the same API key to reuse its own session (200)', async () => {
+    const sid = await openSession(KEYS.full);
+    const res = await app.request('/api/mcp', {
+      method: 'POST',
+      headers: headers(KEYS.full, sid),
+      body: JSON.stringify({ jsonrpc: '2.0', id: 5, method: 'tools/list' }),
     });
     expect(res.status).toBe(200);
-    const json = (await res.json()) as { result?: { isError?: boolean; content?: { text?: string }[] } };
-    expect(json.result?.isError).toBe(true);
-    expect(json.result?.content?.[0]?.text).toContain('observability:read');
+  });
+});
+
+describe('MCP-over-HTTP session eviction', () => {
+  it('reaps sessions past the TTL and keeps the fresh one', () => {
+    sessions.clear();
+    sessions.set('stale-session', {
+      transport: { close: () => {} } as any,
+      server: {} as any,
+      keyId: 'k1',
+      lastSeen: Date.now() - SESSION_TTL_MS - 1_000,
+    });
+    sessions.set('fresh-session', {
+      transport: { close: () => {} } as any,
+      server: {} as any,
+      keyId: 'k2',
+      lastSeen: Date.now(),
+    });
+
+    evictSessions();
+
+    expect(sessions.size).toBe(1);
+    expect(sessions.has('fresh-session')).toBe(true);
+    expect(sessions.has('stale-session')).toBe(false);
+  });
+
+  it('evicts the oldest sessions once at the cap', () => {
+    sessions.clear();
+    const now = Date.now();
+    for (let i = 0; i < SESSION_MAX; i++) {
+      sessions.set(`session-${i}`, {
+        transport: { close: () => {} } as any,
+        server: {} as any,
+        keyId: `k${i}`,
+        // Ascending lastSeen: session-0 is the oldest.
+        lastSeen: now - (SESSION_MAX - i) * 1_000,
+      });
+    }
+    expect(sessions.size).toBe(SESSION_MAX);
+
+    evictSessions(now);
+
+    expect(sessions.size).toBe(SESSION_MAX - 1);
+    expect(sessions.has('session-0')).toBe(false);
+    expect(sessions.has(`session-${SESSION_MAX - 1}`)).toBe(true);
   });
 });

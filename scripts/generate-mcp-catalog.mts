@@ -30,49 +30,90 @@ interface ToolParam {
 interface Tool {
   name: string;
   description: string;
+  title?: string;
+  annotations?: Record<string, unknown>;
   params: Record<string, ToolParam>;
 }
 
 const tools: Tool[] = [];
 
-// Arity-robust mock: name = first string, description = second string,
-// schema = first plain-object arg after the strings. Tolerates registrations
-// whose shape differs slightly so none are silently dropped.
+// Arity-robust mock: name = first string, description = second string. We no
+// longer read the schema arg here — once compiled to Zod it can't be walked
+// back into a { type, description } descriptor without silently degrading the
+// rendered Type column, so the descriptor is pulled from REGISTERED_DESCRIPTORS
+// after registerTools() returns (that Map is populated by the shim itself as a
+// side effect of registration, so it can't drift from the actual tools).
+// registerTool(name, config, _handler) mirrors the real McpServer's SDK-1.27
+// entry point so the shim takes the same branch it takes in production.
 const mockServer = {
   tool(...args: unknown[]) {
     const name = typeof args[0] === 'string' ? (args[0] as string) : '(unnamed)';
     const description = typeof args[1] === 'string' ? (args[1] as string) : '';
-    const schema = args
-      .slice(2)
-      .find(
-        (a) =>
-          a !== null &&
-          typeof a === 'object' &&
-          !Array.isArray(a) &&
-          typeof a !== 'function',
-      ) as Record<string, ToolParam> | undefined;
-    tools.push({ name, description, params: schema ?? {} });
+    tools.push({ name, description, params: {} });
+  },
+  registerTool(
+    name: string,
+    config: { title?: string; description?: string; annotations?: Record<string, unknown> },
+    _handler: unknown,
+  ) {
+    tools.push({
+      name,
+      description: config.description ?? '',
+      title: config.title,
+      annotations: config.annotations,
+      params: {},
+    });
   },
 };
 
 // Dynamic import AFTER env is set, so the in-memory DB path takes effect before
 // db/index.ts opens its connection. (Static imports are hoisted and would run first.)
-const { registerTools } = await import('../packages/api/src/mcp/tools.ts');
+const { registerTools, REGISTERED_DESCRIPTORS } = await import('../packages/api/src/mcp/tools.ts');
 registerTools(mockServer as never);
+
+for (const t of tools) {
+  const descriptor = REGISTERED_DESCRIPTORS.get(t.name);
+  if (descriptor) t.params = descriptor as Record<string, ToolParam>;
+}
 
 if (tools.length === 0) {
   console.error('No tools registered — registration shape may have changed.');
   process.exit(1);
 }
 
-// Group by the prefix before the first underscore: blog / podcast / app / page.
+// Group by the prefix before the first underscore.
 const GROUP_TITLES: Record<string, string> = {
-  blog: 'Blog',
+  post: 'Posts',
+  tag: 'Tags',
+  category: 'Categories',
+  media: 'Media',
+  comment: 'Comments',
+  analytics: 'Analytics',
+  build: 'Build',
+  redirect: 'Redirects',
   podcast: 'Podcast',
   app: 'Apps',
   page: 'Pages',
+  settings: 'Settings',
+  observability: 'Observability',
+  i18n: 'i18n',
 };
-const GROUP_ORDER = ['blog', 'podcast', 'app', 'page'];
+const GROUP_ORDER = [
+  'post',
+  'tag',
+  'category',
+  'media',
+  'comment',
+  'analytics',
+  'build',
+  'redirect',
+  'podcast',
+  'app',
+  'page',
+  'settings',
+  'observability',
+  'i18n',
+];
 
 const groups = new Map<string, Tool[]>();
 for (const t of tools) {
@@ -115,8 +156,14 @@ for (const key of orderedKeys) {
   const list = groups.get(key)!;
   md += `## ${title} (${list.length})\n\n`;
   for (const t of list) {
-    md += `### \`${t.name}\`\n\n`;
+    md += `### \`${t.name}\`${t.title ? ` — ${t.title}` : ''}\n\n`;
     md += `${t.description || '_No description._'}\n\n`;
+    if (t.annotations && Object.keys(t.annotations).length > 0) {
+      const flags = Object.entries(t.annotations)
+        .map(([k, v]) => `\`${k}: ${v}\``)
+        .join(' · ');
+      md += `_Annotations:_ ${flags}\n\n`;
+    }
     const paramKeys = Object.keys(t.params);
     if (paramKeys.length === 0) {
       md += `_No parameters._\n\n`;

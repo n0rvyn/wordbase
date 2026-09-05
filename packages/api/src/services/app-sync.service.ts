@@ -20,9 +20,24 @@ import { isAscConfigured, fetchAppMetadata } from './asc.service.js';
 export interface SyncResult {
   synced: number;
   failed: Array<{ appId: string; error: string }>;
+  /** Per-app field-level changes. Empty `fields` = synced but nothing differed. */
+  changes: Array<{ appId: string; slug: string; status: string; fields: string[] }>;
 }
 
-export async function syncApp(appId: string): Promise<void> {
+/** What a single sync actually changed. `fields` empty = the fetch succeeded but no value differed. */
+export interface AppSyncChange {
+  appId: string;
+  slug: string;
+  status: string;
+  fields: string[];
+}
+
+// lastSyncedAt/updatedAt are written on every sync by construction, so they can
+// never signal "something actually changed" — comparing them would make every
+// sync look like a change and make the caller's rebuild decision meaningless.
+const BOOKKEEPING_FIELDS = new Set(['lastSyncedAt', 'updatedAt']);
+
+export async function syncApp(appId: string): Promise<AppSyncChange> {
   // Load the app
   const [app] = await db.select().from(apps).where(eq(apps.id, appId)).limit(1);
   if (!app) {
@@ -79,7 +94,16 @@ export async function syncApp(appId: string): Promise<void> {
     updatedAt: now,
   };
 
+  // Diff BEFORE writing. Callers need to know whether anything actually moved:
+  // a sync that changed nothing must not trigger a site rebuild, and `{ok:true}`
+  // alone cannot tell "fetched and updated" from "fetched and everything matched".
+  const fields = Object.entries(set)
+    .filter(([k, v]) => !BOOKKEEPING_FIELDS.has(k) && v !== (cur as Record<string, unknown>)[k])
+    .map(([k]) => k);
+
   await db.update(apps).set(set).where(eq(apps.id, appId));
+
+  return { appId, slug: cur.slug, status: cur.status, fields };
 }
 
 export async function syncAllApps(): Promise<SyncResult> {
@@ -90,10 +114,12 @@ export async function syncAllApps(): Promise<SyncResult> {
 
   let synced = 0;
   const failed: Array<{ appId: string; error: string }> = [];
+  const changes: SyncResult['changes'] = [];
 
   for (const app of appList) {
     try {
-      await syncApp(app.id);
+      const change = await syncApp(app.id);
+      changes.push(change);
       synced++;
     } catch (err) {
       failed.push({
@@ -103,5 +129,5 @@ export async function syncAllApps(): Promise<SyncResult> {
     }
   }
 
-  return { synced, failed };
+  return { synced, failed, changes };
 }

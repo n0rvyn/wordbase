@@ -23,7 +23,7 @@ Source content stays single-language (Chinese is the source of truth). Translati
 4. **Write the translations back.** Call `i18n_put_cache` with `entries` as a JSON string array:
    `[{ "sourceHash": "<hash>", "lang": "en", "text": "<translation>", "model": "<your model id>", "humanEdited": false }, …]`.
    The server keeps human-edited renditions safe: if a block already has a `humanEdited` translation, an AI write does **not** overwrite it — the response flags it as kept. Collect every such kept-human block and **list them in your summary for a person to reconcile** — do not try to force them.
-5. **Trigger the rebuild — only after the cache is filled.** The `/en/` pages are static Astro output baked at build time from this cache, so new translations are invisible until the site rebuilds. Call `blog_trigger_build`, then poll `blog_build_status` until `status` is `success` (or `failed`). Filling the cache *before* building is deliberate: it guarantees the build does pure cache lookups (any still-missing block falls back to Chinese — translation never blocks publishing).
+5. **Trigger the rebuild — only after the cache is filled.** The `/en/` pages are static Astro output baked at build time from this cache, so new translations are invisible until the site rebuilds. Call `build_trigger`, then poll `build_status` until `status` is `success` (or `failed`). Filling the cache *before* building is deliberate: it guarantees the build does pure cache lookups (any still-missing block falls back to Chinese — translation never blocks publishing).
 6. **Summarize.** Report: how many blocks translated, their distribution by `ref` type (posts / pages / app fields), any blocks skipped because a human had edited them (needs manual reconcile), any blocks that failed to translate, and that the rebuild completed.
 
 ## Scope & limits
@@ -36,7 +36,7 @@ Source content stays single-language (Chinese is the source of truth). Translati
 
 ## Notes
 
-- **Trigger / scheduling.** Unlike the deterministic site rebuild (which a systemd path unit can auto-run off a `.rebuild-request` marker), translation needs Claude, so it cannot be auto-run by a file watcher. Run `/wb-translate` manually after publishing new content, or schedule it with the `schedule` skill. This skill fills the cache and then triggers the rebuild directly via `blog_trigger_build` — it does not rely on a separate `.translate-request` marker.
+- **Trigger / scheduling.** Unlike the deterministic site rebuild (which a systemd path unit can auto-run off a `.rebuild-request` marker), translation needs Claude, so it cannot be auto-run by a file watcher. Run `/wb-translate` manually after publishing new content, or schedule it with the `schedule` skill. This skill fills the cache and then triggers the rebuild directly via `build_trigger` — it does not rely on a separate `.translate-request` marker.
 - **Scope required.** The MCP key must hold `i18n:read` (pending/render), `i18n:write` (put cache), `build:trigger` (rebuild), and `build:read` (poll build status). A missing scope returns a permission error from the tool — report it plainly rather than retrying.
 - **Only `en` for now.** Other target languages (e.g. `ja`) are a future extension; this skill reconciles `lang: "en"`.
 - **Model.** This skill is pinned to `sonnet` (frontmatter `model: sonnet`) — translation quality is fine on Sonnet and it is far cheaper than Opus for bulk text. The override lasts only this turn; the session model resumes afterward.

@@ -21,7 +21,7 @@ const WEBHOOK_SECRET = 'test-webhook-secret-abc';
 // Mock app-sync.service before importing app
 vi.mock('../services/app-sync.service.js', () => ({
   syncApp: vi.fn().mockResolvedValue(undefined),
-  syncAllApps: vi.fn().mockResolvedValue({ synced: 0, failed: [] }),
+  syncAllApps: vi.fn().mockResolvedValue({ synced: 0, failed: [], changes: [] }),
 }));
 
 // Mock build.service

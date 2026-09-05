@@ -17,8 +17,55 @@ interface ListEpisodesOptions {
   limit?: number;
 }
 
-export async function listEpisodes(podcastId: string, options: ListEpisodesOptions = {}) {
-  const { status, page = 1, limit = 20 } = options;
+type EpisodeRow = typeof podcastEpisodes.$inferSelect;
+type EpisodeSummaryRow = Omit<EpisodeRow, 'showNotes' | 'transcript'>;
+
+// Column projection for fields:'summary' — everything except transcript and
+// show_notes. Kept as an explicit column list (not "select all minus X") so
+// the projection is legible at the call site.
+const EPISODE_SUMMARY_COLUMNS = {
+  id: podcastEpisodes.id,
+  podcastId: podcastEpisodes.podcastId,
+  slug: podcastEpisodes.slug,
+  guid: podcastEpisodes.guid,
+  title: podcastEpisodes.title,
+  summary: podcastEpisodes.summary,
+  audioUrl: podcastEpisodes.audioUrl,
+  audioType: podcastEpisodes.audioType,
+  audioSize: podcastEpisodes.audioSize,
+  duration: podcastEpisodes.duration,
+  coverImage: podcastEpisodes.coverImage,
+  episodeNumber: podcastEpisodes.episodeNumber,
+  seasonNumber: podcastEpisodes.seasonNumber,
+  episodeType: podcastEpisodes.episodeType,
+  explicit: podcastEpisodes.explicit,
+  status: podcastEpisodes.status,
+  publishedAt: podcastEpisodes.publishedAt,
+  externalSource: podcastEpisodes.externalSource,
+  externalId: podcastEpisodes.externalId,
+  createdAt: podcastEpisodes.createdAt,
+  updatedAt: podcastEpisodes.updatedAt,
+  meta: podcastEpisodes.meta,
+};
+
+// Overloaded so the return type tracks the `fields` literal at the call site
+// instead of collapsing to a union — see the identical rationale on
+// post.service.ts's listPosts. Existing callers (REST routes, service tests)
+// pass no `fields` and keep seeing the full row (with transcript/showNotes);
+// only MCP's podcast_list_episodes opts into `fields: 'summary'`.
+export async function listEpisodes(
+  podcastId: string,
+  options?: ListEpisodesOptions & { fields?: 'full' },
+): Promise<{ data: EpisodeRow[]; total: number; page: number; limit: number }>;
+export async function listEpisodes(
+  podcastId: string,
+  options: ListEpisodesOptions & { fields: 'summary' },
+): Promise<{ data: EpisodeSummaryRow[]; total: number; page: number; limit: number }>;
+export async function listEpisodes(
+  podcastId: string,
+  options: ListEpisodesOptions & { fields?: 'full' | 'summary' } = {},
+): Promise<{ data: (EpisodeRow | EpisodeSummaryRow)[]; total: number; page: number; limit: number }> {
+  const { status, page = 1, limit = 20, fields = 'full' } = options;
   const offset = (page - 1) * limit;
 
   const conditions = [eq(podcastEpisodes.podcastId, podcastId)];
@@ -31,13 +78,22 @@ export async function listEpisodes(podcastId: string, options: ListEpisodesOptio
     .where(where);
   const total = countResult.count;
 
-  const data = await db
-    .select()
-    .from(podcastEpisodes)
-    .where(where)
-    .orderBy(desc(podcastEpisodes.createdAt))
-    .limit(limit)
-    .offset(offset);
+  const data =
+    fields === 'summary'
+      ? await db
+          .select(EPISODE_SUMMARY_COLUMNS)
+          .from(podcastEpisodes)
+          .where(where)
+          .orderBy(desc(podcastEpisodes.createdAt))
+          .limit(limit)
+          .offset(offset)
+      : await db
+          .select()
+          .from(podcastEpisodes)
+          .where(where)
+          .orderBy(desc(podcastEpisodes.createdAt))
+          .limit(limit)
+          .offset(offset);
 
   return { data, total, page, limit };
 }

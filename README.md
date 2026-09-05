@@ -46,7 +46,7 @@ wordbase/
 │   │   │   ├── routes/         # REST API endpoints
 │   │   │   ├── services/       # Business logic
 │   │   │   ├── middleware/     # Auth, redirects, error handling
-│   │   │   ├── mcp/           # MCP server + 60 tools
+│   │   │   ├── mcp/           # MCP server + 68 tools
 │   │   │   ├── cli/           # API key management CLI
 │   │   │   └── db/            # Drizzle schema + migrations
 │   │   └── data/
@@ -159,7 +159,7 @@ All endpoints at `/api/*`. Auth via `Authorization: Bearer <api-key>`.
 
 ## MCP Server
 
-60 tools for AI-powered content management (blog · podcast · apps · companion pages · taxonomy) via the MCP stdio protocol. An MCP client discovers the full, authoritative tool list at runtime via `tools/list`; the tables below mirror it for quick reference.
+68 tools for AI-powered content management (posts · taxonomy · media · comments · analytics · podcast · apps · companion pages · settings · observability · i18n) via the MCP stdio protocol. An MCP client discovers the full, authoritative tool list at runtime via `tools/list`; the tables below mirror it for quick reference.
 
 ### Setup (Claude Desktop)
 
@@ -199,7 +199,7 @@ Mint a key with `pnpm --filter api cli key:create <name>` (printed once). The se
 
 ### Available Tools
 
-**Blog / media / comments / analytics (23)**
+**Posts (9)**
 
 | Tool | Description |
 |------|------------|
@@ -212,44 +212,68 @@ Mint a key with `pnpm --filter api cli key:create <name>` (printed once). The se
 | `post_archive` | Archive a post (rebuilds only if previously published) |
 | `post_delete` | Delete a post (rebuilds only if previously published) |
 | `post_update_meta` | Update post SEO metadata (description / og:title / og:image) |
-| `blog_list_media` | List media library |
-| `blog_upload_media` | Upload file (base64 encoded) |
-| `blog_delete_media` | Delete media item |
-| `blog_list_comments` | List comments (filter by status) |
-| `blog_moderate_comment` | Approve, spam, or trash a comment |
-| `blog_reply_comment` | Reply to a comment |
-| `blog_delete_comment` | Delete a comment |
-| `blog_analytics_overview` | Traffic overview (PV, today, active posts) |
-| `blog_analytics_top_posts` | Top posts by page views |
-| `blog_analytics_trends` | Traffic trends (daily/weekly/monthly) |
-| `blog_content_stats` | Publish frequency, tag distribution |
-| `blog_trigger_build` | Trigger Astro site rebuild |
-| `blog_build_status` | Check build status |
-| `blog_manage_redirects` | List, create, or delete URL redirects |
 
-**Podcast (7)**
+**Media (5)**
+
+| Tool | Description |
+|------|------------|
+| `media_list` | List media library |
+| `media_get` | Get a media item by id |
+| `media_upload` | Upload a file (base64 encoded) |
+| `media_upload_from_url` | Fetch a file server-side from a URL and store it (no base64 payload; used for large audio) |
+| `media_delete` | Delete media item |
+
+**Comments (4)**
+
+| Tool | Description |
+|------|------------|
+| `comment_list` | List comments (filter by status) |
+| `comment_moderate` | Approve, spam, or trash a comment |
+| `comment_reply` | Reply to a comment |
+| `comment_delete` | Delete a comment |
+
+**Analytics / build / redirects (4)**
+
+| Tool | Description |
+|------|------------|
+| `analytics_query` | Blog analytics — `sections` picks any of `overview` / `top_posts` / `trends` / `content_stats` (default: all) |
+| `build_trigger` | Trigger Astro site rebuild |
+| `build_status` | Check build status |
+| `redirect_manage` | List, create, or delete URL redirects |
+
+**Podcast (16)**
 
 | Tool | Description |
 |------|------------|
 | `podcast_list_shows` | List podcast shows |
+| `podcast_get_show` | Get a show by id |
 | `podcast_create_show` | Create a podcast show |
+| `podcast_update_show` | Update a show |
 | `podcast_publish_show` | Publish a show |
+| `podcast_delete_show` | Delete a show (rebuilds only if previously published) |
 | `podcast_list_episodes` | List episodes for a show |
+| `podcast_get_episode` | Get an episode by id |
 | `podcast_create_episode` | Create an episode |
-| `podcast_upload_audio` | Upload episode audio (base64) |
+| `podcast_update_episode` | Update an episode |
+| `podcast_upload_audio_from_url` | Fetch episode audio server-side from a URL and store it (no base64 payload) |
 | `podcast_publish_episode` | Publish an episode (triggers a rebuild) |
+| `podcast_delete_episode` | Delete an episode (rebuilds only if previously published) |
+| `podcast_import_feed` | Import episodes from an external RSS feed |
+| `podcast_analytics` | Podcast download/subscriber analytics |
+| `podcast_get_feedback` | Read listener feedback for an episode |
 
-**Apps (7)**
+**Apps (8)**
 
 | Tool | Description |
 |------|------------|
 | `app_list` | List app landing pages (filter by status) |
+| `app_get` | Get an app by id |
 | `app_create` | Create an app landing page |
-| `app_update` | Update an app's editorial fields (tagline / features / accentColor / links / sortOrder / status / meta). NOTE: description, screenshots, and icon are App-Store-synced and NOT editable here |
 | `app_publish` | Publish an app landing page |
+| `app_update` | Update an app's editorial fields (tagline / features / accentColor / links / sortOrder / status / meta). NOTE: description, screenshots, and icon are App-Store-synced and NOT editable here |
+| `app_delete` | Delete an app (rebuilds only if previously published) |
 | `app_discover` | Discover apps from App Store Connect — creates draft rows for new ones (no sync, no publish, no ASC write-back) |
-| `app_sync` | Sync one app's metadata from the App Store (iTunes Lookup + ASC) |
-| `app_sync_all` | Sync metadata for all apps with an App Store ID |
+| `app_sync` | Sync app metadata from the App Store (iTunes Lookup + ASC). `id` given = one app; `id` omitted = every app with an App Store ID. Rebuilds the site when a **published** app actually changed, and reports the changed fields per app |
 
 **Companion pages (6)** — privacy / terms / help / support / changelog, served at public `/{slug}` URLs
 
@@ -262,18 +286,41 @@ Mint a key with `pnpm --filter api cli key:create <name>` (printed once). The se
 | `page_delete` | Delete a page |
 | `page_publish` | Publish a page (run a build afterward to render it at its public URL) |
 
-**Taxonomy (8)** — tags & categories, scoped per-term. `tag_create` is create-or-attach (idempotent); `category_create` is not — repeating a slug returns an error result.
+**Taxonomy (10)** — tags & categories, scoped per-term. `tag_create` is create-or-attach (idempotent); `category_create` is not — repeating a slug returns an error result.
 
 | Tool | Description |
 |------|------------|
 | `tag_list` | List all tags with usage count |
+| `tag_get` | Get a tag by id |
 | `tag_create` | Create a tag (or return the existing one if the slug already exists) |
 | `tag_update` | Rename or re-slug a tag; rebuilds the site only when the tag is attached to a published post |
 | `tag_delete` | Delete a tag (cascades the post↔tag junction); rebuilds only when the tag was on a published post |
 | `category_list` | List all categories with usage count |
+| `category_get` | Get a category by id |
 | `category_create` | Create a category (CJK-aware slug; non-idempotent on slug collision) |
 | `category_update` | Rename or re-slug a category; rebuilds the site only when the category is attached to a published post |
 | `category_delete` | Delete a category (cascades the post↔category junction); rebuilds only when the category was on a published post |
+
+**Settings (2)**
+
+| Tool | Description |
+|------|------------|
+| `settings_get_site` | Get site identity (title/description/author/email/github) |
+| `settings_update_site` | Update site identity fields (rebuilds — site identity feeds every page's meta) |
+
+**Observability (1)**
+
+| Tool | Description |
+|------|------------|
+| `observability_query` | Site observability — `section` covers visits/trends/top-pages/referrers/shares/regions/devices/content/requests/system/seo-health and the podcast summary/trends/top-episodes/episodes/clients views. (`top_posts` lives on `analytics_query` instead, to avoid two paths reading the same data.) |
+
+**i18n (3)**
+
+| Tool | Description |
+|------|------------|
+| `i18n_render` | Render a source block through the translation-memory cache |
+| `i18n_pending` | List source blocks with no rendition yet for a target language |
+| `i18n_put_cache` | Write back translated blocks (human-edited renditions are protected from AI overwrite) |
 
 **Merging / mojibake cleanup:** there is no dedicated merge tool — it is a session-orchestrated workflow (`tag_list` → `post_list` filter by source tag → `post_update` reassign `tagIds` → `tag_delete` source). See the [blog MCP parity dev-guide](docs/06-plans/2026-06-18-blog-mcp-parity-dev-guide.md) Phase 3 for the full SOP.
 
@@ -285,7 +332,7 @@ This system is designed from the ground up for AI management. Three interfaces p
 AI Agent (Claude, GPT, etc.)
     │
     ├── MCP (stdio) ──→ packages/api/src/mcp/server.ts
-    │                     └── tools.ts (60 tools)
+    │                     └── tools.ts (68 tools)
     │                           └── imports from services/*
     │
     ├── REST API ─────→ packages/api/src/routes/*
@@ -316,17 +363,21 @@ AI Agent (Claude, GPT, etc.)
 
 ```typescript
 server.tool(
-  'blog_your_tool_name',        // Prefix with blog_ for namespace
+  'domain_your_tool_name',      // Name after the domain it acts on (post_, media_, podcast_, app_, page_, ...)
   'Description for AI agents',   // This is what the AI sees
-  {                               // Input schema (JSON Schema-like)
-    param1: { type: 'string', description: 'What this param does' },
+  {                               // Input schema — a PropDescriptor map (packages/api/src/mcp/schema.ts),
+                                   // compiled to a Zod shape by buildInputSchema(); NOT a raw Zod shape.
+    param1: { type: 'string', required: true, description: 'What this param does' },
   },
   async (args: Record<string, unknown>) => {
     const result = await yourService.doSomething(args.param1 as string);
     return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
-  }
+  },
+  { title: 'Your Tool Name', annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false } },
 );
 ```
+
+Also add a `TOOL_SCOPES` entry for the new tool name — the wrapper throws at registration time if it's missing (deny-by-default).
 
 3. If the tool needs a REST counterpart, add a route in `packages/api/src/routes/`
 4. Both tool and route import from the same service function
@@ -363,7 +414,7 @@ AI creates post via MCP          User writes in admin UI
               post_publish / POST /api/posts/:id/publish
                      │
                      ▼
-              blog_trigger_build / POST /api/build/trigger
+              build_trigger / POST /api/build/trigger
                      │
                      ▼
               Astro rebuild (shell spawn)
@@ -465,7 +516,7 @@ Keys use prefix-based lookup (first 8 chars) + bcrypt verification. The raw key 
 
 ### Scopes (enforced)
 
-Each key carries a `permissions` array of `domain:action` scopes (e.g. `posts:write`, `media:read`, `build:trigger`). Every authenticated REST route and every MCP tool checks the calling key's scopes — a key missing the required scope gets **403** (REST) or an error result (MCP). Matching rules:
+Each key carries a `permissions` array of `domain:action` scopes (e.g. `posts:write`, `media:read`, `build:trigger`). Every authenticated REST route and every MCP tool checks the calling key's scopes. The two adapters deny differently: REST returns **403**; MCP **does not register** the tool for that session, so it never appears in `tools/list` and the key sees only the tools it can actually use. Matching rules:
 
 - `*` or `admin` → full access (every scope).
 - `<domain>:*` (e.g. `apps:*`) → every action in that domain.

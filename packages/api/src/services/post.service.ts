@@ -13,8 +13,37 @@ interface ListPostsOptions {
   search?: string;
 }
 
-export async function listPosts(options: ListPostsOptions = {}) {
-  const { status, category, tag, page = 1, limit = 10, search } = options;
+type PostRow = typeof posts.$inferSelect;
+type PostSummaryRow = Pick<PostRow, 'id' | 'slug' | 'title' | 'excerpt' | 'status' | 'publishedAt' | 'updatedAt'>;
+
+// Column projection for fields:'summary' — id/slug/title/excerpt/status/
+// publishedAt/updatedAt, no content or meta. Kept as an explicit column list
+// (not a "select all minus X") so the projection is legible at the call site.
+const POST_SUMMARY_COLUMNS = {
+  id: posts.id,
+  slug: posts.slug,
+  title: posts.title,
+  excerpt: posts.excerpt,
+  status: posts.status,
+  publishedAt: posts.publishedAt,
+  updatedAt: posts.updatedAt,
+};
+
+// Overloaded so the return type tracks the `fields` literal at the call site
+// instead of collapsing to a union: existing callers (REST, i18n-content,
+// web build via REST) pass no `fields` at all and keep seeing the full row
+// (with `content`/`meta`) exactly as before; only a caller that explicitly
+// opts into `fields: 'summary'` (MCP's post_list) sees the narrower type.
+export async function listPosts(
+  options?: ListPostsOptions & { fields?: 'full' },
+): Promise<{ data: PostRow[]; total: number; page: number; limit: number }>;
+export async function listPosts(
+  options: ListPostsOptions & { fields: 'summary' },
+): Promise<{ data: PostSummaryRow[]; total: number; page: number; limit: number }>;
+export async function listPosts(
+  options: ListPostsOptions & { fields?: 'full' | 'summary' } = {},
+): Promise<{ data: (PostRow | PostSummaryRow)[]; total: number; page: number; limit: number }> {
+  const { status, category, tag, page = 1, limit = 10, search, fields = 'full' } = options;
   const offset = (page - 1) * limit;
 
   const conditions = [];
@@ -48,7 +77,10 @@ export async function listPosts(options: ListPostsOptions = {}) {
   const [countResult] = await db.select({ count: sql<number>`count(*)` }).from(posts).where(where);
   const total = countResult.count;
 
-  const data = await db.select().from(posts).where(where).orderBy(desc(posts.createdAt)).limit(limit).offset(offset);
+  const data =
+    fields === 'summary'
+      ? await db.select(POST_SUMMARY_COLUMNS).from(posts).where(where).orderBy(desc(posts.createdAt)).limit(limit).offset(offset)
+      : await db.select().from(posts).where(where).orderBy(desc(posts.createdAt)).limit(limit).offset(offset);
 
   return { data, total, page, limit };
 }

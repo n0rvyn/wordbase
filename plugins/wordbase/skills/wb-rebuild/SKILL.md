@@ -8,8 +8,8 @@ description: Trigger a WordBase static-site rebuild and report when it finishes.
 
 Trigger a rebuild of the WordBase static site via the `wordbase` MCP server and confirm the outcome.
 
-1. Call `blog_trigger_build` to start the rebuild.
-2. Poll `blog_build_status` until the build leaves the running/pending state (succeeded or failed). Space out polls by a few seconds; do not hammer it.
+1. Call `build_trigger` to start the rebuild.
+2. Poll `build_status` until the build leaves the running/pending state (succeeded or failed). Space out polls by a few seconds; do not hammer it.
 3. Report the final result:
    - **Succeeded:** state + completion time.
    - **Failed:** quote the error and stop — do not retry automatically; ask the user how to proceed.

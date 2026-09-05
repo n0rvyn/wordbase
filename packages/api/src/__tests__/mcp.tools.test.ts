@@ -143,23 +143,23 @@ vi.mock('../lib/safe-fetch.js', () => ({
 }));
 
 vi.mock('../services/app-sync.service.js', () => ({
-  syncApp: vi.fn(async () => undefined),
-  syncAllApps: vi.fn(async () => ({ synced: 0, failed: 0 })),
+  syncApp: vi.fn(async () => ({ appId: 'app1', slug: 'app-1', status: 'draft', fields: [] })),
+  syncAllApps: vi.fn(async () => ({ synced: 0, failed: [], changes: [] })),
 }));
 
 // ── Tests ──────────────────────────────────────────────────────────────────
 
 describe('registerTools — tool name registration', () => {
-  it('registers all existing blog_* tools', () => {
+  it('registers all existing post_* / media_* / build_* tools', () => {
     const server = buildFakeServer();
     registerTools(server);
     const names = server.getNames();
     expect(names).toContain('post_create');
-    expect(names).toContain('blog_upload_media');
+    expect(names).toContain('media_upload');
     expect(names).toContain('post_list');
     expect(names).toContain('post_get');
-    expect(names).toContain('blog_list_media');
-    expect(names).toContain('blog_trigger_build');
+    expect(names).toContain('media_list');
+    expect(names).toContain('build_trigger');
   });
 
   it('registers new podcast_* tools', () => {
@@ -171,7 +171,7 @@ describe('registerTools — tool name registration', () => {
     expect(names).toContain('podcast_publish_show');
     expect(names).toContain('podcast_list_episodes');
     expect(names).toContain('podcast_create_episode');
-    expect(names).toContain('podcast_upload_audio');
+    expect(names).toContain('podcast_upload_audio_from_url');
     expect(names).toContain('podcast_publish_episode');
     expect(names).toContain('podcast_analytics');
   });
@@ -254,8 +254,12 @@ describe('registerTools — real tools/list serialization', () => {
     const tools = await listToolsViaRealSdk();
     const createPost = tools.find((t) => t.name === 'post_create')!;
     const props = createPost.inputSchema.properties as Record<string, { description?: string }>;
-    expect(props.title.description).toBe('Post title');
-    expect(props.content.description).toBe('Post content in Markdown');
+    expect(props.title.description).toBe(
+      "Post title. 用户说『写一篇关于 XX 的文章』时,XX 通常就是这个字段的值. Example: title: 'RSS 是什么'."
+    );
+    expect(props.content.description).toBe(
+      "Post content in Markdown. 把用户口述/给定的正文直接转成 Markdown 传入. Example: content: '# 引言\\n\\n正文……'."
+    );
   });
 });
 
@@ -432,13 +436,18 @@ describe('registerTools — handler behavior (Phase 8)', () => {
     expect(JSON.parse(result.content[0].text)).toEqual([]);
   });
 
-  it('podcast_get_feedback is scope-gated to podcasts:read (denies a posts-only key)', async () => {
+  // Task 3: scope enforcement moved from "registered but isError at call time"
+  // to "not registered at all" — a posts-only key never sees podcast_get_feedback
+  // in the tool set, rather than seeing it and getting a denial when called.
+  it('podcast_get_feedback is scope-gated to podcasts:read (not registered for a posts-only key)', async () => {
     const server = buildCapturingServer();
     registerTools(server, ['posts:write']); // no podcasts:read
-    const handler = server.getHandler('podcast_get_feedback')!;
-    const result = await handler({}) as { isError?: boolean; content: { text: string }[] };
-    expect(result.isError).toBe(true);
-    expect(result.content[0].text).toMatch(/Permission denied/i);
+    expect(server.getNames()).not.toContain('podcast_get_feedback');
+
+    // positive control: a full-admin key still gets it registered.
+    const fullServer = buildCapturingServer();
+    registerTools(fullServer, ['*']);
+    expect(fullServer.getNames()).toContain('podcast_get_feedback');
   });
 });
 

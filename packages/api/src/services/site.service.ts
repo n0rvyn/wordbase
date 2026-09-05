@@ -32,13 +32,26 @@ const pick = (v: string | undefined, def: string): string => {
   return trimmed && !LEGACY.has(trimmed) ? trimmed : def;
 };
 
+// Single source of truth for which settings keys back which SiteIdentity
+// field. getSiteIdentity (read) and the MCP settings_update_site tool (write,
+// packages/api/src/mcp/tools.ts) both key off this map so the two stay
+// symmetric — a key that isn't in here is neither read nor writable as site
+// identity.
+export const SITE_IDENTITY_SETTINGS_KEYS: Record<keyof SiteIdentity, string> = {
+  name: 'site.title',
+  description: 'site.description',
+  author: 'site.author',
+  email: 'site.email',
+  github: 'social.github',
+};
+
 export async function getSiteIdentity(): Promise<SiteIdentity> {
   const s = await getSettings();
   return {
-    name: pick(s['site.title'], DEFAULTS.name),
-    description: pick(s['site.description'], DEFAULTS.description),
-    author: pick(s['site.author'], DEFAULTS.author),
-    email: pick(s['site.email'], DEFAULTS.email),
-    github: pick(s['social.github'], DEFAULTS.github),
+    name: pick(s[SITE_IDENTITY_SETTINGS_KEYS.name], DEFAULTS.name),
+    description: pick(s[SITE_IDENTITY_SETTINGS_KEYS.description], DEFAULTS.description),
+    author: pick(s[SITE_IDENTITY_SETTINGS_KEYS.author], DEFAULTS.author),
+    email: pick(s[SITE_IDENTITY_SETTINGS_KEYS.email], DEFAULTS.email),
+    github: pick(s[SITE_IDENTITY_SETTINGS_KEYS.github], DEFAULTS.github),
   };
 }

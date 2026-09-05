@@ -227,8 +227,8 @@ function decodePath(p: string): string {
   }
 }
 
-// Unlike getTopPosts (which the blog_analytics_top_posts MCP tool consumes and
-// must stay post-only), this ranks ALL visited pages for the admin Observability
+// Unlike getTopPosts (which the analytics_query MCP tool's `top_posts` section
+// consumes and must stay post-only), this ranks ALL visited pages for the admin Observability
 // widget: posts resolve to their title, known static pages get a friendly label,
 // everything else shows its raw path. Admin/api paths are excluded defensively
 // (admin uses AdminLayout, which sends no pageview beacon, so they shouldn't be

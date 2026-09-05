@@ -204,7 +204,7 @@ Adam already produces per execution: mp3 (`audio/mpeg`), markdown script, cover 
 `~/.adam/template-executions/{executionId}/artifacts/`. To auto-publish, Adam gets a
 **WordBase channel adapter** (in Adam's repo) that, on `template_execution` completion:
 
-1. `POST /api/media` (or `blog_upload_media`) — upload mp3 → get `audio_url` + size.
+1. `POST /api/media` (or the `media_upload` / `media_upload_from_url` MCP tools) — upload mp3 → get `audio_url` + size.
 2. `POST /api/media` — upload cover → get `cover_image`.
 3. `POST /api/podcasts/:show/episodes` with `external_source='adam'`,
    `external_id=executionId`, title, show_notes (=script), duration, audio fields.

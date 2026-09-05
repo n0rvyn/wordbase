@@ -115,6 +115,12 @@ appsRouter.post('/discover', authMiddleware, requireScope('apps:write'), async (
 appsRouter.post('/sync', authMiddleware, requireScope('apps:write'), async (c) => {
   try {
     const result = await appSyncService.syncAllApps();
+    // Same build hook the single-app route (:id/sync) already had — `/apps/*` is
+    // static output, so a DB-only bulk sync stayed invisible on the live site.
+    // Only a PUBLISHED app that actually changed warrants rebuilding.
+    if (result.changes.some((ch) => ch.status === 'published' && ch.fields.length > 0)) {
+      void triggerBuild();
+    }
     return c.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
