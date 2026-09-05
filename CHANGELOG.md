@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.3.0 (2026-06-20)
+## v1.4.0 (2026-09-05)
+
+### Features
+
+- feat(mcp): standards upgrade — precise schemas, scope-filtered registration, session binding (4ed54e2)
 
 ### Features
 
