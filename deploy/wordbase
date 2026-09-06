@@ -33,10 +33,33 @@ norvyn.com {
     }
 
     # Static site → Astro build output
+    #
+    # /404.html is deliberately NOT in try_files: listing it there makes it a
+    # MATCHED file, so file_server serves the 404 page with status 200 — a soft
+    # 404. Search engines then keep indexing withdrawn pages (an unpublished app
+    # at /apps/<slug> read as a live page). Letting file_server miss and catching
+    # it in handle_errors keeps the same body with the right status.
     handle {
         root * /var/www/wordbase/packages/web/dist
-        try_files {path} {path}.html {path}/index.html /404.html
+        try_files {path} {path}.html {path}/index.html
         file_server
+    }
+
+    # Custom error pages. `status 404` is load-bearing: file_server inside
+    # handle_errors serves the rewritten file as a normal 200 hit otherwise,
+    # which is the very defect above moved one route down.
+    handle_errors {
+        @404 expression {err.status_code} == 404
+        handle @404 {
+            root * /var/www/wordbase/packages/web/dist
+            rewrite * /404.html
+            file_server {
+                status 404
+            }
+        }
+        handle {
+            respond "{err.status_code} {err.status_text}"
+        }
     }
 
     # Security headers

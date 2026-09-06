@@ -13,6 +13,7 @@ import {
   pickShowcase,
   parseReleaseNotes,
   storeHref,
+  enStoreCopy,
 } from './app';
 
 // Real rendition URLs, copied verbatim from the published rows on 2026-09-06.
@@ -487,5 +488,62 @@ describe('storeHref', () => {
 
   it('returns null when there is no id at all', () => {
     expect(storeHref({ appStoreUrl: null, appStoreId: null, icon: 'https://x/icon.jpg' })).toBeNull();
+  });
+});
+
+// ─── enStoreCopy ──────────────────────────────────────────────────────────────
+
+describe('enStoreCopy', () => {
+  // Real pair, measured 2026-09-06 on id 6760798981: the US listing is not a
+  // translation of the CN one, it is a different product name.
+  const EN = {
+    name: 'Glink: Workout & Activity Sync',
+    description: 'Sync workouts between regional accounts.',
+    price: 'Free',
+    whatsNew: 'Bug fixes.',
+  };
+  const meta = (o: unknown) => JSON.stringify(o);
+
+  it('reads the four fields out of meta.i18n.en', () => {
+    expect(enStoreCopy(meta({ i18n: { en: EN } }))).toEqual(EN);
+  });
+
+  it('ignores sibling keys and other locales', () => {
+    const out = enStoreCopy(meta({ appId: 'x', i18n: { ja: { name: 'ジェイ' }, en: EN } }));
+    expect(out).toEqual(EN);
+  });
+
+  it('reports a missing field as null rather than dropping the whole overlay', () => {
+    expect(enStoreCopy(meta({ i18n: { en: { name: 'Glink' } } }))).toEqual({
+      name: 'Glink', description: null, price: null, whatsNew: null,
+    });
+  });
+
+  it('treats an empty string as absent', () => {
+    // An empty en name must fall back to the row, not blank the page title.
+    expect(enStoreCopy(meta({ i18n: { en: { ...EN, name: '' } } }))?.name).toBeNull();
+  });
+
+  it('rejects non-string values instead of leaking them into the DOM', () => {
+    expect(enStoreCopy(meta({ i18n: { en: { name: 42, price: ['Free'] } } }))).toEqual({
+      name: null, description: null, price: null, whatsNew: null,
+    });
+  });
+
+  // Negative controls — every one of these must yield null, never a throw:
+  // the build must not break on a hand-edited or legacy meta column.
+  it.each([
+    ['null meta', null],
+    ['empty string', ''],
+    ['unparseable JSON', '{oops'],
+    ['a JSON array', '[1,2,3]'],
+    ['a JSON scalar', '"just a string"'],
+    ['meta without i18n', '{"appId":"x"}'],
+    ['i18n that is not an object', '{"i18n":"oops"}'],
+    ['i18n without en', '{"i18n":{"ja":{"name":"ジェイ"}}}'],
+    ['en that is not an object', '{"i18n":{"en":"Glink"}}'],
+    ['en that is an array', '{"i18n":{"en":[]}}'],
+  ])('returns null for %s', (_label, input) => {
+    expect(enStoreCopy(input as string | null)).toBeNull();
   });
 });

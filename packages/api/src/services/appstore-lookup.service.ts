@@ -19,6 +19,8 @@ export interface ItunesAppMeta {
   icon: string | null;
   screenshots: string[];
   description: string | null;
+  /** "What's New" text (`releaseNotes`) for the queried country. */
+  releaseNotes: string | null;
   platform: string;
 }
 
@@ -107,6 +109,54 @@ export async function lookupApp(
     icon: typeof r.artworkUrl512 === 'string' ? r.artworkUrl512 : null,
     screenshots,
     description: typeof r.description === 'string' ? r.description : null,
+    releaseNotes: typeof r.releaseNotes === 'string' ? r.releaseNotes : null,
     platform,
+  };
+}
+
+/**
+ * The storefront whose listing is written in English.
+ *
+ * The App Store serves per-territory metadata, and for these apps the US
+ * listing is not a translation of the CN one — it is the author's own English
+ * submission, sometimes under a different product name entirely (measured
+ * 2026-09-06: id 6760798981 is `佳同步 - 国区国际版活动记录互传` on cn and
+ * `Glink: Workout & Activity Sync` on us). No translation of the CN string can
+ * produce that, which is why the English site reads this storefront rather than
+ * running the CN copy through the translation cache.
+ */
+export const EN_STOREFRONT = 'us';
+
+/** The English store copy overlaid onto an app for /en pages. */
+export interface EnStoreCopy {
+  name: string | null;
+  description: string | null;
+  price: string | null;
+  whatsNew: string | null;
+}
+
+/**
+ * Fetch the English storefront's copy for an app.
+ *
+ * Returns null when the primary lookup already answered from `us` (the row's
+ * own fields are then already English, so an overlay would be a duplicate) and
+ * when the app is not listed on `us` at all — in that case /en falls back to
+ * the row's own copy, which is honest: there is no English listing to quote.
+ *
+ * A network/HTTP failure THROWS out of `lookupApp` rather than returning null,
+ * so a transient outage can never be mistaken for "delisted from the US".
+ */
+export async function lookupEnCopy(
+  appStoreId: string,
+  primaryStorefront: string | null,
+): Promise<EnStoreCopy | null> {
+  if (primaryStorefront === EN_STOREFRONT) return null;
+  const meta = await lookupApp(appStoreId, EN_STOREFRONT);
+  if (!meta) return null;
+  return {
+    name: meta.name,
+    description: meta.description,
+    price: meta.price,
+    whatsNew: meta.releaseNotes,
   };
 }

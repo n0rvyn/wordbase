@@ -8,6 +8,7 @@ import { nanoid } from 'nanoid';
 vi.mock('../services/appstore-lookup.service.js', () => ({
   lookupApp: vi.fn(),
   lookupAppAnyStorefront: vi.fn(),
+  lookupEnCopy: vi.fn(),
 }));
 
 // Mock asc.service
@@ -16,12 +17,13 @@ vi.mock('../services/asc.service.js', () => ({
   fetchAppMetadata: vi.fn(),
 }));
 
-import { lookupApp, lookupAppAnyStorefront } from '../services/appstore-lookup.service.js';
+import { lookupApp, lookupAppAnyStorefront, lookupEnCopy } from '../services/appstore-lookup.service.js';
 import { isAscConfigured, fetchAppMetadata } from '../services/asc.service.js';
-import { syncApp, syncAllApps } from '../services/app-sync.service.js';
+import { syncApp, syncAllApps, mergeEnCopyIntoMeta } from '../services/app-sync.service.js';
 
 const lookupMock = lookupApp as ReturnType<typeof vi.fn>;
 const lookupAnyMock = lookupAppAnyStorefront as ReturnType<typeof vi.fn>;
+const lookupEnCopyMock = lookupEnCopy as ReturnType<typeof vi.fn>;
 const isAscConfiguredMock = isAscConfigured as ReturnType<typeof vi.fn>;
 const fetchAppMetadataMock = fetchAppMetadata as ReturnType<typeof vi.fn>;
 
@@ -38,6 +40,10 @@ beforeEach(async () => {
     const meta = await lookupMock();
     return meta ? { meta, storefront: 'cn' } : null;
   });
+  // Default: no English listing, so `meta` stays as the row has it and the
+  // pre-existing assertions in this file are untouched by the en overlay.
+  lookupEnCopyMock.mockReset();
+  lookupEnCopyMock.mockResolvedValue(null);
   isAscConfiguredMock.mockReset();
   fetchAppMetadataMock.mockReset();
 
@@ -513,5 +519,132 @@ describe('syncApp platform field', () => {
 
     lookupAnyMock.mockResolvedValueOnce(null);
     expect((await syncApp(appId)).storefront).toBeNull();
+  });
+});
+
+// ─── English storefront copy ─────────────────────────────────────────────────
+// Verbatim measurement 2026-09-06: id 6760798981 is `佳同步 - 国区国际版活动记录互传`
+// on cn and `Glink: Workout & Activity Sync` on us — a different product name,
+// not a translation. These fixtures use that real pair.
+
+const GLINK_EN = {
+  name: 'Glink: Workout & Activity Sync',
+  description: 'Sync workouts between regional accounts.',
+  price: 'Free',
+  whatsNew: 'Bug fixes.',
+};
+
+describe('mergeEnCopyIntoMeta', () => {
+  it('writes i18n.en into a row that had no meta at all', () => {
+    const out = mergeEnCopyIntoMeta(null, GLINK_EN);
+    expect(JSON.parse(out!)).toEqual({ i18n: { en: GLINK_EN } });
+  });
+
+  it('preserves unrelated meta keys', () => {
+    const out = mergeEnCopyIntoMeta('{"appId":"abc","note":"hand-written"}', GLINK_EN);
+    expect(JSON.parse(out!)).toEqual({
+      appId: 'abc',
+      note: 'hand-written',
+      i18n: { en: GLINK_EN },
+    });
+  });
+
+  it('preserves other locales under i18n', () => {
+    const out = mergeEnCopyIntoMeta('{"i18n":{"ja":{"name":"ジェイ"}}}', GLINK_EN);
+    expect(JSON.parse(out!)).toEqual({
+      i18n: { ja: { name: 'ジェイ' }, en: GLINK_EN },
+    });
+  });
+
+  it('removes only i18n.en when the app is no longer on the English store', () => {
+    const out = mergeEnCopyIntoMeta(
+      JSON.stringify({ appId: 'abc', i18n: { en: GLINK_EN, ja: { name: 'ジェイ' } } }),
+      null,
+    );
+    expect(JSON.parse(out!)).toEqual({ appId: 'abc', i18n: { ja: { name: 'ジェイ' } } });
+  });
+
+  it('returns null rather than "{}" when nothing is left', () => {
+    // Storing "{}" would make `meta` differ from null on every future sync and
+    // report a phantom change, which drives a pointless site rebuild.
+    expect(mergeEnCopyIntoMeta(JSON.stringify({ i18n: { en: GLINK_EN } }), null)).toBeNull();
+    expect(mergeEnCopyIntoMeta(null, null)).toBeNull();
+  });
+
+  it('treats unparseable or non-object meta as absent instead of throwing', () => {
+    expect(JSON.parse(mergeEnCopyIntoMeta('not json{', GLINK_EN)!)).toEqual({ i18n: { en: GLINK_EN } });
+    expect(JSON.parse(mergeEnCopyIntoMeta('[1,2,3]', GLINK_EN)!)).toEqual({ i18n: { en: GLINK_EN } });
+    expect(JSON.parse(mergeEnCopyIntoMeta('{"i18n":"oops"}', GLINK_EN)!)).toEqual({ i18n: { en: GLINK_EN } });
+  });
+});
+
+describe('syncApp — English storefront copy', () => {
+  const cnMeta = {
+    name: '佳同步 - 国区国际版活动记录互传',
+    appStoreUrl: 'https://apps.apple.com/cn/app/id6760798981',
+    rating: null, ratingCount: null, category: null, version: null,
+    releaseDate: null, currentVersionReleaseDate: null, minimumOsVersion: null,
+    price: '免费', icon: null, screenshots: [], description: '在国区与国际版账号之间同步。',
+    releaseNotes: '修复问题。', platform: 'iOS',
+  };
+
+  it('stores the English listing at meta.i18n.en and reports meta as changed', async () => {
+    lookupMock.mockResolvedValue(cnMeta);
+    lookupEnCopyMock.mockResolvedValue(GLINK_EN);
+    isAscConfiguredMock.mockReturnValue(false);
+
+    const change = await syncApp(appId);
+
+    const [row] = await db.select().from(apps).where(eq(apps.id, appId));
+    // The row itself keeps the Chinese listing — that is what zh pages show.
+    expect(row.name).toBe('佳同步 - 国区国际版活动记录互传');
+    expect(row.price).toBe('免费');
+    // …and /en reads the English one off meta.
+    expect(JSON.parse(row.meta!).i18n.en).toEqual(GLINK_EN);
+    expect(change.fields).toContain('meta');
+  });
+
+  it('asks the English store only about apps that are listed, and tells it which storefront already answered', async () => {
+    lookupMock.mockResolvedValue(cnMeta);
+    lookupEnCopyMock.mockResolvedValue(GLINK_EN);
+    isAscConfiguredMock.mockReturnValue(false);
+
+    await syncApp(appId);
+
+    expect(lookupEnCopyMock).toHaveBeenCalledWith('361304891', 'cn');
+  });
+
+  it('leaves an existing overlay alone when no storefront lists the app', async () => {
+    // A row that carries an overlay from an earlier sync.
+    await db.update(apps)
+      .set({ meta: JSON.stringify({ i18n: { en: GLINK_EN } }) })
+      .where(eq(apps.id, appId));
+
+    lookupMock.mockResolvedValue(null);   // on no storefront
+    isAscConfiguredMock.mockReturnValue(false);
+
+    const change = await syncApp(appId);
+
+    const [row] = await db.select().from(apps).where(eq(apps.id, appId));
+    // Same rule as every other field here: a lookup that found nothing never
+    // wipes what the row already has.
+    expect(JSON.parse(row.meta!).i18n.en).toEqual(GLINK_EN);
+    expect(change.fields).not.toContain('meta');
+    expect(lookupEnCopyMock).not.toHaveBeenCalled();
+  });
+
+  it('drops the overlay when the app is listed but no longer on the English store', async () => {
+    await db.update(apps)
+      .set({ meta: JSON.stringify({ i18n: { en: GLINK_EN } }) })
+      .where(eq(apps.id, appId));
+
+    lookupMock.mockResolvedValue(cnMeta);
+    lookupEnCopyMock.mockResolvedValue(null);
+    isAscConfiguredMock.mockReturnValue(false);
+
+    await syncApp(appId);
+
+    const [row] = await db.select().from(apps).where(eq(apps.id, appId));
+    expect(row.meta).toBeNull();
   });
 });

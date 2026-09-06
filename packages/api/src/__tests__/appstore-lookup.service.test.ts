@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { lookupApp, lookupAppAnyStorefront, LOOKUP_STOREFRONTS } from '../services/appstore-lookup.service.js';
+import {
+  lookupApp,
+  lookupAppAnyStorefront,
+  lookupEnCopy,
+  LOOKUP_STOREFRONTS,
+  EN_STOREFRONT,
+} from '../services/appstore-lookup.service.js';
 
 const mockLookupResult = {
   resultCount: 1,
@@ -187,5 +193,76 @@ describe('lookupAppAnyStorefront', () => {
     const found = await lookupAppAnyStorefront('361304891', ['jp']);
     expect(found?.storefront).toBe('jp');
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('lookupEnCopy', () => {
+  const fetchOn = (...live: string[]) => vi.fn(async (url: string) => {
+    const cc = new URL(url).searchParams.get('country');
+    const body = live.includes(cc!)
+      // The US listing of a real app: a different product name from the CN one,
+      // not a translation of it (measured 2026-09-06 on id 6760798981).
+      ? {
+          resultCount: 1,
+          results: [{
+            trackName: 'Glink: Workout & Activity Sync',
+            trackViewUrl: 'https://apps.apple.com/us/app/id6760798981',
+            formattedPrice: 'Free',
+            description: 'Sync workouts between regional accounts.',
+            releaseNotes: 'Bug fixes.',
+            kind: 'software',
+            screenshotUrls: [],
+          }],
+        }
+      : { resultCount: 0, results: [] };
+    return { ok: true, json: async () => body } as unknown as Response;
+  });
+
+  it('reads the us storefront', async () => {
+    expect(EN_STOREFRONT).toBe('us');
+  });
+
+  it('returns the English name, description, price and release notes', async () => {
+    vi.stubGlobal('fetch', fetchOn('us'));
+    const en = await lookupEnCopy('6760798981', 'cn');
+    expect(en).toEqual({
+      name: 'Glink: Workout & Activity Sync',
+      description: 'Sync workouts between regional accounts.',
+      price: 'Free',
+      whatsNew: 'Bug fixes.',
+    });
+  });
+
+  it('skips the request entirely when the primary lookup already answered from us', async () => {
+    const fetchMock = fetchOn('us');
+    vi.stubGlobal('fetch', fetchMock);
+    expect(await lookupEnCopy('6760798981', 'us')).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('returns null when the app is not on the English storefront', async () => {
+    vi.stubGlobal('fetch', fetchOn('cn'));
+    expect(await lookupEnCopy('6790027807', 'cn')).toBeNull();
+  });
+
+  it('throws rather than returning null when the request fails', async () => {
+    // A transient outage must not read as "delisted from the US" — that would
+    // silently drop the English copy off every /en page.
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
+    await expect(lookupEnCopy('6760798981', 'cn')).rejects.toThrow(/503/);
+  });
+});
+
+describe('lookupApp — releaseNotes', () => {
+  it('maps releaseNotes, and null when absent', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      resultCount: 1,
+      results: [{ ...mockLookupResult.results[0], releaseNotes: '· 新增备份\n· 修复问题' }],
+    }));
+    expect((await lookupApp('361304891'))!.releaseNotes).toBe('· 新增备份\n· 修复问题');
+
+    // Negative control: the same call on the fixture that has no releaseNotes.
+    vi.stubGlobal('fetch', makeFetch(mockLookupResult));
+    expect((await lookupApp('361304891'))!.releaseNotes).toBeNull();
   });
 });

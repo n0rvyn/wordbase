@@ -14,8 +14,16 @@
 //          the render endpoint returns the localized JSON as a string, so we
 //          parse it back and merge only the localized strings; icons stay
 //          untouched).
+//
+// Apps have a SECOND English source that does not go through the translation
+// cache: name / description / price / whatsNew come from the App Store, and
+// the store already publishes the author's own English listing. app_sync
+// stores it at meta.i18n.en and localizeApp overlays it — see enStoreCopy.
+// The two sources never collide: the cache owns the site's own editorial
+// fields, the store owns the store's fields.
 
 import { getRendition, type Post, type Page, type App } from './api';
+import { enStoreCopy } from './app';
 
 type LocalizedPost = Post;
 type LocalizedPage = Page;
@@ -80,9 +88,19 @@ export async function localizeApp(app: App, lang: string): Promise<LocalizedApp>
     }
   }
 
+  // App Store fields from the English storefront. `subtitle` is deliberately
+  // absent: the iTunes lookup does not expose it (it comes from ASC in the
+  // app's default locale), so there is no English subtitle to overlay and it
+  // stays as the row has it.
+  const store = enStoreCopy(app.meta);
+
   return {
     ...app,
     tagline: enTagline ?? app.tagline,
     features,
+    name: store?.name ?? app.name,
+    description: store?.description ?? app.description,
+    price: store?.price ?? app.price,
+    whatsNew: store?.whatsNew ?? app.whatsNew,
   };
 }

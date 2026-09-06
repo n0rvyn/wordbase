@@ -7,19 +7,23 @@ import { buildSoftwareApplicationLd, buildBreadcrumbLd } from '../../../lib/json
 
 export async function getStaticPaths() {
   const { data: apps } = await getApps({ status: 'published', limit: 10000 });
-  return apps.map((app: App) => ({
+  // Localize ONCE for the whole set, not per page: the "more apps" strip needs
+  // every other app localized too, and doing it inside the map would issue
+  // N×(N-1) rendition requests to render the same N apps.
+  const localized = await Promise.all(apps.map((a: App) => localizeApp(a, 'en')));
+  return localized.map((app: App) => ({
     params: { slug: app.slug },
     props: {
       app,
-      moreApps: apps.filter((a: App) => a.slug !== app.slug),
+      moreApps: localized.filter((a: App) => a.slug !== app.slug),
     },
   }));
 }
 
-const { app, moreApps } = Astro.props as { app: App; moreApps: App[] };
-
-// Localize tagline + features; name + description are ASC-owned and stay as-is.
-const localized = await localizeApp(app, 'en');
+// Already localized in getStaticPaths: tagline + features from the translation
+// cache, name/description/price/whatsNew from the English storefront's own
+// listing (meta.i18n.en, written by app_sync).
+const { app: localized, moreApps } = Astro.props as { app: App; moreApps: App[] };
 
 const metaDescription =
   localized.tagline ||
@@ -37,6 +41,6 @@ const jsonLd = [
 ];
 ---
 
-<BaseLayout title={localized.name} description={metaDescription} ogImage={`/og/en/apps/${app.slug}.png`} jsonLd={jsonLd} locale="en">
+<BaseLayout title={localized.name} description={metaDescription} ogImage={`/og/en/apps/${localized.slug}.png`} jsonLd={jsonLd} locale="en">
   <AppDetailBody locale="en" app={localized} moreApps={moreApps} />
 </BaseLayout>

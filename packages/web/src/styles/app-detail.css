@@ -13,49 +13,8 @@
   own aspect ratio, grouped by device, and nothing is ever cropped.
 */
 
-/* ---- plate: a screenshot hung at its own aspect, never cropped ---- */
-.plate {
-  display: block;
-  width: 100%;
-  height: auto;
-  border-radius: var(--r-lg);
-  background: var(--surface-2);
-  box-shadow: var(--shadow);
-}
-/* Icon-less / art-less fallback: a quiet placard, not a fake device. */
-.plate-blank {
-  width: 100%;
-  aspect-ratio: 9 / 19.5;
-  border-radius: var(--r-lg);
-  border: 1px solid var(--line);
-  background: linear-gradient(170deg, color-mix(in srgb, var(--app) 12%, var(--surface)), var(--surface) 70%);
-  display: grid;
-  place-items: center;
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-}
-.plate-cap {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-top: 12px;
-}
-.plate-cap .n {
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  letter-spacing: .14em;
-  color: var(--ink-4);
-  flex: 0 0 auto;
-}
-.plate-cap .t {
-  font-family: var(--font-read);
-  font-size: 14.5px;
-  line-height: 1.5;
-  color: var(--ink-2);
-}
+/* .plate / .plate-blank / .plate-cap moved to styles/plate.css when the home
+   page's featured card became the second consumer — imported by AppDetailBody. */
 
 /* ---- hero ---- */
 .ad-top {

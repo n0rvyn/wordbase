@@ -259,6 +259,52 @@ export function storeHref(app: Pick<App, 'appStoreUrl' | 'appStoreId' | 'icon'>)
   return null;
 }
 
+/** The English App Store copy an app carries for /en, stored by app_sync. */
+export interface EnStoreCopy {
+  name: string | null;
+  description: string | null;
+  price: string | null;
+  whatsNew: string | null;
+}
+
+/**
+ * Read the English storefront's copy out of an app's `meta` JSON.
+ *
+ * `app_sync` writes it to `meta.i18n.en` from the US listing, because the App
+ * Store serves per-territory metadata and the US listing is the author's own
+ * English submission — for id 6760798981 a different product name entirely
+ * (`Glink: Workout & Activity Sync` against `佳同步 - 国区国际版活动记录互传`),
+ * which no translation of the Chinese string could produce.
+ *
+ * Returns null for absent/unparseable meta or a missing key, so /en falls back
+ * to the row's own copy rather than the build breaking on a hand-edited row.
+ */
+export function enStoreCopy(meta: string | null): EnStoreCopy | null {
+  if (!meta) return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(meta);
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+  const i18n = (parsed as Record<string, unknown>).i18n;
+  if (!i18n || typeof i18n !== 'object' || Array.isArray(i18n)) return null;
+  const en = (i18n as Record<string, unknown>).en;
+  if (!en || typeof en !== 'object' || Array.isArray(en)) return null;
+
+  const pick = (k: string): string | null => {
+    const v = (en as Record<string, unknown>)[k];
+    return typeof v === 'string' && v.length > 0 ? v : null;
+  };
+  return {
+    name: pick('name'),
+    description: pick('description'),
+    price: pick('price'),
+    whatsNew: pick('whatsNew'),
+  };
+}
+
 export interface ReleaseLine {
   kind: 'head' | 'item';
   text: string;

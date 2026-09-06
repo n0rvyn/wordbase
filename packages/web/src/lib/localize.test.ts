@@ -128,3 +128,80 @@ describe('localizeApp — tagline + features', () => {
     expect(parsed[0].icon).toBe('✦');  // icon preserved
   });
 });
+
+// ─── English store copy overlay ──────────────────────────────────────────────
+// The CN and US listings of the same app can be different products by name:
+// id 6760798981 is `佳同步 - 国区国际版活动记录互传` on cn and
+// `Glink: Workout & Activity Sync` on us (measured 2026-09-06). Before this,
+// /en showed the Chinese string for it and for Cashie and 配料表解密.
+
+const CN_APP: App = {
+  ...APP,
+  name: '佳同步 - 国区国际版活动记录互传',
+  description: '在国区与国际版账号之间同步。',
+  price: '免费',
+  whatsNew: '修复问题。',
+  subtitle: '活动记录互传',
+  meta: JSON.stringify({
+    i18n: {
+      en: {
+        name: 'Glink: Workout & Activity Sync',
+        description: 'Sync workouts between regional accounts.',
+        price: 'Free',
+        whatsNew: 'Bug fixes.',
+      },
+    },
+  }),
+};
+
+// The overlay is read off `meta`, not fetched, so these tests stub fetch to
+// fail: that isolates the overlay from the translation cache entirely.
+const failFetch = () => vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }));
+
+describe('localizeApp — English store copy', () => {
+  it('overlays name, description, price and whatsNew on en', async () => {
+    failFetch();
+    const out = await localizeApp(CN_APP, 'en');
+    expect(out.name).toBe('Glink: Workout & Activity Sync');
+    expect(out.description).toBe('Sync workouts between regional accounts.');
+    expect(out.price).toBe('Free');
+    expect(out.whatsNew).toBe('Bug fixes.');
+  });
+
+  it('leaves the zh row untouched', async () => {
+    const out = await localizeApp(CN_APP, 'zh');
+    expect(out).toBe(CN_APP);
+    expect(out.name).toBe('佳同步 - 国区国际版活动记录互传');
+    expect(out.price).toBe('免费');
+  });
+
+  it('does not invent an English subtitle', async () => {
+    // iTunes does not expose subtitle (it comes from ASC in the app's default
+    // locale), so there is nothing to overlay and the row's value stands.
+    failFetch();
+    const out = await localizeApp(CN_APP, 'en');
+    expect(out.subtitle).toBe('活动记录互传');
+  });
+
+  it('falls back to the row when the app carries no English listing', async () => {
+    failFetch();
+    const out = await localizeApp({ ...CN_APP, meta: null }, 'en');
+    expect(out.name).toBe('佳同步 - 国区国际版活动记录互传');
+    expect(out.price).toBe('免费');
+  });
+
+  it('falls back per field, not all-or-nothing', async () => {
+    failFetch();
+    const partial = { ...CN_APP, meta: JSON.stringify({ i18n: { en: { name: 'Glink' } } }) };
+    const out = await localizeApp(partial, 'en');
+    expect(out.name).toBe('Glink');
+    expect(out.price).toBe('免费');           // no en price stored
+    expect(out.description).toBe('在国区与国际版账号之间同步。');
+  });
+
+  it('survives a hand-edited meta that is not valid JSON', async () => {
+    failFetch();
+    const out = await localizeApp({ ...CN_APP, meta: '{oops' }, 'en');
+    expect(out.name).toBe('佳同步 - 国区国际版活动记录互传');
+  });
+});
