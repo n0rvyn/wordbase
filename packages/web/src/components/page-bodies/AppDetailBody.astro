@@ -1,11 +1,21 @@
 ---
 // Shared app-detail body for pages/apps/[slug].astro (zh) and
 // pages/en/apps/[slug].astro (en). getStaticPaths + the SEO jsonLd stay in the
-// shells; the shells localize the app (en localizes tagline + features — name
-// and description are ASC-owned and stay as-is) and pass the localized app +
-// the raw moreApps list. This component derives the presentation data (colors,
-// meta cells, paragraphs, screenshots) and renders. Locale prefixes the
-// MORE-APPS links and the share URL with /en. Styles live in app-detail.css.
+// shells; the shells localize the app (en localizes tagline + features — name,
+// description, subtitle and whatsNew are ASC-owned and stay as-is) and pass the
+// localized app + the raw moreApps list. This component derives the
+// presentation data and renders. Locale prefixes the MORE-APPS links and the
+// share URL with /en. Styles live in app-detail.css.
+//
+// 2026-09-06 gallery redesign:
+//   · screenshots hang at their own aspect, grouped by device — no device
+//     frames, no object-fit: cover, nothing cropped (the old fixed 9/19.2
+//     frame cut the sides off every 3:4 iPad shot)
+//   · the App Store `subtitle` leads the hero — it was synced for every app
+//     and rendered nowhere on the site
+//   · `whatsNew` gets a section of its own — it had zero consumers in web/
+//   · section numbers are derived from the sections actually present, so an
+//     app without features no longer jumps 00 → 02
 import ShareButtons from '../ShareButtons.astro';
 import { formatMonoDate } from '../../lib/home';
 import {
@@ -14,6 +24,11 @@ import {
   buildMetaCells,
   descriptionParagraphs,
   formatYear,
+  displayName,
+  groupScreenshots,
+  heroShot,
+  parseReleaseNotes,
+  storeHref,
 } from '../../lib/app';
 import { enHref, type Locale } from '../../lib/locale';
 import type { App } from '../../lib/api';
@@ -29,118 +44,132 @@ interface Props {
 const { locale, app, moreApps } = Astro.props;
 const lhref = (p: string) => (locale === 'en' ? enHref(p) : p);
 
-// macOS apps render screenshots in a Mac-window frame; iOS keeps the phone frame.
-const isMac = app.platform === 'macOS';
-
-// Parse JSON string fields
 const features = parseJsonArray<{ icon: string; title: string; blurb: string }>(app.features);
 const screenshots = parseJsonArray<string>(app.screenshots);
 
-// Per-app CSS colour vars
 const { app: appC, app2 } = appColors(app.accentColor);
-
-// Meta row cells
 const meta = buildMetaCells(app);
-
-// About paragraphs (description is ASC-owned, not localized)
 const paras = descriptionParagraphs(app.description);
 
-// App Store URL (construct fallback from appStoreId)
-const appStoreHref = app.appStoreUrl ?? (app.appStoreId ? `https://apps.apple.com/app/id${app.appStoreId}` : '#');
+// The product name, without the App Store's keyword suffix. The full name
+// still carries the document <title>, the spine label, JSON-LD and the OG card.
+const title = displayName(app.name);
 
-// Canonical (locale-aware) page URL for sharing
+const hero = heroShot(screenshots, app.platform);
+const groups = groupScreenshots(screenshots, app.platform);
+const release = parseReleaseNotes(app.whatsNew);
+
+// Section index: numbered by what is actually rendered.
+const present = [
+  'hero',
+  ...(features.length > 0 ? ['features'] : []),
+  ...(screenshots.length > 0 ? ['screens'] : []),
+  'about',
+  ...(release.length > 0 ? ['whatsNew'] : []),
+  ...(moreApps.length > 0 ? ['more'] : []),
+];
+const no = (key: string) => String(present.indexOf(key)).padStart(2, '0');
+
+const deviceKey = {
+  phone: 'apps.device.phone',
+  tablet: 'apps.device.tablet',
+  desktop: 'apps.device.desktop',
+  unknown: 'apps.device.unknown',
+} as const;
+
+const eyebrow = [app.category, app.platform, app.version ? `v${app.version}` : null]
+  .filter(Boolean)
+  .join('  ·  ');
+
+const appStoreHref = storeHref(app);
 const shareUrl = new URL(lhref(`/apps/${app.slug}`), Astro.site).href;
 ---
 
 <div id="top" style={`--app:${appC};--app-2:${app2}`}>
 
   {/* 00 HERO */}
-  <header class="sec wrap" style="border-top:none;padding-top:clamp(40px,6vw,72px)">
-    <div class="row2">
-      <div class="spine">
-        <span class="no">00</span>
-        <span class="lab">{app.name}</span>
-        <span class="note"><T k="apps.spineNote" /></span>
-      </div>
-      <div class="ad-hero">
-        <div class="ad-main">
-          <div class="ad-id">
-            <div class="ad-icon">
-              {app.icon
-                ? <img src={app.icon} alt={app.name} />
-                : app.name.charAt(0)
-              }
-            </div>
-            <div>
-              <h1>{app.name}</h1>
-              {app.category && <span class="cat">{app.category}</span>}
-            </div>
-          </div>
-
-          {app.tagline && <p class="ad-tag">{app.tagline}</p>}
-
-          {meta.length > 0 && (
-            <div class="ad-meta">
-              {meta.map(cell => (
-                <div>
-                  <span class="k"><T zh={cell.k} en={cell.kEn} /></span>
-                  <span class="v">
-                    {cell.star && (
-                      <span class="star">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 2.5l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 18.6 6.1 21.3l1.2-6.6L2.5 9.5l6.6-.9z"/>
-                        </svg>
-                      </span>
-                    )}
-                    {cell.v}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div class="ad-cta">
-            <a class="btn btn-1" href={appStoreHref} target="_blank" rel="noopener noreferrer">
-              App Store
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M7 17 17 7M9 7h8v8"/>
-              </svg>
-            </a>
-            <a class="btn btn-2" href="#about"><T k="apps.viewMore" /></a>
-          </div>
+  <header class="ad-top">
+    <div class="wrap" style="position:relative">
+      <div class="row2">
+        <div class="spine">
+          <span class="no">{no('hero')}</span>
+          <span class="lab">{app.name}</span>
+          <span class="note"><T k="apps.spineNote" /></span>
         </div>
 
-        {/* Preview: MacBook screen frame for macOS, phone frame otherwise */}
-        {isMac && screenshots.length > 0 ? (
-          <div class="mac-win">
-            <div class="mac-screen"><img src={screenshots[0]} alt={`${app.name} screenshot`} /></div>
-            <span class="mac-notch"></span>
-          </div>
-        ) : (
-          <div class="phone">
-            <div class="screen">
-              {screenshots.length > 0
-                ? <img src={screenshots[0]} alt={`${app.name} screenshot`} />
-                : (
-                  <>
-                    <div class="s-top"><span>9:41</span><span>{app.name}</span></div>
-                    <div class="ring"><div><span class="t">—</span><span class="c">Preview</span></div></div>
-                  </>
-                )
-              }
+        <div class="ad-hero">
+          <div>
+            {eyebrow && <span class="ad-eyebrow">{eyebrow}</span>}
+
+            <div class="ad-id">
+              <div class="ad-icon">
+                {app.icon ? <img src={app.icon} alt={title} /> : title.charAt(0)}
+              </div>
+              <h1>{title}</h1>
+            </div>
+
+            {app.subtitle && <p class="ad-sub">{app.subtitle}</p>}
+            {app.tagline && <p class="ad-tag">{app.tagline}</p>}
+
+            {meta.length > 0 && (
+              <div class="ad-meta">
+                {meta.map(cell => (
+                  <div>
+                    <span class="k"><T zh={cell.k} en={cell.kEn} /></span>
+                    <span class="v">
+                      {cell.star && (
+                        <span class="star">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2.5l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 18.6 6.1 21.3l1.2-6.6L2.5 9.5l6.6-.9z"/>
+                          </svg>
+                        </span>
+                      )}
+                      {cell.v}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div class="ad-cta">
+              {appStoreHref && (
+                <a class="btn btn-1" href={appStoreHref} target="_blank" rel="noopener noreferrer">
+                  App Store
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M7 17 17 7M9 7h8v8"/>
+                  </svg>
+                </a>
+              )}
+              <a class="btn btn-2" href="#about"><T k="apps.viewMore" /></a>
             </div>
           </div>
-        )}
+
+          {/* The piece: hung at its own aspect, never cropped. */}
+          <div class="ad-piece">
+            {hero ? (
+              <img
+                class="plate"
+                src={hero.url}
+                alt={`${title} screenshot`}
+                width={hero.width ?? undefined}
+                height={hero.height ?? undefined}
+                style={hero.width && hero.height ? `aspect-ratio:${hero.width}/${hero.height}` : undefined}
+              />
+            ) : (
+              <div class="plate-blank">Preview</div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   </header>
 
-  {/* 01 FEATURES */}
+  {/* FEATURES */}
   {features.length > 0 && (
     <section class="sec wrap" id="features">
       <div class="row2">
         <div class="spine">
-          <span class="no">01</span>
+          <span class="no">{no('features')}</span>
           <span class="lab"><T k="apps.features.lab" /></span>
           <span class="note"><T k="apps.features.note" /></span>
         </div>
@@ -159,29 +188,44 @@ const shareUrl = new URL(lhref(`/apps/${app.slug}`), Astro.site).href;
     </section>
   )}
 
-  {/* 02 SCREENSHOTS */}
+  {/* SCREENS — one band per device, each at its own aspect */}
   {screenshots.length > 0 && (
     <section class="sec wrap" id="screens">
       <div class="row2">
         <div class="spine">
-          <span class="no">02</span>
+          <span class="no">{no('screens')}</span>
           <span class="lab"><T k="apps.screens.lab" /></span>
-          <span class="note"><T k="apps.screens.note" /></span>
+          <span class="note"><T k="apps.screens.noteGrid" /></span>
         </div>
-        <div class="shots">
-          {screenshots.map((url, i) => (
-            <div class="shot">
-              {isMac ? (
-                <div class="mac-win">
-                  <div class="mac-screen"><img src={url} alt={`${app.name} screenshot ${i + 1}`} loading="lazy" decoding="async" /></div>
-                  <span class="mac-notch"></span>
-                </div>
-              ) : (
-                <div class="shot-frame">
-                  <img src={url} alt={`${app.name} screenshot ${i + 1}`} loading="lazy" decoding="async" />
-                </div>
-              )}
-              <span class="cap">{String(i + 1).padStart(2, '0')}</span>
+        <div>
+          <span class="ad-eyebrow" style="color:var(--ink-4)"><T k="apps.onDisplay" /></span>
+          <h2 class="band-h2"><T k="apps.screens.h2" /></h2>
+
+          {groups.map(group => (
+            <div class="shot-group">
+              <div class="shot-group-head">
+                <span class="dev"><T k={deviceKey[group.device]} /></span>
+                {group.dimensions && <span class="dim">{group.dimensions}</span>}
+              </div>
+              <div class="shots-grid" data-device={group.device}>
+                {group.shots.map((shot, i) => (
+                  <figure style="margin:0">
+                    <img
+                      class="plate"
+                      src={shot.url}
+                      alt={`${title} screenshot ${i + 1}`}
+                      width={shot.width ?? undefined}
+                      height={shot.height ?? undefined}
+                      style={shot.width && shot.height ? `aspect-ratio:${shot.width}/${shot.height}` : undefined}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <figcaption class="plate-cap">
+                      <span class="n">{String(i + 1).padStart(2, '0')}</span>
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
             </div>
           ))}
         </div>
@@ -189,13 +233,15 @@ const shareUrl = new URL(lhref(`/apps/${app.slug}`), Astro.site).href;
     </section>
   )}
 
-  {/* 03 ABOUT */}
+  {/* ABOUT */}
   <section class="sec wrap" id="about">
     <div class="row2">
       <div class="spine">
-        <span class="no">03</span>
+        <span class="no">{no('about')}</span>
         <span class="lab"><T k="apps.about.lab" /></span>
-        <span class="note"><T k="apps.about.note" /></span>
+        {/* Claudex has no store description (absent from the CN storefront), so
+            the section is just the credit line — the note would dangle. */}
+        {paras.length > 0 && <span class="note"><T k="apps.about.note" /></span>}
       </div>
       <div>
         {paras.length > 0 && (
@@ -216,18 +262,46 @@ const shareUrl = new URL(lhref(`/apps/${app.slug}`), Astro.site).href;
         </div>
         <div class="ad-share">
           <span class="ad-share-label"><T k="apps.share" /></span>
-          <ShareButtons title={app.name} url={shareUrl} compact />
+          <ShareButtons title={title} url={shareUrl} compact />
         </div>
       </div>
     </div>
   </section>
 
-  {/* 04 MORE APPS */}
+  {/* WHAT'S NEW */}
+  {release.length > 0 && (
+    <section class="sec wrap" id="whats-new">
+      <div class="row2">
+        <div class="spine">
+          <span class="no">{no('whatsNew')}</span>
+          <span class="lab"><T k="apps.whatsNew.lab" /></span>
+          <span class="note"><T k="apps.whatsNew.note" /></span>
+        </div>
+        <div class="wn">
+          <div class="wn-ver">
+            {app.version && <span class="v">v{app.version}</span>}
+            {app.currentVersionReleaseDate != null && (
+              <span class="d">{formatMonoDate(app.currentVersionReleaseDate)}</span>
+            )}
+          </div>
+          <div class="wn-body">
+            {release.map(line => (
+              line.kind === 'head'
+                ? <div class="wn-line"><span></span><p class="head">{line.text}</p></div>
+                : <div class="wn-line"><span class="dot"></span><p>{line.text}</p></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )}
+
+  {/* MORE APPS */}
   {moreApps.length > 0 && (
     <section class="sec wrap" id="more">
       <div class="row2">
         <div class="spine">
-          <span class="no">04</span>
+          <span class="no">{no('more')}</span>
           <span class="lab"><T k="apps.more.lab" /></span>
           <span class="note"><T k="apps.more.note" /></span>
         </div>
@@ -236,13 +310,13 @@ const shareUrl = new URL(lhref(`/apps/${app.slug}`), Astro.site).href;
             <a class="item app" href={lhref(`/apps/${a.slug}`)}>
               <div class="app-ic">
                 {a.icon
-                  ? <img src={a.icon} alt={a.name} loading="lazy" decoding="async" />
-                  : a.name.charAt(0)
+                  ? <img src={a.icon} alt={displayName(a.name)} loading="lazy" decoding="async" />
+                  : displayName(a.name).charAt(0)
                 }
               </div>
               <div>
-                <div class="item-title">{a.name}</div>
-                {a.tagline && <div class="item-sub">{a.tagline}</div>}
+                <div class="item-title">{displayName(a.name)}</div>
+                {(a.tagline || a.subtitle) && <div class="item-sub">{a.tagline || a.subtitle}</div>}
               </div>
               <div class="app-r">
                 <span class="item-meta">
@@ -250,12 +324,14 @@ const shareUrl = new URL(lhref(`/apps/${app.slug}`), Astro.site).href;
                   {a.category && formatYear(a.releaseDate) ? ' · ' : ''}
                   {formatYear(a.releaseDate) ?? ''}
                 </span>
-                <span class="store">
-                  App Store
-                  <svg class="arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M7 17 17 7M9 7h8v8"/>
-                  </svg>
-                </span>
+                {storeHref(a) && (
+                  <span class="store">
+                    App Store
+                    <svg class="arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M7 17 17 7M9 7h8v8"/>
+                    </svg>
+                  </span>
+                )}
               </div>
             </a>
           ))}

@@ -6,6 +6,7 @@
  *   rating/ratingCount: ALWAYS from iTunes
  *   subtitle/whatsNew: from ASC (falls back to cur.{field})
  *   category/version/screenshots: ASC-first, then iTunes, then cur.{field}
+ *   name/appStoreUrl: iTunes (trackName/trackViewUrl), then cur.{field}
  *   rest: iTunes, then cur.{field}
  *
  * Every field falls back to cur.{field} to never wipe manually-entered data.
@@ -14,15 +15,8 @@
 import { eq, isNotNull } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { apps } from '../db/schema.js';
-import { lookupApp } from './appstore-lookup.service.js';
+import { lookupAppAnyStorefront } from './appstore-lookup.service.js';
 import { isAscConfigured, fetchAppMetadata } from './asc.service.js';
-
-export interface SyncResult {
-  synced: number;
-  failed: Array<{ appId: string; error: string }>;
-  /** Per-app field-level changes. Empty `fields` = synced but nothing differed. */
-  changes: Array<{ appId: string; slug: string; status: string; fields: string[] }>;
-}
 
 /** What a single sync actually changed. `fields` empty = the fetch succeeded but no value differed. */
 export interface AppSyncChange {
@@ -30,6 +24,19 @@ export interface AppSyncChange {
   slug: string;
   status: string;
   fields: string[];
+  /**
+   * Which storefront answered the iTunes lookup, or null when NO storefront
+   * lists the app. A null here on a `published` row means the site is showing a
+   * page for something nobody can install — worth unpublishing.
+   */
+  storefront: string | null;
+}
+
+export interface SyncResult {
+  synced: number;
+  failed: Array<{ appId: string; error: string }>;
+  /** Per-app field-level changes. Empty `fields` = synced but nothing differed. */
+  changes: AppSyncChange[];
 }
 
 // lastSyncedAt/updatedAt are written on every sync by construction, so they can
@@ -51,8 +58,11 @@ export async function syncApp(appId: string): Promise<AppSyncChange> {
   const cur = app;
   const now = Math.floor(Date.now() / 1000);
 
-  // Fetch iTunes data
-  const itunes = await lookupApp(app.appStoreId);
+  // Fetch iTunes data. Tries cn, then us: an app without a mainland ICP filing
+  // is missing from the CN storefront while being live elsewhere, and checking
+  // only cn would wipe it to "not released".
+  const found = await lookupAppAnyStorefront(app.appStoreId);
+  const itunes = found?.meta ?? null;
 
   // Fetch ASC data (gracefully degrade if not configured or fails)
   const asc = isAscConfigured()
@@ -69,6 +79,15 @@ export async function syncApp(appId: string): Promise<AppSyncChange> {
     : cur.screenshots;
 
   const set = {
+    // name/appStoreUrl: the store is the source of truth for both. Before this,
+    // `name` was written once by discoverApps and never refreshed, so a rename
+    // on the App Store never reached the site (Cashie, Activity Bridge, Delphi,
+    // Model Proxy all drifted); `appStoreUrl` was never written at all, which
+    // left every "App Store ↗" affordance gated on an always-null field. Both fall
+    // back to cur.* so an app iTunes cannot find (e.g. a Mac app absent from
+    // the CN storefront) keeps what it has.
+    name: itunes?.name ?? cur.name,
+    appStoreUrl: itunes?.appStoreUrl ?? cur.appStoreUrl,
     // rating/ratingCount: ALWAYS from iTunes
     rating: itunes?.rating ?? cur.rating,
     ratingCount: itunes?.ratingCount ?? cur.ratingCount,
@@ -103,7 +122,7 @@ export async function syncApp(appId: string): Promise<AppSyncChange> {
 
   await db.update(apps).set(set).where(eq(apps.id, appId));
 
-  return { appId, slug: cur.slug, status: cur.status, fields };
+  return { appId, slug: cur.slug, status: cur.status, fields, storefront: found?.storefront ?? null };
 }
 
 export async function syncAllApps(): Promise<SyncResult> {

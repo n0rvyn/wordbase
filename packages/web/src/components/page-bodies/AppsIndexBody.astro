@@ -1,10 +1,20 @@
 ---
 // Shared apps-index body for pages/apps/index.astro (zh) and
 // pages/en/apps/index.astro (en). Shells fetch + order + (en) localize the
-// apps and pass the final ordered list; this component is pure presentation.
-// Locale only prefixes the per-app links with /en.
+// apps and pass the final ordered list; this component derives the showcase
+// band and renders. Locale only prefixes the per-app links with /en.
+//
+// 2026-09-06 gallery redesign. Three defects fixed here:
+//   · the year came from `publishedAt`, null on 6 of the 7 published rows
+//     (only one was ever published through publishApp) — it now comes from
+//     `releaseDate`, via the same lib/app helper the detail page uses
+//   · the "App Store ↗" affordance was gated on `appStoreUrl`, which nothing
+//     ever wrote — it now falls back to appStoreId, same as the detail page
+//   · rows showed only `tagline` (null everywhere), so the App Store
+//     `subtitle` — synced for every app — appeared nowhere
 import type { App } from '../../lib/api';
 import { enHref, type Locale } from '../../lib/locale';
+import { displayName, formatYear, heroShot, parseJsonArray, pickShowcase, storeHref } from '../../lib/app';
 import T from '../T.astro';
 
 interface Props {
@@ -14,6 +24,16 @@ interface Props {
 
 const { locale, apps } = Astro.props;
 const lhref = (p: string) => (locale === 'en' ? enHref(p) : p);
+
+const showcase = pickShowcase(apps, 3);
+// Resolve each card's hero art here: Astro's template cannot host a
+// block-bodied arrow function.
+const showcaseCards = showcase.map((a: App) => ({
+  app: a,
+  shot: heroShot(parseJsonArray<string>(a.screenshots), a.platform),
+}));
+const metaLine = (a: App) =>
+  [a.category?.split(' · ').pop(), formatYear(a.releaseDate)].filter(Boolean).join(' · ');
 ---
 
 <header class="sec wrap" style="border-top:none;padding-top:clamp(44px,6vw,80px)">
@@ -31,10 +51,57 @@ const lhref = (p: string) => (locale === 'en' ? enHref(p) : p);
   </div>
 </header>
 
+{showcase.length > 0 && (
+  <section class="sec wrap">
+    <div class="row2">
+      <div class="spine">
+        <span class="no">01</span>
+        <span class="lab"><T k="apps.showcase.lab" /></span>
+        <span class="note"><T k="apps.showcase.note" /></span>
+      </div>
+      <div>
+        <div class="eyebrow" style="margin-bottom:14px"><T k="apps.onDisplay" /></div>
+        <h2 class="band-h2"><T k="apps.showcase.h2" /></h2>
+        <div class="showcase">
+          {showcaseCards.map(({ app: a, shot }) => (
+            <a class="sc-card" href={lhref(`/apps/${a.slug}`)}>
+              {shot && (
+                <img
+                  class="sc-plate"
+                  src={shot.url}
+                  alt={displayName(a.name)}
+                  width={shot.width ?? undefined}
+                  height={shot.height ?? undefined}
+                  style={shot.width && shot.height ? `aspect-ratio:${shot.width}/${shot.height}` : undefined}
+                  loading="lazy"
+                  decoding="async"
+                />
+              )}
+              <div class="sc-label">
+                <div class="app-ic">
+                  {a.icon
+                    ? <img src={a.icon} alt={displayName(a.name)} loading="lazy" decoding="async" />
+                    : displayName(a.name).charAt(0)
+                  }
+                </div>
+                <div class="sc-text">
+                  <div class="item-title">{displayName(a.name)}</div>
+                  {(a.subtitle || a.tagline) && <div class="item-sub">{a.subtitle || a.tagline}</div>}
+                  {metaLine(a) && <span class="item-meta sc-meta">{metaLine(a)}</span>}
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+)}
+
 <section class="sec wrap">
   <div class="row2">
     <div class="spine">
-      <span class="no">01</span>
+      <span class="no">{showcase.length > 0 ? '02' : '01'}</span>
       <span class="lab"><T k="apps.allApps.lab" /></span>
       <span class="note"><T k="apps.allApps.note" /></span>
     </div>
@@ -47,21 +114,17 @@ const lhref = (p: string) => (locale === 'en' ? enHref(p) : p);
             <a class="item app" href={lhref(`/apps/${a.slug}`)}>
               <div class="app-ic">
                 {a.icon
-                  ? <img src={a.icon} alt={a.name} width="50" height="50" style="border-radius:13px;width:100%;height:100%;object-fit:cover;" />
-                  : a.name.charAt(0)
+                  ? <img src={a.icon} alt={displayName(a.name)} width="50" height="50" loading="lazy" decoding="async" />
+                  : displayName(a.name).charAt(0)
                 }
               </div>
               <div>
-                <div class="item-title">{a.name}</div>
-                {a.tagline && <div class="item-sub">{a.tagline}</div>}
+                <div class="item-title">{displayName(a.name)}</div>
+                {(a.subtitle || a.tagline) && <div class="item-sub">{a.subtitle || a.tagline}</div>}
               </div>
               <div class="app-r">
-                {(a.category || a.publishedAt) && (
-                  <span class="item-meta">
-                    {[a.category, a.publishedAt ? String(new Date(a.publishedAt * 1000).getUTCFullYear()) : null].filter(Boolean).join(' · ')}
-                  </span>
-                )}
-                {a.appStoreUrl && (
+                {metaLine(a) && <span class="item-meta">{metaLine(a)}</span>}
+                {storeHref(a) && (
                   <span class="store">App Store <svg class="arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg></span>
                 )}
               </div>
@@ -92,6 +155,11 @@ const lhref = (p: string) => (locale === 'en' ? enHref(p) : p);
     font-family: var(--font-read); font-size: clamp(16px, 1.6vw, 19px);
     line-height: 1.75; color: var(--ink-2); max-width: 46ch; margin: 0;
   }
+  .band-h2 {
+    font-family: var(--font-display); font-weight: 500;
+    font-size: clamp(26px, 3.2vw, 38px); line-height: 1.1;
+    letter-spacing: -.03em; margin: 0 0 clamp(28px, 3.6vw, 46px);
+  }
 
   /* ── Empty state ──────────────────────────────────────────────────────────── */
   .empty {
@@ -99,17 +167,40 @@ const lhref = (p: string) => (locale === 'en' ? enHref(p) : p);
     font-size: 16px; padding: 48px 0;
   }
 
+  /* ── Showcase: real art at its own aspect, no device frame ────────────────── */
+  .showcase {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(20px, 3.4vw, 47px);
+  }
+  .sc-card { display: flex; flex-direction: column; gap: 20px; text-decoration: none; color: inherit; }
+  .sc-plate {
+    display: block; width: 100%; height: auto;
+    border-radius: var(--r-md); background: var(--surface-2);
+    box-shadow: var(--shadow);
+    transition: transform .25s var(--ease);
+  }
+  .sc-card:hover .sc-plate { transform: translateY(-3px); }
+  /*
+    Cards hold mixed aspects — Model Proxy's art is 16:10 against two 9:19.5
+    phone shots — so the labels must be pushed to the bottom of the stretched
+    grid row, or the short card's text floats halfway up the row.
+  */
+  .sc-label { display: flex; gap: 14px; align-items: stretch; margin-top: auto; }
+  .sc-text { display: flex; flex-direction: column; gap: 4px; flex: 1 1 auto; min-width: 0; }
+  .sc-meta { margin-top: auto; padding-top: 8px; }
+
   /* ── App list rows ────────────────────────────────────────────────────────── */
   .app { grid-template-columns: 50px 1fr auto; gap: 20px; }
   .app-ic {
-    width: 50px; height: 50px; border-radius: 13px;
+    width: 50px; height: 50px; border-radius: var(--r-icon);
     background: var(--surface-2); border: 1px solid var(--line);
-    display: grid; place-items: center;
+    display: grid; place-items: center; overflow: hidden; flex-shrink: 0;
     font-family: var(--font-display); font-weight: 600;
     font-size: 19px; color: var(--ink-3);
     transition: color .2s, border-color .2s;
   }
-  .item:hover .app-ic { color: var(--accent); border-color: var(--line-2); }
+  .app-ic img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+  .item:hover .app-ic, .sc-card:hover .app-ic { color: var(--accent); border-color: var(--line-2); }
   .app .item-title { font-size: 19px; }
   .app .item-sub { font-size: 14.5px; margin-top: 3px; }
   .app-r { display: flex; flex-direction: column; align-items: flex-end; gap: 7px; text-align: right; }
@@ -125,8 +216,25 @@ const lhref = (p: string) => (locale === 'en' ? enHref(p) : p);
   .item:hover .arrow { transform: translate(3px, -3px); color: var(--accent); }
 
   /* ── Responsive ───────────────────────────────────────────────────────────── */
+  @media (max-width: 880px) {
+    .showcase { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
   @media (max-width: 560px) {
+    .showcase { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+    .sc-card { gap: 12px; }
+    /*
+      A showcase column is ~165px here — an icon plus a Chinese subtitle wraps
+      to four ragged lines. The artwork already identifies the app, so drop the
+      icon and hold the subtitle to two lines.
+    */
+    .sc-label { gap: 0; }
+    .sc-label .app-ic { display: none; }
+    .sc-text .item-sub {
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
     .app { grid-template-columns: 44px 1fr; }
+    .app-ic { width: 44px; height: 44px; border-radius: 12px; }
     .app-r { grid-column: 2; align-items: flex-start; text-align: left; flex-direction: row; gap: 14px; margin-top: 8px; }
   }
 </style>

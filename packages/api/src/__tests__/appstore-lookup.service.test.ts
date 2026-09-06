@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { lookupApp } from '../services/appstore-lookup.service.js';
+import { lookupApp, lookupAppAnyStorefront, LOOKUP_STOREFRONTS } from '../services/appstore-lookup.service.js';
 
 const mockLookupResult = {
   resultCount: 1,
@@ -138,5 +138,54 @@ describe('lookupApp', () => {
     expect(result).not.toBeNull();
     expect(result!.releaseDate).toBeNull();
     expect(result!.currentVersionReleaseDate).toBeNull();
+  });
+});
+
+// ─── lookupAppAnyStorefront ───────────────────────────────────────────────────
+// An app without a mainland ICP filing is missing from the CN storefront while
+// being live elsewhere; checking only `cn` reported it as unreleased.
+
+describe('lookupAppAnyStorefront', () => {
+  /** Answers with a result only for the listed storefronts. */
+  const fetchOn = (...live: string[]) => vi.fn(async (url: string) => {
+    const cc = new URL(url).searchParams.get('country');
+    const body = live.includes(cc!) ? mockLookupResult : { resultCount: 0, results: [] };
+    return { ok: true, json: async () => body } as unknown as Response;
+  });
+
+  it('tries cn before us', () => {
+    expect([...LOOKUP_STOREFRONTS]).toEqual(['cn', 'us']);
+  });
+
+  it('reports cn when the app is on the CN storefront', async () => {
+    const fetchMock = fetchOn('cn', 'us');
+    vi.stubGlobal('fetch', fetchMock);
+    const found = await lookupAppAnyStorefront('361304891');
+    expect(found?.storefront).toBe('cn');
+    expect(found?.meta.category).toBe('Productivity');
+    // stops at the first hit — no second request
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls through to us for an app absent from the CN storefront', async () => {
+    const fetchMock = fetchOn('us');
+    vi.stubGlobal('fetch', fetchMock);
+    const found = await lookupAppAnyStorefront('361304891');
+    expect(found?.storefront).toBe('us');
+    expect(found?.meta.category).toBe('Productivity');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('returns null when no storefront lists the app', async () => {
+    vi.stubGlobal('fetch', fetchOn());
+    expect(await lookupAppAnyStorefront('6763678207')).toBeNull();
+  });
+
+  it('honours an explicit storefront list', async () => {
+    const fetchMock = fetchOn('jp');
+    vi.stubGlobal('fetch', fetchMock);
+    const found = await lookupAppAnyStorefront('361304891', ['jp']);
+    expect(found?.storefront).toBe('jp');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

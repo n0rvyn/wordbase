@@ -131,6 +131,21 @@ export const dict: Record<string, Entry> = {
   'apps.more.lab':      { zh: 'More',          en: 'More' },
   'apps.more.note':     { zh: '其它作品。',     en: 'Other apps.' },
 
+  // ── apps: gallery redesign (2026-09-06) ────────────────────────────────────
+  'apps.onDisplay':        { zh: '正在展出',    en: 'On display now' },
+  'apps.showcase.lab':     { zh: 'On display',  en: 'On display' },
+  'apps.showcase.note':    { zh: '最近更新的几款。', en: 'The most recently updated.' },
+  'apps.showcase.h2':      { zh: '精选',        en: 'Featured' },
+  'apps.allApps.h2':       { zh: '目录',        en: 'Index' },
+  'apps.screens.h2':       { zh: '画面',        en: 'Screens' },
+  'apps.screens.noteGrid': { zh: '每张按原始比例陈列，不裁切。', en: 'Every shot at its own aspect, never cropped.' },
+  'apps.device.phone':     { zh: 'iPhone',      en: 'iPhone' },
+  'apps.device.tablet':    { zh: 'iPad',        en: 'iPad' },
+  'apps.device.desktop':   { zh: 'Mac',         en: 'Mac' },
+  'apps.device.unknown':   { zh: '其它',        en: 'Other' },
+  'apps.whatsNew.lab':     { zh: 'What’s New',  en: 'What’s New' },
+  'apps.whatsNew.note':    { zh: '这一版改了什么。', en: 'What changed in this version.' },
+
   // ── podcast ────────────────────────────────────────────────────────────────
   'podcast.spine.lab':   { zh: 'Podcast', en: 'Podcast' },
   'podcast.spine.note':  { zh: '自制的 AI 信息源', en: 'A self-made AI briefing' },

@@ -7,6 +7,7 @@ import { nanoid } from 'nanoid';
 // Mock appstore-lookup.service
 vi.mock('../services/appstore-lookup.service.js', () => ({
   lookupApp: vi.fn(),
+  lookupAppAnyStorefront: vi.fn(),
 }));
 
 // Mock asc.service
@@ -15,11 +16,12 @@ vi.mock('../services/asc.service.js', () => ({
   fetchAppMetadata: vi.fn(),
 }));
 
-import { lookupApp } from '../services/appstore-lookup.service.js';
+import { lookupApp, lookupAppAnyStorefront } from '../services/appstore-lookup.service.js';
 import { isAscConfigured, fetchAppMetadata } from '../services/asc.service.js';
 import { syncApp, syncAllApps } from '../services/app-sync.service.js';
 
 const lookupMock = lookupApp as ReturnType<typeof vi.fn>;
+const lookupAnyMock = lookupAppAnyStorefront as ReturnType<typeof vi.fn>;
 const isAscConfiguredMock = isAscConfigured as ReturnType<typeof vi.fn>;
 const fetchAppMetadataMock = fetchAppMetadata as ReturnType<typeof vi.fn>;
 
@@ -28,6 +30,14 @@ let appId: string;
 beforeEach(async () => {
   // Reset mocks
   lookupMock.mockReset();
+  lookupAnyMock.mockReset();
+  // syncApp calls the multi-storefront entry point; keep every existing
+  // `lookupMock.mockResolvedValue(meta)` working by wrapping its result the way
+  // the real lookupAppAnyStorefront does.
+  lookupAnyMock.mockImplementation(async () => {
+    const meta = await lookupMock();
+    return meta ? { meta, storefront: 'cn' } : null;
+  });
   isAscConfiguredMock.mockReset();
   fetchAppMetadataMock.mockReset();
 
@@ -433,5 +443,75 @@ describe('syncApp platform field', () => {
 
     const [row] = await db.select().from(apps).where(eq(apps.id, appId));
     expect(row.platform).toBe('iOS');
+  });
+  // ─── name / appStoreUrl ────────────────────────────────────────────────────
+  // Before these were synced, `name` was written once by discoverApps and never
+  // refreshed (5 of 7 published rows had drifted from the store by 2026-09-06),
+  // and `appStoreUrl` was never written at all, so every consumer gated on it
+  // was a dead branch.
+
+  it('refreshes name from the store on every sync', async () => {
+    lookupMock.mockResolvedValue({
+      name: 'Cashie 记账 - AI拍照语音自动记账本',
+      appStoreUrl: 'https://apps.apple.com/cn/app/id6757636100',
+      rating: null, ratingCount: null, category: null, version: null,
+      releaseDate: null, currentVersionReleaseDate: null, minimumOsVersion: null,
+      price: null, icon: null, screenshots: [], description: null, platform: 'iOS',
+    });
+    isAscConfiguredMock.mockReturnValue(false);
+
+    const change = await syncApp(appId);
+
+    const [row] = await db.select().from(apps).where(eq(apps.id, appId));
+    expect(row.name).toBe('Cashie 记账 - AI拍照语音自动记账本');
+    expect(row.appStoreUrl).toBe('https://apps.apple.com/cn/app/id6757636100');
+    expect(change.fields).toContain('name');
+    expect(change.fields).toContain('appStoreUrl');
+  });
+
+  it('keeps the current name when iTunes has no result for the app', async () => {
+    // Claudex: on no storefront at all — every lookup comes back empty.
+    lookupMock.mockResolvedValue(null);
+    isAscConfiguredMock.mockReturnValue(false);
+
+    const change = await syncApp(appId);
+
+    const [row] = await db.select().from(apps).where(eq(apps.id, appId));
+    expect(row.name).toBe('Test App');
+    expect(row.appStoreUrl).toBeNull();
+    expect(change.fields).not.toContain('name');
+    expect(change.fields).not.toContain('appStoreUrl');
+  });
+
+  it('does not report name as changed when the store name already matches', async () => {
+    lookupMock.mockResolvedValue({
+      name: 'Test App',
+      appStoreUrl: null,
+      rating: null, ratingCount: null, category: null, version: null,
+      releaseDate: null, currentVersionReleaseDate: null, minimumOsVersion: null,
+      price: null, icon: null, screenshots: [], description: null, platform: 'iOS',
+    });
+    isAscConfiguredMock.mockReturnValue(false);
+
+    const change = await syncApp(appId);
+
+    expect(change.fields).not.toContain('name');
+  });
+
+  it('reports which storefront answered, and null when none did', async () => {
+    lookupAnyMock.mockResolvedValueOnce({
+      meta: {
+        name: null, appStoreUrl: null, rating: null, ratingCount: null,
+        category: null, version: null, releaseDate: null,
+        currentVersionReleaseDate: null, minimumOsVersion: null,
+        price: null, icon: null, screenshots: [], description: null, platform: 'iOS',
+      },
+      storefront: 'us',
+    });
+    isAscConfiguredMock.mockReturnValue(false);
+    expect((await syncApp(appId)).storefront).toBe('us');
+
+    lookupAnyMock.mockResolvedValueOnce(null);
+    expect((await syncApp(appId)).storefront).toBeNull();
   });
 });
