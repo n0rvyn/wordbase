@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.6.0 (2026-09-06)
+## v1.6.1 (2026-09-06)
+
+### Bug Fixes
+
+- fix(web): link the storefront-neutral App Store URL, not the country-locked one (f72e13a)
 
 ### Features
 
