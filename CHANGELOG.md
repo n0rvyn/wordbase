@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.5.0 (2026-09-06)
+## v1.6.0 (2026-09-06)
+
+### Features
+
+- feat(apps): surface "on no storefront" from both sync adapters (1e59a0f)
 
 ### Features
 
