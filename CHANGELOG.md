@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.4.1 (2026-09-05)
+## v1.5.0 (2026-09-06)
+
+### Features
+
+- feat(apps): gallery redesign — uncropped screenshots, and stop dropping synced fields (365e5fb)
 
 ### Bug Fixes
 
