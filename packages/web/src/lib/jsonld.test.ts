@@ -185,6 +185,30 @@ describe('buildSoftwareApplicationLd', () => {
     expect(ld.applicationCategory).toBe('Productivity');
   });
 
+  // downloadUrl goes through storeHref, so it inherits both of its rules:
+  // the neutral URL, and the "is it actually listed" gate.
+  it('emits a storefront-neutral downloadUrl, not the country-locked one', () => {
+    const ld = buildSoftwareApplicationLd(
+      makeApp({
+        appStoreUrl: 'https://apps.apple.com/cn/app/super-note/id6757636100?uo=4',
+        appStoreId: '6757636100',
+        icon: 'https://is1-ssl.mzstatic.com/icon.jpg',
+      }),
+      SITE,
+    );
+    expect(ld.downloadUrl).toBe('https://apps.apple.com/app/id6757636100');
+  });
+
+  it('omits downloadUrl for an app with an id but no successful lookup', () => {
+    // Claudex's shape: an ASC id exists, but nothing is on any storefront and
+    // the constructed page 404s. A downloadUrl to a 404 is worse than none.
+    const ld = buildSoftwareApplicationLd(
+      makeApp({ appStoreUrl: null, appStoreId: '6763678207', icon: null }),
+      SITE,
+    );
+    expect(ld.downloadUrl).toBeUndefined();
+  });
+
   it('includes aggregateRating when rating present', () => {
     const ld = buildSoftwareApplicationLd(
       makeApp({ rating: 4.6, ratingCount: 250 }),

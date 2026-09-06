@@ -242,21 +242,30 @@ export function heroShot(urls: string[], platform: string | null): ShotMeta | nu
  * The App Store link for an app, or null when there is no evidence the app is
  * actually on a storefront.
  *
- * `appStoreUrl` is iTunes' own `trackViewUrl`, so its presence proves the
- * listing exists. The `appStoreId`-derived fallback does NOT: an ID is minted
- * in App Store Connect long before (or without) release, so constructing
- * `apps.apple.com/app/id<id>` for an unreleased app ships a 404 link.
- * Verified 2026-09-06 — Claudex (id 6763678207) returns no iTunes result on
- * cn/us/jp/gb and its store page 404s, while the site linked to it anyway.
+ * Two separate questions, deliberately kept apart:
  *
- * `icon` is only ever written from an iTunes lookup, so a non-null icon is
- * proof that a lookup succeeded and the fallback URL will resolve. That keeps
- * the link working for rows synced before `appStoreUrl` began being stored.
+ * 1. IS IT LISTED? `appStoreUrl` is iTunes' own `trackViewUrl`, so its presence
+ *    proves the listing exists. An `appStoreId` alone does NOT: an ID is minted
+ *    in App Store Connect long before (or without) release. Verified 2026-09-06
+ *    — Claudex (id 6763678207) returns no iTunes result on cn/us/jp/gb and its
+ *    store page 404s, while the site linked to it anyway. `icon` is only ever
+ *    written from a successful lookup, so it stands in as that proof for rows
+ *    synced before `appStoreUrl` began being stored.
+ *
+ * 2. WHICH URL? Not `trackViewUrl` — that is country-locked
+ *    (`…/cn/app/cashie-记账…/id6757636100`) because it is whatever storefront
+ *    the lookup happened to use. An app is ONE App Store record with per-locale
+ *    localizations, reached through ONE storefront-neutral URL that Apple
+ *    resolves for each visitor: `https://apps.apple.com/app/id<id>` (verified
+ *    200, 2026-09-06). Emitting the CN URL sent every English reader to the
+ *    Chinese listing.
  */
 export function storeHref(app: Pick<App, 'appStoreUrl' | 'appStoreId' | 'icon'>): string | null {
-  if (app.appStoreUrl) return app.appStoreUrl;
-  if (app.appStoreId && app.icon) return `https://apps.apple.com/app/id${app.appStoreId}`;
-  return null;
+  const listed = Boolean(app.appStoreUrl) || Boolean(app.appStoreId && app.icon);
+  if (!listed) return null;
+  if (app.appStoreId) return `https://apps.apple.com/app/id${app.appStoreId}`;
+  // No id to build a neutral URL from — the stored one is all there is.
+  return app.appStoreUrl;
 }
 
 /** The English App Store copy an app carries for /en, stored by app_sync. */
@@ -270,11 +279,11 @@ export interface EnStoreCopy {
 /**
  * Read the English storefront's copy out of an app's `meta` JSON.
  *
- * `app_sync` writes it to `meta.i18n.en` from the US listing, because the App
- * Store serves per-territory metadata and the US listing is the author's own
- * English submission — for id 6760798981 a different product name entirely
- * (`Glink: Workout & Activity Sync` against `佳同步 - 国区国际版活动记录互传`),
- * which no translation of the Chinese string could produce.
+ * `app_sync` writes it to `meta.i18n.en` from the app's English localization.
+ * One App Store record carries several independently authored localizations —
+ * for id 6760798981 the English one is named `Glink: Workout & Activity Sync`
+ * against the Chinese `佳同步 - 国区国际版活动记录互传` — so this is quoting
+ * the app project's own English copy, not translating the Chinese.
  *
  * Returns null for absent/unparseable meta or a missing key, so /en falls back
  * to the row's own copy rather than the build breaking on a hand-edited row.

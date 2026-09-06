@@ -23,7 +23,7 @@ import {
   selectFeaturedEpisode,
   formatDuration,
 } from '../../lib/home';
-import { displayName, heroShot, parseJsonArray } from '../../lib/app';
+import { displayName, heroShot, parseJsonArray, storeHref } from '../../lib/app';
 import { enHref, type Locale } from '../../lib/locale';
 import '../../styles/plate.css';
 
@@ -134,7 +134,7 @@ const podcastCtaHref = showPodcast ? '#podcast' : '/podcast';
                     <span class="v">{new Date(featuredApp.publishedAt * 1000).getUTCFullYear()}</span>
                   </div>
                 )}
-                {featuredApp.appStoreUrl && (
+                {storeHref(featuredApp) && (
                   <div>
                     <span class="k"><T k="home.meta.store" /></span>
                     <span class="v"><T k="home.meta.appStore" /> ↗</span>
@@ -163,7 +163,7 @@ const podcastCtaHref = showPodcast ? '#podcast' : '/podcast';
                     {[a.category, a.publishedAt ? String(new Date(a.publishedAt * 1000).getUTCFullYear()) : null].filter(Boolean).join(' · ')}
                   </span>
                 )}
-                {a.appStoreUrl && (
+                {storeHref(a) && (
                   <span class="store"><T k="home.meta.appStore" /> <svg class="arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg></span>
                 )}
               </div>

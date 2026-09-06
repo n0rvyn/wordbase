@@ -115,15 +115,19 @@ export async function lookupApp(
 }
 
 /**
- * The storefront whose listing is written in English.
+ * The storefront that returns an app's English localization.
  *
- * The App Store serves per-territory metadata, and for these apps the US
- * listing is not a translation of the CN one — it is the author's own English
- * submission, sometimes under a different product name entirely (measured
- * 2026-09-06: id 6760798981 is `佳同步 - 国区国际版活动记录互传` on cn and
- * `Glink: Workout & Activity Sync` on us). No translation of the CN string can
- * produce that, which is why the English site reads this storefront rather than
- * running the CN copy through the translation cache.
+ * An app is ONE App Store Connect record carrying several LOCALIZATIONS, all
+ * reachable through one storefront-neutral URL; querying a storefront just
+ * picks which localization comes back. The English one is written by the app's
+ * own project — the site quotes it, it does not translate or edit it (and
+ * never writes back: every App Store call here is a read).
+ *
+ * Quoting matters because the localizations are independently authored, not
+ * translations of each other: measured 2026-09-06, id 6760798981 answers
+ * `佳同步 - 国区国际版活动记录互传` on cn and `Glink: Workout & Activity Sync`
+ * on us. No translation of the Chinese string produces the English name, which
+ * is why /en reads this storefront instead of the translation cache.
  */
 export const EN_STOREFRONT = 'us';
 

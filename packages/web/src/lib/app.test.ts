@@ -463,11 +463,22 @@ describe('parseReleaseNotes', () => {
 // ─── storeHref ────────────────────────────────────────────────────────────────
 
 describe('storeHref', () => {
-  it('uses the stored trackViewUrl when present', () => {
+  // trackViewUrl is country-locked to whichever storefront answered the lookup.
+  // One App Store record serves every territory through one neutral URL, so
+  // linking the CN one put English readers in the Chinese listing.
+  it('emits the storefront-neutral URL, not the country-locked trackViewUrl', () => {
     expect(storeHref({
-      appStoreUrl: 'https://apps.apple.com/cn/app/id6757636100',
+      appStoreUrl: 'https://apps.apple.com/cn/app/cashie-%E8%AE%B0%E8%B4%A6/id6757636100?uo=4',
       appStoreId: '6757636100',
       icon: 'https://is1-ssl.mzstatic.com/icon.jpg',
+    })).toBe('https://apps.apple.com/app/id6757636100');
+  });
+
+  it('keeps the stored URL when there is no id to build a neutral one from', () => {
+    expect(storeHref({
+      appStoreUrl: 'https://apps.apple.com/cn/app/id6757636100',
+      appStoreId: null,
+      icon: null,
     })).toBe('https://apps.apple.com/cn/app/id6757636100');
   });
 

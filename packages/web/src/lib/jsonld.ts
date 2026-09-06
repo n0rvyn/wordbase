@@ -1,4 +1,5 @@
 import type { Post, App, Podcast, Episode, SiteIdentity } from './api.js';
+import { storeHref } from './app.js';
 
 const iso = (ts: number | null | undefined): string | undefined =>
   ts ? new Date(ts * 1000).toISOString() : undefined;
@@ -39,6 +40,11 @@ export function buildBlogPostingLd(
 
 export function buildSoftwareApplicationLd(app: App, origin: string) {
   const url = `${origin}/apps/${app.slug}`;
+  // Same neutral store URL the page links to, and the same "is it actually
+  // listed" gate — a downloadUrl pointing at an unreleased app's 404 page is
+  // worse than no downloadUrl, and a country-locked one misdescribes a record
+  // that serves every territory.
+  const download = storeHref(app);
   const base = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
@@ -48,7 +54,7 @@ export function buildSoftwareApplicationLd(app: App, origin: string) {
     ...(app.icon ? { image: app.icon } : {}),
     ...(app.category ? { applicationCategory: app.category } : {}),
     ...(app.platform ? { operatingSystem: app.platform } : {}),
-    ...(app.appStoreUrl ? { downloadUrl: app.appStoreUrl } : {}),
+    ...(download ? { downloadUrl: download } : {}),
   };
   // Only emit aggregateRating when there is a real rating: a ratingValue of 0
   // with ratingCount 0 is invalid structured data and trips Google's validator.
