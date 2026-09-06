@@ -131,13 +131,15 @@ appsRouter.post('/sync', authMiddleware, requireScope('apps:write'), async (c) =
 appsRouter.post('/:id/sync', authMiddleware, requireScope('apps:write'), async (c) => {
   const id = c.req.param('id');
   try {
-    await appSyncService.syncApp(id);
+    const change = await appSyncService.syncApp(id);
     // Fire-and-forget build trigger if app is published
     const app = await appService.getApp(id);
     if (app?.status === 'published') {
       void triggerBuild();
     }
-    return c.json({ ok: true });
+    // `{ ok: true }` alone could not tell "refreshed" from "no storefront lists
+    // this app", which is the one outcome a caller needs to act on.
+    return c.json({ ok: true, ...change });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     if (message.includes('not found')) {

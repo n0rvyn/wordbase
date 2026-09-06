@@ -1892,6 +1892,13 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
                 failed,
                 changed: changes.filter((c) => c.fields.length > 0),
                 unchanged: changes.filter((c) => c.fields.length === 0).map((c) => c.slug),
+                // An app on no storefront cannot be installed, so a PUBLISHED
+                // one is a page for something nobody can get. These always land
+                // in `unchanged` (no storefront answered, so nothing to write),
+                // where the slug-only shape would hide them.
+                notOnAnyStorefront: changes
+                  .filter((c) => c.storefront === null)
+                  .map((c) => ({ slug: c.slug, status: c.status })),
                 rebuildTriggered: rebuilt,
               }),
             },
