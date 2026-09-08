@@ -43,6 +43,8 @@ Tag and category tools return usage counts; rename/delete trigger a site rebuild
 ## Pages (6) — scopes: `pages:read` / `pages:write`
 `page_list` · `page_get` · `page_create` · `page_update` · `page_delete` · `page_publish`
 
+A companion page has ONE authored source (Chinese) served at `https://norvyn.com/<slug>`. The `/en/<slug>` twin is the site's translation-memory rendition of that same source — where no rendition exists it renders the Chinese body under an English shell, and only blocks a human reviewed via `i18n_put_cache` are real English. It is not an English localization the calling project authored. (`/en/apps/*` is the opposite case, and the reason this gets confused: that English comes from the App Store listing itself.) **Submit the bare `/<slug>` URL to App Store Connect — never an `/en/` URL, in any locale.**
+
 ## Settings (2) — scopes: `settings:read` / `settings:write`
 `settings_get_site` · `settings_update_site` (writes only the site-identity keys: title/description/author/email/github; triggers a rebuild since site identity feeds every page's meta)
 

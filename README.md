@@ -286,6 +286,8 @@ Mint a key with `pnpm --filter api cli key:create <name>` (printed once). The se
 | `page_delete` | Delete a page |
 | `page_publish` | Publish a page (run a build afterward to render it at its public URL) |
 
+A companion page has one authored source (Chinese) at `/{slug}`. The `/en/{slug}` twin is this site's translation-memory rendition of that same source — it falls back to the Chinese body where no rendition exists, and only human-reviewed blocks (`i18n_put_cache`) are real English. It is **not** an App Store Connect English localization. (`/en/apps/*` is the opposite case: that English comes from the store listing via `meta.i18n.en`.) **The URL submitted to App Store Connect is always the bare `/{slug}` — never an `/en/` URL, in any locale.**
+
 **Taxonomy (10)** — tags & categories, scoped per-term. `tag_create` is create-or-attach (idempotent); `category_create` is not — repeating a slug returns an error result.
 
 | Tool | Description |

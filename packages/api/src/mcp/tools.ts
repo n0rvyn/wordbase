@@ -1957,11 +1957,11 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
 
   server.tool(
     'page_create',
-    "Create a companion page for an app (privacy / terms / support). CONVENTION — you are expected to be calling this from inside the app's own project, so name the page after THAT project, not after the App Store listing: slug = `<project-slug>-<type>`, where <project-slug> is the project/repo name lowercased (e.g. project CleanLabel → `cleanlabel-privacy`, `cleanlabel-terms`, `cleanlabel-support`) and <type> is one of privacy | terms | support. Do NOT derive the slug from the App Store display name — that name changes for ASO reasons and the page URL must stay stable (it is submitted to App Store Connect as the app's Support/Privacy URL). App Store Connect requires a Support URL and a Privacy Policy URL for every app, so privacy + support are the minimum pair. Recommended: also pass `app` so meta.appId records which app this page belongs to — WordBase does not enforce or infer the association, the calling project owns it.",
+    "Create a companion page for an app (privacy / terms / support). CONVENTION — you are expected to be calling this from inside the app's own project, so name the page after THAT project, not after the App Store listing: slug = `<project-slug>-<type>`, where <project-slug> is the project/repo name lowercased (e.g. project CleanLabel → `cleanlabel-privacy`, `cleanlabel-terms`, `cleanlabel-support`) and <type> is one of privacy | terms | support. Do NOT derive the slug from the App Store display name — that name changes for ASO reasons and the page URL must stay stable (it is submitted to App Store Connect as the app's Support/Privacy URL). App Store Connect requires a Support URL and a Privacy Policy URL for every app, so privacy + support are the minimum pair. Recommended: also pass `app` so meta.appId records which app this page belongs to — WordBase does not enforce or infer the association, the calling project owns it. BILINGUAL — `/en/<slug>` is NOT an English edition you author. It is this site's own translation-memory rendition of the same Chinese source, and where no rendition exists the English shell renders the Chinese body verbatim; only blocks a human reviewed via `i18n_put_cache` are real English. (`/en/apps/*` is the opposite case and the reason this gets confused: there the English comes from the App Store listing itself, via meta.i18n.en.) HARD RULE — submit the bare `https://norvyn.com/<slug>` to App Store Connect, never an `/en/` URL, in any locale.",
     {
       title: { type: 'string', required: true, description: "Page title. Example: title: 'Privacy Policy'." },
       content: { type: 'string', required: true, description: "Page content in Markdown. Example: content: '# Privacy Policy\\n\\n...'." },
-      slug: { type: 'string', description: "URL slug. Convention: `<project-slug>-<type>` from the CALLING PROJECT's name (lowercased), type ∈ privacy|terms|support. Example: slug: 'cleanlabel-support'. Keep it stable once submitted to App Store Connect." },
+      slug: { type: 'string', description: "URL slug. Convention: `<project-slug>-<type>` from the CALLING PROJECT's name (lowercased), type ∈ privacy|terms|support. Example: slug: 'cleanlabel-support'. Keep it stable once submitted to App Store Connect. The URL you submit there is `https://norvyn.com/<slug>` — never the `/en/<slug>` twin, which is a machine rendition of the same source." },
       sortOrder: { type: 'number', description: 'Sort order (default: 0).' },
       status: {
         type: 'string',
@@ -2024,7 +2024,7 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
     {
       id: { type: 'string', required: true, description: 'Page ID.' },
       title: { type: 'string', description: 'Page title.' },
-      slug: { type: 'string', description: 'URL slug.' },
+      slug: { type: 'string', description: "URL slug. Changing it changes the public URL — if this page's URL was submitted to App Store Connect, keep it stable. The URL submitted there is always the bare `https://norvyn.com/<slug>`, never the `/en/<slug>` twin (that one is this site's translation-memory rendition of the same source, not an English localization)." },
       content: { type: 'string', description: 'Page content in Markdown.' },
       sortOrder: { type: 'number', description: 'Sort order.' },
       status: {
@@ -2094,7 +2094,7 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
 
   server.tool(
     'page_publish',
-    'Publish a companion page (sets status=published) and rebuilds the static site so it renders at its public URL.',
+    "Publish a companion page (sets status=published) and rebuilds the static site so it renders at its public URL. That URL is `https://norvyn.com/<slug>`, and it is the one to submit to App Store Connect — never the `/en/<slug>` twin, which is this site's translation-memory rendition of the same Chinese source (it falls back to the Chinese body when no rendition exists) and not an English localization you authored.",
     {
       id: { type: 'string', required: true, description: 'Page ID.' },
     },
