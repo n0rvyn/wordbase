@@ -1,17 +1,20 @@
 ---
 name: wb-apps-sync
 model: haiku
-description: Sync WordBase app entries from App Store Connect and show the result. Use when the user wants to refresh app metadata, pull the latest App Store data, or says "sync my apps".
+description: Sync WordBase app entries from App Store Connect — pick up apps newly released on the App Store and refresh the ones already tracked — and show the result. Use when the user wants to refresh app metadata, pull the latest App Store data, add new apps to the site, or says "sync my apps".
 ---
 
 # WordBase apps sync
 
-Refresh the App Store data backing the WordBase apps section via the `wordbase` MCP server.
+Bring the WordBase apps section in line with App Store Connect via the `wordbase` MCP server. "Sync" means BOTH halves: apps that exist in ASC but not on the site yet, and fresh data for the ones already there. `app_sync` alone only does the second half — it never creates a row, so a newly released app stays invisible no matter how often you sync (2026-09-19: two live App Store apps were missing from /apps for exactly this reason).
 
-1. Call `app_sync` with **no `id`** to pull the latest App Store Connect data for every tracked app. (Pass `id` to sync a single app.)
-2. **Check `rebuildTriggered` in the result.** `app_sync` now rebuilds the site itself whenever a **published** app actually changed — the `/apps/*` pages are static Astro output, so this is what makes a sync visible. If `rebuildTriggered` is `true`, poll `build_status` until `status` is `success` (or `failed`). If it is `false`, confirm why from the same result: either `changed` is empty (nothing differed — a normal outcome) or the changed apps are all `draft` (they render no public page). Only call `build_trigger` yourself if you changed something else in the same session.
-3. Call `app_list` to show the resulting app entries.
-4. Summarize what changed: which apps synced, any that errored, and that the rebuild completed. For every app the user is asking about, report its **screenshot count, `icon` URL, and `lastSyncedAt`** — so a "nothing changed" outcome is visible rather than silent.
+1. **Discover new apps first.** Call `app_discover`. It creates a **draft** row for every ASC app the site does not track yet (matched by App Store ID) and leaves existing rows untouched. `created` = the new rows; an empty `created` is normal.
+2. **Sync everything.** Call `app_sync` with **no `id`**. This covers every app with an App Store ID, drafts included, so the rows `app_discover` just created get their icon / description / screenshots / version here. (Pass `id` to sync a single app.)
+3. **Check `rebuildTriggered` in the result.** `app_sync` rebuilds the site itself whenever a **published** app actually changed — the `/apps/*` pages are static Astro output, so this is what makes a sync visible. If `rebuildTriggered` is `true`, poll `build_status` until `status` is `success` (or `failed`). If it is `false`, confirm why from the same result: either `changed` is empty (nothing differed — a normal outcome) or the changed apps are all `draft` (they render no public page).
+4. **New apps are drafts — the user decides which go public.** For each row from step 1, check the sync result: if its slug is in `notOnAnyStorefront`, the app is not on sale anywhere yet — recommend keeping it a draft. Otherwise it is live on the App Store. Name these apps and ask which to publish; do NOT publish on your own (it puts a page on the public site). Also call out an app found only on a non-CN storefront (`storefront` ≠ `cn` in its `changed` entry) — its price and store copy come from that storefront.
+5. **Publish what the user approved** with `app_publish` per app. `app_publish` triggers a site rebuild itself; poll `build_status` until `success`, then confirm each new slug appears on the live `https://norvyn.com/apps`.
+6. Call `app_list` to show the resulting app entries.
+7. Summarize: new apps discovered (and which were published / left as drafts), which apps synced, any that errored, and that the rebuild completed. For every app the user is asking about, report its **screenshot count, `icon` URL, and `lastSyncedAt`** — so a "nothing changed" outcome is visible rather than silent.
 
 ## What sync can and cannot pull
 
@@ -28,7 +31,7 @@ Diagnose in this order — the first cause is the common one, and it is on the W
 1. **Did the site get rebuilt?** Compare the dynamic API against the static page:
    - API (DB): `curl -s 'https://norvyn.com/api/apps?limit=20'` → the app's `version` / `screenshots`.
    - Static page: open `/apps/<slug>` and read the rendered version/images.
-   - If the **API already shows the new data but the page shows old** → the static build is stale. This is the #1 cause. Run `build_trigger` and poll `build_status` until `success`; the page updates within ~30s. (Step 2 above prevents this — never report a sync as done without rebuilding.)
+   - If the **API already shows the new data but the page shows old** → the static build is stale. This is the #1 cause. Run `build_trigger` and poll `build_status` until `success`; the page updates within ~30s. (Step 3 above prevents this — never report a sync as done without rebuilding.)
 2. **If the API itself still shows old data**, the sync didn't get new data from Apple. Check what Apple actually serves:
    - **ASC**: `GET /v1/apps/<appStoreId>/appStoreVersions?include=appStoreVersionLocalizations` → find the `READY_FOR_SALE` version → its `appScreenshotSets`. If it still lists the old files, ASC itself has not taken the change.
    - **Storefront**: `curl 'https://itunes.apple.com/lookup?id=<appStoreId>&country=cn'` → inspect `screenshotUrls` / `ipadScreenshotUrls` / `artworkUrl512`.
