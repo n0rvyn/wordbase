@@ -364,16 +364,27 @@ describe('heroShot', () => {
 
 describe('pickShowcase', () => {
   const withArt = (id: string, updated: number, featured = 0) => ({
-    id, featured, currentVersionReleaseDate: updated,
+    id, featured, currentVersionReleaseDate: updated, platform: 'iOS' as string | null,
     screenshots: JSON.stringify([IPHONE_SHOT]),
   });
 
   it('drops apps that have no screenshots', () => {
     const apps = [
-      { id: 'bare', featured: 0, currentVersionReleaseDate: 999, screenshots: null },
+      { id: 'bare', featured: 0, currentVersionReleaseDate: 999, platform: 'iOS', screenshots: null },
       withArt('has-art', 1),
     ];
     expect(pickShowcase(apps).map(a => a.id)).toEqual(['has-art']);
+  });
+
+  it('keeps macOS apps out, even when they are the newest or featured', () => {
+    // Real shape: Model Proxy (macOS, 2880×1800 art) was the second-newest app
+    // and landed in the band beside phone shots, misaligning the row.
+    const apps = [
+      { ...withArt('mac-new', 999), platform: 'macOS' },
+      { ...withArt('mac-starred', 1, 1), platform: 'macOS' },
+      withArt('ios', 100),
+    ];
+    expect(pickShowcase(apps).map(a => a.id)).toEqual(['ios']);
   });
 
   it('orders by most recently updated', () => {
@@ -399,7 +410,7 @@ describe('pickShowcase', () => {
   });
 
   it('returns an empty list when nothing has art', () => {
-    expect(pickShowcase([{ id: 'x', featured: 0, currentVersionReleaseDate: 1, screenshots: '[]' }]))
+    expect(pickShowcase([{ id: 'x', featured: 0, currentVersionReleaseDate: 1, platform: 'iOS', screenshots: '[]' }]))
       .toEqual([]);
   });
 });

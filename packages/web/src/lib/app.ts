@@ -347,15 +347,22 @@ export function parseReleaseNotes(text: string | null): ReleaseLine[] {
 }
 
 /**
- * The apps to show in the index's showcase band: only apps that actually have
- * art to show, most recently updated first, `featured` rows ahead of the rest.
+ * The apps to show in the index's showcase band: only iOS apps that actually
+ * have art to show, most recently updated first, `featured` rows ahead of the
+ * rest.
+ *
+ * iOS only because the band sets its cards side by side at one height: a macOS
+ * app's hero is 2880×1800 landscape art, which sits short and misaligned next
+ * to 1284×2778 phone shots. macOS apps still appear in the full list below.
  */
 export function pickShowcase<T extends {
+  platform: string | null;
   screenshots: string | null;
   featured?: number | null;
   currentVersionReleaseDate?: number | null;
 }>(apps: T[], limit = 3): T[] {
   return apps
+    .filter((a) => a.platform === 'iOS')
     .filter((a) => parseJsonArray<string>(a.screenshots).length > 0)
     .sort((a, b) =>
       (b.featured ?? 0) - (a.featured ?? 0) ||
