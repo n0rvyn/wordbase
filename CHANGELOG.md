@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.6.1 (2026-09-06)
+## v1.6.2 (2026-09-19)
+
+### Bug Fixes
+
+- fix(web): keep macOS apps out of the /apps showcase band (afc1117)
 
 ### Bug Fixes
 
