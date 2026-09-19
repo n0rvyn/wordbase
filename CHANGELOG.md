@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.6.2 (2026-09-19)
+## v1.6.3 (2026-09-19)
+
+### Bug Fixes
+
+- fix(wb-apps-sync): discover new App Store apps before syncing; release plugin 1.3.0 (a6044e8)
 
 ### Bug Fixes
 
