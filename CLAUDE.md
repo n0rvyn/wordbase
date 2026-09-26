@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **新会话第一件事：读 `docs/06-plans/HANDOFF-2026-09-05-2243.md`** — MCP 标准化升级 14/14 完成但**全部未提交**（25 个 dirty 文件），审查留下 2 条必修未修，且有 4 项只能由用户裁决（含 commit 切分与插件发版）。历史交接见 `docs/06-plans/HANDOFF-*.md`。
+> 历史交接见 `docs/06-plans/HANDOFF-*.md`（历史记录，不是待办）。
 
 WordBase is an AI-native CMS (blog · podcast · app landing pages · companion pages) that replaces WordPress: a Hono/TypeScript API + MCP server backed by SQLite, and an Astro SSG frontend served by Caddy. `README.md` is the authoritative reference for the REST API table, full MCP tool list, data model, and deploy details — read it before asking. This file covers what isn't obvious from a single file.
 
