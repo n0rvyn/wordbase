@@ -6,7 +6,7 @@ import { buildWebSiteLd, buildOrganizationLd } from '../lib/jsonld.js';
 import { getSiteIdentity } from '../lib/api';
 import { hreflangAlternates, stripEn, publicPathname } from '../lib/locale';
 import T from '../components/T.astro';
-import { socialImage, socialDescription, SITE_SOCIAL_ALT, SOCIAL_SITE_NAME } from '../lib/social-preview';
+import { socialImage, socialDescription, SITE_SOCIAL_ALT, SOCIAL_SITE_NAME, pageTitle } from '../lib/social-preview';
 import PublicSearch from '../components/PublicSearch.astro';
 
 interface Props {
@@ -18,6 +18,8 @@ interface Props {
    *  detail pages) where the title IS the content and stays Chinese. */
   titleEn?: string;
   description?: string;
+  /** Explicit empty social copy is allowed without clearing the SEO description. */
+  shareDescription?: string;
   ogImage?: string;
   ogImageAlt?: string;
   ogType?: 'website' | 'article';
@@ -40,20 +42,17 @@ interface Props {
   noindex?: boolean;
 }
 
-const { title, titleEn, description: descriptionProp, ogImage, ogImageAlt, ogType = 'website', article, jsonLd = [], feeds = [], locale = 'zh', hasEnTwin = false, noindex = false } = Astro.props;
+const { title, titleEn, description: descriptionProp, shareDescription: shareDescriptionProp, ogImage, ogImageAlt, ogType = 'website', article, jsonLd = [], feeds = [], locale = 'zh', hasEnTwin = false, noindex = false } = Astro.props;
 const id = await getSiteIdentity();
 // X/Twitter handle for card attribution.
 const TWITTER_HANDLE = '@NorvynZhang';
 // Fallback to the site's real description (settings-driven) when a page passes
 // none — never a generic placeholder. Page-specific descriptions still win.
 const description = socialDescription(descriptionProp, title, id.name, id.description);
+const previewDescription = shareDescriptionProp ?? description;
 const siteTitle = id.name;
-const fullTitle = title === siteTitle || title === SOCIAL_SITE_NAME ? SOCIAL_SITE_NAME : `${title} — ${SOCIAL_SITE_NAME}`;
-// Mirror the same join rule for the English title so 'Apps — norvyn' style
-// canonical titles are preserved on the EN tab label. If the caller didn't
-// pass a titleEn, fullTitleEn stays empty and the bundled script leaves
-// the (Chinese) document.title untouched.
-const fullTitleEn = titleEn ? (titleEn === siteTitle || titleEn === SOCIAL_SITE_NAME ? SOCIAL_SITE_NAME : `${titleEn} — ${SOCIAL_SITE_NAME}`) : '';
+const fullTitle = pageTitle(title, siteTitle);
+const fullTitleEn = titleEn ? pageTitle(titleEn, siteTitle) : '';
 const apiUrl = (import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4100').replace(/\/$/, '');
 const currentPath = publicPathname(Astro.url.pathname);
 const social = socialImage(ogImage, Astro.site!);
@@ -114,7 +113,7 @@ const ogLocaleAlt = en ? 'zh_CN' : 'en_US';
     <meta property="og:site_name" content={SOCIAL_SITE_NAME} />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:title" content={fullTitle} />
-    <meta property="og:description" content={description} />
+    <meta property="og:description" content={previewDescription} />
     <meta property="og:image" content={ogImageUrl} />
     {ogImageUrl.startsWith('https:') && <meta property="og:image:secure_url" content={ogImageUrl} />}
     {social.type && <meta property="og:image:type" content={social.type} />}
@@ -146,7 +145,7 @@ const ogLocaleAlt = en ? 'zh_CN' : 'en_US';
     <meta name="twitter:site" content={TWITTER_HANDLE} />
     <meta name="twitter:creator" content={TWITTER_HANDLE} />
     <meta name="twitter:title" content={fullTitle} />
-    <meta name="twitter:description" content={description} />
+    <meta name="twitter:description" content={previewDescription} />
     <meta name="twitter:image" content={ogImageUrl} />
     <meta name="twitter:image:alt" content={imageAlt} />
     {[buildWebSiteLd(ldOrigin, { ...id, name: SOCIAL_SITE_NAME }), buildOrganizationLd(ldOrigin, id), ...jsonLd].map((obj) => (

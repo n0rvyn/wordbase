@@ -8,6 +8,6 @@ import { HOME_SOCIAL } from '../../lib/social-preview';
 const data = await loadHomeData('en');
 ---
 
-<BaseLayout title={HOME_SOCIAL.en.title} locale="en" description={HOME_SOCIAL.en.description}>
+<BaseLayout title={HOME_SOCIAL.en.title} locale="en" description={HOME_SOCIAL.en.description} shareDescription="">
   <HomeBody locale="en" {...data} />
 </BaseLayout>
