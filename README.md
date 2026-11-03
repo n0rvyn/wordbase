@@ -469,7 +469,7 @@ Web-based admin at `/admin`. Login with API key.
 ssh your-server 'bash -s' < deploy/setup.sh
 ```
 
-The setup script handles: git clone, pnpm install, TypeScript build, database init, API key creation, Astro build, systemd service, Caddy config, SELinux contexts.
+The setup script handles Wordbase source, dependencies, builds, database initialization and Wordbase systemd services. Caddy/web-server configuration is owner-managed: a config difference stops with manual instructions, without applying the change or restarting shared Caddy.
 
 ### Upload Migrated Data
 
@@ -573,3 +573,8 @@ The frontend uses an "Ink & Paper" editorial aesthetic:
 ## License
 
 Private.
+
+
+### App promo intake and inventory
+
+Put owner-supplied promo originals in `app_promos/` (on this Mac: `/Users/norvyn/Code/Projects/wordbase/app_promos`). They stay unchanged and out of Git. See the [used/unused inventory](docs/design/app-promos-inventory.md) and [preparation/publication workflow](docs/design/app-promos.md). Ordered multi-promo galleries are edited through the existing app API/MCP; adding an asset never publishes a draft app automatically.

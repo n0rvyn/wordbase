@@ -1,6 +1,6 @@
 # Maintaining app media and reviewing Apple imports
 
-The admin console is unchanged. The existing Wordbase MCP connection and REST API provide the complete editorial workflow after this source release is authorized and deployed. Private preview servers reject writes deliberately.
+The editorial workflow is live; the admin console is unchanged. The owner’s ongoing intake directory is `app_promos/`. See the current [used/unused inventory](app-promos-inventory.md) and [multi-promo workflow](app-promos.md). The single-object examples below remain supported for compatibility. Private preview servers reject writes deliberately.
 
 ## Add an app's promotional media
 

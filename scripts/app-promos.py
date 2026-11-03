@@ -6,6 +6,7 @@ content/app-promo-associations.json. No network, uploads or production writes.
 """
 import argparse,hashlib,json,subprocess
 from pathlib import Path
+from datetime import datetime, timezone
 ROOT=Path(__file__).resolve().parents[1]
 SOURCE=ROOT/'app_promos'
 INVENTORY=ROOT/'content/app-promos-inventory.json'
@@ -21,7 +22,25 @@ def probe(path):
  d=json.loads(subprocess.check_output(['ffprobe','-v','error','-show_streams','-show_format','-of','json',str(path)]))
  v=next(s for s in d['streams'] if s['codec_type']=='video')
  return {'width':v['width'],'height':v['height'],'duration':float(d['format'].get('duration',v.get('duration',0))),'codec':v['codec_name'],'hasAudio':any(s['codec_type']=='audio' for s in d['streams'])}
-def write(data):INVENTORY.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+def write(data):
+ INVENTORY.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+ published=data.get('lastPublication',{})
+ when=datetime.fromtimestamp(published['verifiedAt']/1000,timezone.utc).isoformat() if published.get('verifiedAt') else 'Not yet verified'
+ rows=['# App promo inventory','',f'Last publication verification (UTC): {when}.','',
+       'Incoming originals: `app_promos/`. Originals are preserved. Full source/delivery hashes and media IDs are in [the machine-readable inventory](../../content/app-promos-inventory.json). Scanning files does not change the live site.','',
+       '| Original file | App | Used / unused | Prepared copy | Source SHA-256 |','|---|---|---|---|---|']
+ for asset in data['assets']:
+  a=asset['association'];d=asset['deployment'];name=Path(asset['source']['path']).name.replace('|','\\|')
+  app=a.get('appName') or a.get('appSlug') or 'Unassigned'
+  if d['status']=='deployed':status='[Used / live](https://norvyn.com'+d['url']+')'
+  elif a.get('catalogStatus')=='draft':status='Unused — draft app'
+  elif a['status']=='needs-confirmation':status='Unused — awaiting app confirmation'
+  else:status=d['status']
+  prepared='MP4 + poster' if asset.get('delivery') else '—'
+  rows.append(f"| {name} | {app} | {status} | {prepared} | `{asset['source']['sha256'][:12]}` |")
+ rows+=['','See [the intake, preparation and publishing workflow](app-promos.md).','']
+ (ROOT/'docs/design/app-promos-inventory.md').write_text('\n'.join(rows))
+
 def scan():
  prior=json.loads(INVENTORY.read_text()) if INVENTORY.exists() else {'assets':[]}
  by_hash={a['source']['sha256']:a for a in prior['assets']}

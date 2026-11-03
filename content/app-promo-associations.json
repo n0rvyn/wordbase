@@ -13,7 +13,8 @@
     "order": 0,
     "posterFraction": 0.5,
     "alt": "Cashie voice and receipt expense-entry demonstration.",
-    "reason": "The clip shows Cashie accounting screens, voice expense entry and receipt capture; filename spells Cachie."
+    "reason": "The clip shows Cashie accounting screens, voice expense entry and receipt capture; filename spells Cachie.",
+    "appName": "Cashie"
   },
   "1b34fc9674a329f0267bdfba5ce44056a13022da65de8bf0dbec6ea2d1acad33": {
     "status": "confirmed",
@@ -23,7 +24,8 @@
     "order": 0,
     "posterFraction": 0.5,
     "alt": "Delphi voice notes and linked-thought demonstration.",
-    "reason": "DELPHI branding and the voice-note/linked-reflection interface are visible."
+    "reason": "DELPHI branding and the voice-note/linked-reflection interface are visible.",
+    "appName": "Delphi"
   },
   "eaff15368c6811d0ce5085faaadcbac4feeeeb99ae0cef133ec185c72eab8dc3": {
     "status": "confirmed",
@@ -33,7 +35,8 @@
     "order": 1,
     "posterFraction": 0.5,
     "alt": "EXT4 Access 1.0 animated promotion.",
-    "reason": "EXT4 ACCESS branding and Linux-drive-to-Mac artwork are visible."
+    "reason": "EXT4 ACCESS branding and Linux-drive-to-Mac artwork are visible.",
+    "appName": "EXT4 Access"
   },
   "90a7323670a217e2444f54d78170bbe6698da9e7c7cefcccf06086eebab5d511": {
     "status": "confirmed",
@@ -43,7 +46,8 @@
     "order": 0,
     "posterFraction": 0.5,
     "alt": "EXT4 Access 1.1 animated promotion.",
-    "reason": "EXT4 Access and 1.1 branding are visible in the Finder/USB-drive artwork."
+    "reason": "EXT4 Access and 1.1 branding are visible in the Finder/USB-drive artwork.",
+    "appName": "EXT4 Access"
   },
   "fb052aecc86f8f89d2d7007cd3e974f8c4aa189814f2eeee3d8598af8c44eacb": {
     "status": "confirmed",
@@ -53,7 +57,8 @@
     "order": 1,
     "posterFraction": 0.1,
     "alt": "Lucent light measurement and reading-break demonstration.",
-    "reason": "Lucent branding, lux measurement and reading-break interface are visible."
+    "reason": "Lucent branding, lux measurement and reading-break interface are visible.",
+    "appName": "Lucent"
   },
   "39eb6de494d322c81d0d713011175209aac763061985437cc1912854388ce83a": {
     "status": "confirmed",
@@ -63,7 +68,8 @@
     "order": 0,
     "posterFraction": 0.5,
     "alt": "Lucent 1.3 animated reading-break promotion.",
-    "reason": "The artwork explicitly reads Lucent 1.3 and promotes a break for eyes."
+    "reason": "The artwork explicitly reads Lucent 1.3 and promotes a break for eyes.",
+    "appName": "Lucent"
   },
   "161bce2a284bc484a3d938f84fe46bdf08b25d6cb0415c4a0fddd6ff1f10300c": {
     "status": "confirmed",
@@ -73,7 +79,8 @@
     "order": 0,
     "posterFraction": 0.1,
     "alt": "Nearly public photo-editing workflow recording.",
-    "reason": "Nearly branding, nearly.run and the photo-editing workflow are visible."
+    "reason": "Nearly branding, nearly.run and the photo-editing workflow are visible.",
+    "appName": "Nearly"
   },
   "2c1190ab863b469918419828027dc3050d044ca4db575491b9fdd72203bf2911": {
     "status": "confirmed",
@@ -83,7 +90,8 @@
     "order": 1,
     "posterFraction": 0.1,
     "alt": "Nearly photo-editing before-and-after demonstrations.",
-    "reason": "Nearly branding and nearly.run are visible across before-and-after editing examples."
+    "reason": "Nearly branding and nearly.run are visible across before-and-after editing examples.",
+    "appName": "Nearly"
   },
   "008945ca918117824ba0af5d8284a3d5d4c28fa31ac57993003332edb1ef054a": {
     "status": "confirmed",
@@ -93,6 +101,7 @@
     "order": 0,
     "posterFraction": 0.5,
     "alt": "Tiltic head-position timer demonstration.",
-    "reason": "The clip names Tiltic · 低头计时器 and matches the existing draft app. Keep unpublished."
+    "reason": "The clip names Tiltic · 低头计时器 and matches the existing draft app. Keep unpublished.",
+    "appName": "Tiltic"
   }
 }
