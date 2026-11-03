@@ -4,10 +4,10 @@
   "originalsPolicy": "Never rename, transcode in place or delete originals. Hidden OS metadata is ignored.",
   "lastPublication": {
     "origin": "https://norvyn.com",
-    "revision": "a6961977eab52d252959adba6c2f5da94e4dfc0b",
-    "receiptSHA256": "4aaba207344583738f69ac049ee1ab93cdf616ec7561c6a2200552686075daea",
-    "assets": 8,
-    "verifiedAt": 1793702699244
+    "revision": "cee11512e0a2ea985056cea43d99fb00fd7135f5",
+    "receiptSHA256": "7d069df2d2b452ba09cbe93e1c9cc99243e080237965c52fac43486924bef241",
+    "assets": 10,
+    "verifiedAt": 1793705460627
   },
   "assets": [
     {
@@ -35,11 +35,14 @@
       },
       "originalPresent": true,
       "deployment": {
-        "status": "not-deployed",
-        "mediaId": null,
-        "url": null,
-        "posterMediaId": null,
-        "posterUrl": null
+        "status": "deployed",
+        "appSlug": "具眼-美术馆看展-画面形式分析",
+        "mediaId": "KYb2UE1PEHSPBlbJ51KJP",
+        "url": "/uploads/2026/11/promo-ebb956e7109a-17aac927bbfbe472_V06wtPYq.mp4",
+        "posterMediaId": "y7cPvLd6IKlc-GX71ylhW",
+        "posterUrl": "/uploads/2026/11/promo-ebb956e7109a-1949f4279ae2223e_O_Kg58nF.jpg",
+        "revision": "cee11512e0a2ea985056cea43d99fb00fd7135f5",
+        "verifiedAt": 1793705460627
       },
       "delivery": {
         "file": ".preview/prepared-promos/promo-ebb956e7109a3886-c5f1ffc616.mp4",
@@ -118,8 +121,8 @@
         "url": "/uploads/2026/11/promo-c6c584faca21-cecab033a40998ea_HE4lpoWM.mp4",
         "posterMediaId": "2xE4j-A9WBuqfsGO0ImpT",
         "posterUrl": "/uploads/2026/11/promo-c6c584faca21-290611b81fcea0b3_mkwMiv2K.jpg",
-        "revision": "a6961977eab52d252959adba6c2f5da94e4dfc0b",
-        "verifiedAt": 1793702699244
+        "revision": "cee11512e0a2ea985056cea43d99fb00fd7135f5",
+        "verifiedAt": 1793705460627
       },
       "delivery": {
         "file": ".preview/prepared-promos/promo-c6c584faca214adb-d9379a5993.mp4",
@@ -198,8 +201,8 @@
         "url": "/uploads/2026/11/promo-1b34fc9674a3-dcc0e18d385d0679_BLIkAteD.mp4",
         "posterMediaId": "JhIdd7cvXPAU7wvu_XFHX",
         "posterUrl": "/uploads/2026/11/promo-1b34fc9674a3-06cabbc756c160ae_TMhSuqMO.jpg",
-        "revision": "a6961977eab52d252959adba6c2f5da94e4dfc0b",
-        "verifiedAt": 1793702699244
+        "revision": "cee11512e0a2ea985056cea43d99fb00fd7135f5",
+        "verifiedAt": 1793705460627
       },
       "delivery": {
         "file": ".preview/prepared-promos/promo-1b34fc9674a329f0-e17105fdeb.mp4",
@@ -278,8 +281,8 @@
         "url": "/uploads/2026/11/promo-eaff15368c68-d4213265e17a4c65_obEGC-BG.mp4",
         "posterMediaId": "DxW2NjSkGrGE5fUvYpBJF",
         "posterUrl": "/uploads/2026/11/promo-eaff15368c68-602e2d8c09be7275_ip8Zsu0j.jpg",
-        "revision": "a6961977eab52d252959adba6c2f5da94e4dfc0b",
-        "verifiedAt": 1793702699244
+        "revision": "cee11512e0a2ea985056cea43d99fb00fd7135f5",
+        "verifiedAt": 1793705460627
       },
       "delivery": {
         "file": ".preview/prepared-promos/promo-eaff15368c6811d0-8329d23d63.mp4",
@@ -358,8 +361,8 @@
         "url": "/uploads/2026/11/promo-90a7323670a2-767c15044ffaf93e_6Ua0fqaM.mp4",
         "posterMediaId": "H6apdzhNjw5bPBUePYt24",
         "posterUrl": "/uploads/2026/11/promo-90a7323670a2-6531d4d2df280bdf__VCq8QIz.jpg",
-        "revision": "a6961977eab52d252959adba6c2f5da94e4dfc0b",
-        "verifiedAt": 1793702699244
+        "revision": "cee11512e0a2ea985056cea43d99fb00fd7135f5",
+        "verifiedAt": 1793705460627
       },
       "delivery": {
         "file": ".preview/prepared-promos/promo-90a7323670a217e2-75a5a3e3d2.mp4",
@@ -438,8 +441,8 @@
         "url": "/uploads/2026/11/promo-fb052aecc86f-db3a145bc96e5b6f_V9msVpPD.mp4",
         "posterMediaId": "XbBR3jyNLCW3VE7qD6ZUc",
         "posterUrl": "/uploads/2026/11/promo-fb052aecc86f-5e36237a33f53d81_OZOuM4CV.jpg",
-        "revision": "a6961977eab52d252959adba6c2f5da94e4dfc0b",
-        "verifiedAt": 1793702699244
+        "revision": "cee11512e0a2ea985056cea43d99fb00fd7135f5",
+        "verifiedAt": 1793705460627
       },
       "delivery": {
         "file": ".preview/prepared-promos/promo-fb052aecc86f8f89-52af2f279e.mp4",
@@ -518,8 +521,8 @@
         "url": "/uploads/2026/11/promo-39eb6de494d3-2557d4164b01bcae_ZtjlM79D.mp4",
         "posterMediaId": "8wIOlewtz12MX-_Rd7SsH",
         "posterUrl": "/uploads/2026/11/promo-39eb6de494d3-0fe2692b239ec403_hV0sQMUE.jpg",
-        "revision": "a6961977eab52d252959adba6c2f5da94e4dfc0b",
-        "verifiedAt": 1793702699244
+        "revision": "cee11512e0a2ea985056cea43d99fb00fd7135f5",
+        "verifiedAt": 1793705460627
       },
       "delivery": {
         "file": ".preview/prepared-promos/promo-39eb6de494d322c8-efbbc84df3.mp4",
@@ -598,8 +601,8 @@
         "url": "/uploads/2026/11/promo-161bce2a284b-f5dbd47c2831e64d_cmxoFzmM.mp4",
         "posterMediaId": "sOJ-UMs_8sNYpiKiCxOfR",
         "posterUrl": "/uploads/2026/11/promo-161bce2a284b-451a1182c554b4e9_wSwNG709.jpg",
-        "revision": "a6961977eab52d252959adba6c2f5da94e4dfc0b",
-        "verifiedAt": 1793702699244
+        "revision": "cee11512e0a2ea985056cea43d99fb00fd7135f5",
+        "verifiedAt": 1793705460627
       },
       "delivery": {
         "file": ".preview/prepared-promos/promo-161bce2a284bc484-2e3a516d77.mp4",
@@ -678,8 +681,8 @@
         "url": "/uploads/2026/11/promo-2c1190ab863b-468bf488fccb80c6_9geOvm5F.mp4",
         "posterMediaId": "90lsogFKWd5NFGiVgj_YX",
         "posterUrl": "/uploads/2026/11/promo-2c1190ab863b-5a8e7792c60fb99c_8IKbc43k.jpg",
-        "revision": "a6961977eab52d252959adba6c2f5da94e4dfc0b",
-        "verifiedAt": 1793702699244
+        "revision": "cee11512e0a2ea985056cea43d99fb00fd7135f5",
+        "verifiedAt": 1793705460627
       },
       "delivery": {
         "file": ".preview/prepared-promos/promo-2c1190ab863b4699-a962ac0022.mp4",
@@ -752,11 +755,14 @@
       },
       "originalPresent": true,
       "deployment": {
-        "status": "not-deployed",
-        "mediaId": null,
-        "url": null,
-        "posterMediaId": null,
-        "posterUrl": null
+        "status": "deployed",
+        "appSlug": "tiltic-低头计时器",
+        "mediaId": "lEukQQkVJWAN2gt3GWa9J",
+        "url": "/uploads/2026/11/promo-008945ca9181-6843f27cbce75987_aGsedI4D.mp4",
+        "posterMediaId": "JaKGG91ii1iovBOGClzM8",
+        "posterUrl": "/uploads/2026/11/promo-008945ca9181-3021db2ac1ad0a3f_9yD4w1Ug.jpg",
+        "revision": "cee11512e0a2ea985056cea43d99fb00fd7135f5",
+        "verifiedAt": 1793705460627
       },
       "delivery": {
         "file": ".preview/prepared-promos/promo-008945ca91811782-5c131ec921.mp4",
