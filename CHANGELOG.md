@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.7.1 (2026-11-03)
+## v1.8.0 (2026-11-03)
+
+### Features
+
+- feat(media): publish ordered app promos and crop-safe social previews (e52a9ca)
 
 ### Bug Fixes
 
