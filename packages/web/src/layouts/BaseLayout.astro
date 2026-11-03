@@ -6,7 +6,7 @@ import { buildWebSiteLd, buildOrganizationLd } from '../lib/jsonld.js';
 import { getSiteIdentity } from '../lib/api';
 import { hreflangAlternates, stripEn, publicPathname } from '../lib/locale';
 import T from '../components/T.astro';
-import { socialImage, socialDescription, SITE_SOCIAL_ALT } from '../lib/social-preview';
+import { socialImage, socialDescription, SITE_SOCIAL_ALT, SOCIAL_SITE_NAME } from '../lib/social-preview';
 import PublicSearch from '../components/PublicSearch.astro';
 
 interface Props {
@@ -48,12 +48,12 @@ const TWITTER_HANDLE = '@NorvynZhang';
 // none — never a generic placeholder. Page-specific descriptions still win.
 const description = socialDescription(descriptionProp, title, id.name, id.description);
 const siteTitle = id.name;
-const fullTitle = title === siteTitle ? title : `${title} — ${siteTitle}`;
+const fullTitle = title === siteTitle || title === SOCIAL_SITE_NAME ? SOCIAL_SITE_NAME : `${title} — ${SOCIAL_SITE_NAME}`;
 // Mirror the same join rule for the English title so 'Apps — norvyn' style
 // canonical titles are preserved on the EN tab label. If the caller didn't
 // pass a titleEn, fullTitleEn stays empty and the bundled script leaves
 // the (Chinese) document.title untouched.
-const fullTitleEn = titleEn ? (titleEn === siteTitle ? titleEn : `${titleEn} — ${siteTitle}`) : '';
+const fullTitleEn = titleEn ? (titleEn === siteTitle || titleEn === SOCIAL_SITE_NAME ? SOCIAL_SITE_NAME : `${titleEn} — ${SOCIAL_SITE_NAME}`) : '';
 const apiUrl = (import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4100').replace(/\/$/, '');
 const currentPath = publicPathname(Astro.url.pathname);
 const social = socialImage(ogImage, Astro.site!);
@@ -111,7 +111,7 @@ const ogLocaleAlt = en ? 'zh_CN' : 'en_US';
       <link rel="alternate" hreflang={a.hreflang} href={a.href} />
     ))}
     <meta property="og:type" content={ogType} />
-    <meta property="og:site_name" content={siteTitle} />
+    <meta property="og:site_name" content={SOCIAL_SITE_NAME} />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
@@ -149,11 +149,11 @@ const ogLocaleAlt = en ? 'zh_CN' : 'en_US';
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageUrl} />
     <meta name="twitter:image:alt" content={imageAlt} />
-    {[buildWebSiteLd(ldOrigin, id), buildOrganizationLd(ldOrigin, id), ...jsonLd].map((obj) => (
+    {[buildWebSiteLd(ldOrigin, { ...id, name: SOCIAL_SITE_NAME }), buildOrganizationLd(ldOrigin, id), ...jsonLd].map((obj) => (
       <script type="application/ld+json" set:html={JSON.stringify(obj).replaceAll('<', String.fromCharCode(92)+'u003c')} />
     ))}
     <title>{fullTitle}</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

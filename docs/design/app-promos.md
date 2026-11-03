@@ -19,7 +19,7 @@ Publication status is the last verified release state, with a timestamp and revi
 - `deployed`: the media is assigned to its verified published app and the rebuilt public pages have been checked.
 - `assigned-draft`: metadata exists only on an unpublished app. Never publish a draft solely because a promo exists.
 
-Unknown mappings remain `needs-confirmation` or `unassigned`, without a guessed app. As first inspected, `ArtLens.mp4` is branded ArtLens and awaits confirmation of whether it belongs to 具眼; `Tiltic.mp4` matches the existing Tiltic draft and is kept out of the public catalog. The five original draft apps retain their publication state.
+Unknown mappings remain `needs-confirmation` or `unassigned`, without a guessed app. The owner confirmed that `ArtLens.mp4` belongs to 具眼 / ArtLens and that Tiltic should be public. The stale Wordbase Tiltic draft flag is corrected through the existing publish API under that explicit instruction. Existing app IDs, slugs, ASC fields and the other four drafts are preserved.
 
 ## Publication
 
@@ -52,3 +52,5 @@ For a group of app changes, pause only the Wordbase rebuild watcher, perform aut
 Catalog cards and app-detail heroes share one proportional media stage and explicit selectors. Only the selected, visible foreground media plays, always muted on autoplay. Offscreen items, inactive selectors and media behind dialogs pause. Reduced motion and data saving start on posters; explicit play is available. Expanded previews pause their inline counterparts and restore focus on close.
 
 Caddy/web-server configuration is owner-managed. These media use the existing `/uploads/` route and need no Caddy change. If a future config differs, show the owner the exact proposed diff and manual instructions; do not apply it or restart shared Caddy. The deployment script now stops with a handoff instead of applying a Caddy difference.
+
+The owner also confirmed DoodleHop is unreleased and Tiltic replaces its public listing position. DoodleHop remains published solely to preserve its existing Chinese/English detail and OG routes, with `meta.catalogVisibility = "unlisted"`; home, catalog, search and llms discovery omit it. All other metadata/content is preserved. Tiltic is published at the former DoodleHop listing position. Sitemap and existing direct links remain intact.

@@ -1,3 +1,4 @@
+import { visibleCatalogApps } from './catalog';
 import {
   getPosts,
   getApps,
@@ -159,7 +160,8 @@ export async function loadHomeData(locale: Locale): Promise<HomeData> {
 
   // ── Apps ────────────────────────────────────────────────────────────────────
   const { data: appsRaw } = await getApps({ status: 'published' });
-  const apps = en ? await Promise.all(appsRaw.map((a) => localizeApp(a, 'en'))) : appsRaw;
+  const catalogApps = visibleCatalogApps(appsRaw);
+  const apps = en ? await Promise.all(catalogApps.map((a) => localizeApp(a, 'en'))) : catalogApps;
 
   // ── Podcast — both locales render the section ───────────────────────────────
   // The en home displays the podcast section with the same structure as zh.

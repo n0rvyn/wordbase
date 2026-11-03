@@ -23,10 +23,15 @@
         "hasAudio": true
       },
       "association": {
-        "status": "needs-confirmation",
-        "appSlug": null,
-        "catalogStatus": null,
-        "reason": "Video is branded ArtLens. Its identity as 具眼 is not confirmed by the current catalog; owner confirmation requested."
+        "status": "confirmed",
+        "appSlug": "具眼-美术馆看展-画面形式分析",
+        "catalogStatus": "published",
+        "appName": "具眼 / ArtLens",
+        "label": "Overview",
+        "order": 0,
+        "posterFraction": 0.85,
+        "alt": "ArtLens (具眼) art-viewing demonstration.",
+        "reason": "Owner explicitly confirmed ArtLens is the identity of 具眼; both names are valid on the Chinese page."
       },
       "originalPresent": true,
       "deployment": {
@@ -35,6 +40,51 @@
         "url": null,
         "posterMediaId": null,
         "posterUrl": null
+      },
+      "delivery": {
+        "file": ".preview/prepared-promos/promo-ebb956e7109a3886-c5f1ffc616.mp4",
+        "posterFile": ".preview/prepared-promos/promo-ebb956e7109a3886-c5f1ffc616.jpg",
+        "sha256": "17aac927bbfbe47266608d1a94beb021dce74a4fcce046a930ba3b7f208aa5f7",
+        "posterSHA256": "1949f4279ae2223e5ee3cd551671434f55155f10598fd03febc4d2c1a0605e14",
+        "bytes": 2831922,
+        "posterBytes": 13645,
+        "recipeSHA256": "c5f1ffc6163c1477f068677d12a9ee2f97d74d40817d4902c0b9443d4de6f6f1",
+        "recipe": {
+          "tool": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+          "encoding": [
+            "-map",
+            "0:v:0",
+            "-map",
+            "0:a:0?",
+            "-vf",
+            "scale=720:1280,pad=ceil(iw/2)*2:ceil(ih/2)*2",
+            "-r",
+            "30",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "fast",
+            "-crf",
+            "24",
+            "-pix_fmt",
+            "yuv420p",
+            "-c:a",
+            "aac",
+            "-b:a",
+            "96k",
+            "-movflags",
+            "+faststart",
+            "-map_metadata",
+            "-1"
+          ],
+          "posterTime": 51.51,
+          "posterWidth": 720
+        },
+        "width": 720,
+        "height": 1280,
+        "duration": 60.6,
+        "codec": "h264",
+        "hasAudio": true
       }
     },
     {
@@ -692,12 +742,12 @@
       "association": {
         "status": "confirmed",
         "appSlug": "tiltic-低头计时器",
-        "catalogStatus": "draft",
+        "catalogStatus": "published",
         "label": "Overview",
         "order": 0,
         "posterFraction": 0.5,
         "alt": "Tiltic head-position timer demonstration.",
-        "reason": "The clip names Tiltic · 低头计时器 and matches the existing draft app. Keep unpublished.",
+        "reason": "Owner explicitly confirmed Tiltic should be public; correct the stale Wordbase draft flag through the existing publish API while preserving the app identity and ASC fields.",
         "appName": "Tiltic"
       },
       "originalPresent": true,

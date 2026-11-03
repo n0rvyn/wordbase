@@ -1,9 +1,14 @@
 {
   "ebb956e7109a3886504ddf36ebb55bb79ee5cf4664f3a677ef5cbb058e33efb8": {
-    "status": "needs-confirmation",
-    "appSlug": null,
-    "catalogStatus": null,
-    "reason": "Video is branded ArtLens. Its identity as 具眼 is not confirmed by the current catalog; owner confirmation requested."
+    "status": "confirmed",
+    "appSlug": "具眼-美术馆看展-画面形式分析",
+    "catalogStatus": "published",
+    "appName": "具眼 / ArtLens",
+    "label": "Overview",
+    "order": 0,
+    "posterFraction": 0.85,
+    "alt": "ArtLens (具眼) art-viewing demonstration.",
+    "reason": "Owner explicitly confirmed ArtLens is the identity of 具眼; both names are valid on the Chinese page."
   },
   "c6c584faca214adb0e4eb899d87193caf2956b08788dd98b8753ee820e8416df": {
     "status": "confirmed",
@@ -96,12 +101,12 @@
   "008945ca918117824ba0af5d8284a3d5d4c28fa31ac57993003332edb1ef054a": {
     "status": "confirmed",
     "appSlug": "tiltic-低头计时器",
-    "catalogStatus": "draft",
+    "catalogStatus": "published",
     "label": "Overview",
     "order": 0,
     "posterFraction": 0.5,
     "alt": "Tiltic head-position timer demonstration.",
-    "reason": "The clip names Tiltic · 低头计时器 and matches the existing draft app. Keep unpublished.",
+    "reason": "Owner explicitly confirmed Tiltic should be public; correct the stale Wordbase draft flag through the existing publish API while preserving the app identity and ASC fields.",
     "appName": "Tiltic"
   }
 }

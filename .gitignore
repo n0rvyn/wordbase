@@ -62,3 +62,6 @@ docs/reports/
 
 # Owner-supplied promo originals; inventory/associations are tracked separately.
 app_promos/
+
+# Original generated artwork; production source is explicitly retained under web/src/assets.
+generated_images/

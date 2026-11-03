@@ -2,10 +2,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import satori from 'satori';
+import { SOCIAL_SITE_NAME } from './social-preview';
 import { Resvg } from '@resvg/resvg-js';
 
 // Bump when the card design changes — invalidates every cached image.
-const OG_RENDERER_VERSION = '3';
+const OG_RENDERER_VERSION = '4';
 
 // Build-time only: the CJK font is read once from disk (not shipped to the
 // browser). Loaded at module scope so each render reuses the same buffer.
@@ -74,7 +75,7 @@ function canvas(children: unknown[], width = WIDTH, height = HEIGHT): unknown {
   return element('div', { width, height, display:'flex', flexDirection:'column', justifyContent:'center', alignItems:'center', backgroundColor:BG, color:INK, fontFamily:'Noto Sans SC', padding:32 }, children);
 }
 function signature(accent = ACCENT): unknown {
-  return element('div', { display:'flex', alignItems:'center', justifyContent:'center', gap:10, marginTop:30, color:MUTED, fontSize:24 }, [element('div', {}, 'norvyn'), mark(18, accent)]);
+  return element('div', { display:'flex', alignItems:'center', justifyContent:'center', gap:10, marginTop:30, color:MUTED, fontSize:24 }, [element('div', {}, SOCIAL_SITE_NAME), mark(18, accent)]);
 }
 /** Balance compact card headlines while keeping English words together. */
 export function balancedOgLines(text: string, maxLines = 4): string[] {
@@ -110,17 +111,26 @@ function card({ title, dateLabel }: OgImageInput): unknown {
     signature(),
   ]);
 }
-/** A simple personal signature. No essential artwork lives outside the square crop. */
+/** Original Julian.cafe emblem, bundled locally; never fetched during builds. */
+function brandIcon(): string {
+  const candidates = [new URL('../assets/julian-cafe-icon.png', import.meta.url).pathname,
+    path.resolve(process.cwd(), 'src/assets/julian-cafe-icon.png'),
+    path.resolve(process.cwd(), 'packages/web/src/assets/julian-cafe-icon.png')];
+  for (const file of candidates) { try { return `data:image/png;base64,${fs.readFileSync(file).toString('base64')}`; } catch {} }
+  throw new Error('Julian.cafe icon source missing');
+}
+export async function renderBrandIcon(size: number): Promise<Buffer> {
+  return Buffer.from(new Resvg(`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><image width="${size}" height="${size}" href="${brandIcon()}"/></svg>`).render().asPng());
+}
+/** Icon-first artwork: a large emblem survives both thumbnail and wide crops. */
 export async function renderSiteOgImage(square = false): Promise<Buffer> {
-  const width = square ? 600 : WIDTH;
-  const height = square ? 600 : HEIGHT;
+  if (square) return renderBrandIcon(600);
   const tree = canvas([
-    mark(64),
-    element('div', { fontSize:118, lineHeight:1.2, letterSpacing:-7, marginTop:22, paddingRight:7 }, 'norvyn'),
-    element('div', { fontSize:18, color:MUTED, letterSpacing:2, marginTop:20 }, 'norvyn.com'),
-  ], width, height);
-  const svg = await satori(tree as any, { width, height, fonts:[{ name:'Noto Sans SC', data:fontData, weight:400, style:'normal' }] });
-  return Buffer.from(new Resvg(svg, { font:{loadSystemFonts:false} }).render().asPng());
+    {type:'img',props:{src:brandIcon(),width:456,height:456,style:{borderRadius:90}}},
+    element('div', {fontSize:48,lineHeight:1.2,letterSpacing:-1,marginTop:20}, SOCIAL_SITE_NAME),
+  ]);
+  const svg = await satori(tree as any, {width:WIDTH,height:HEIGHT,fonts:[{name:'Noto Sans SC',data:fontData,weight:400,style:'normal'}]});
+  return Buffer.from(new Resvg(svg, {font:{loadSystemFonts:false}}).render().asPng());
 }
 
 // ── App OG card ──────────────────────────────────────────────────────────────
@@ -128,7 +138,7 @@ export async function renderSiteOgImage(square = false): Promise<Buffer> {
 // center. It remains legible in messaging thumbnails and wide social cards.
 
 // Bump when the app card design changes — invalidates the app cache only.
-const APP_OG_RENDERER_VERSION = '3';
+const APP_OG_RENDERER_VERSION = '4';
 
 export interface AppOgInput {
   /** App name — the hero line (data, not markup). */

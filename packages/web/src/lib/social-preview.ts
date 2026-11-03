@@ -1,12 +1,13 @@
 /** Versioned first-party social artwork; old image URLs remain available. */
-export const SOCIAL_IMAGE_VERSION = '2';
-export const GENERATED_CARD_VERSION = '3';
-export const SITE_SOCIAL_IMAGE = '/social/norvyn-v2.png';
-export const SITE_SOCIAL_SQUARE = '/social/norvyn-square-v2.png';
-export const SITE_SOCIAL_ALT = 'norvyn wordmark and an orange asterisk on warm paper';
+export const SOCIAL_SITE_NAME = 'Julian.cafe';
+export const SOCIAL_IMAGE_VERSION = '1';
+export const GENERATED_CARD_VERSION = '4';
+export const SITE_SOCIAL_IMAGE = '/social/julian-cafe-v1.png';
+export const SITE_SOCIAL_SQUARE = '/social/julian-cafe-square-v1.png';
+export const SITE_SOCIAL_ALT = 'Julian.cafe: an orange coffee cup with cream steam on deep green';
 export const HOME_SOCIAL = {
-  zh: { title: '我做的东西', description: '做些自己想用的应用，写点最近在想的事。偶尔也聊一聊。' },
-  en: { title: 'Things I make', description: 'Apps I want to use, things I’m thinking about, and the occasional conversation.' },
+  zh: { title: 'Julian.cafe', description: '我最近在折腾的东西，都放在这里。随便看看。' },
+  en: { title: 'Julian.cafe', description: 'What I’ve been making and figuring out lately. Have a look around.' },
 };
 export function socialImage(input: string | undefined, origin: URL | string) {
   const generated = !input || /^\/og\/.*\.png$/.test(input);

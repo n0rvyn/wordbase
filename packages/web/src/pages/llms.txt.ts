@@ -1,3 +1,4 @@
+import { visibleCatalogApps } from '../lib/catalog';
 // Content-bilingual Phase 5: llms.txt stays zh-only this phase (no en variant);
 // the bilingual surface is the /en HTML pages + sitemap hreflang alternates.
 import type { APIRoute } from 'astro';
@@ -16,7 +17,7 @@ export const GET: APIRoute = async ({ site }) => {
   ]);
 
   const body = buildLlmsTxt(
-    { posts: postsRes.data, apps: appsRes.data, podcasts: podcastsRes.data },
+    { posts: postsRes.data, apps: visibleCatalogApps(appsRes.data), podcasts: podcastsRes.data },
     origin,
     id,
   );
