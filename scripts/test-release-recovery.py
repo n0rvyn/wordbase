@@ -60,7 +60,13 @@ if name=='node':
  (root/'node.pid').write_text(str(os.getpid()))
  signal.signal(signal.SIGTERM,lambda *_:sys.exit(0))
  while True:time.sleep(.01)
-if name=='curl': sys.exit(1 if os.environ.get('FAIL_HEALTH') else 0)
+if name=='curl':
+ if os.environ.get('FAIL_HEALTH'):sys.exit(1)
+ if state.get('wordbase-api',False) and os.environ.get('FINAL_HEALTH_FAILURES'):
+  state['managedHealthChecks']=state.get('managedHealthChecks',0)+1
+  statefile.write_text(json.dumps(state))
+  if state['managedHealthChecks']<=int(os.environ['FINAL_HEALTH_FAILURES']):sys.exit(1)
+ sys.exit(0)
 if name=='sleep':time.sleep(.01);sys.exit(0)
 if name=='pnpm':
  if args[0]=='build' and Path.cwd().name=='api':
@@ -261,6 +267,12 @@ class Recovery(unittest.TestCase):
         calls=[json.loads(row) for row in self.calls.read_text().splitlines()]
         self.assertNotIn(['systemctl','restart','caddy'],calls)
         self.assertTrue(self.services()['caddy'])
+
+    def test_managed_api_readiness_retries_slow_startup(self):
+        result=self.run_script('setup.sh',FINAL_HEALTH_FAILURES='3')
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        self.assertGreaterEqual(json.loads(self.state.read_text())['managedHealthChecks'],4)
+        self.assertEqual((self.repo/'packages/web/dist/index.html').read_text(),'new-static')
 
     def test_successful_release_installs_only_completed_static(self):
         result=self.run_script('setup.sh')

@@ -211,9 +211,14 @@ fi
 # Verify
 echo ""
 echo "=== Verification ==="
-sleep 2
+ready=0
+for attempt in $(seq 1 30); do
+    if curl -fsS --max-time 2 http://localhost:4100/health >/dev/null 2>&1; then ready=1; break; fi
+    sleep 1
+done
+[[ "$ready" = 1 ]] || { echo 'Managed API did not become healthy after restart.' >&2; exit 1; }
 echo -n "API health:   "
-curl -fsS http://localhost:4100/health
+curl -fsS --max-time 2 http://localhost:4100/health
 echo ""
 echo -n "API service:  "
 sudo systemctl is-active wordbase-api
