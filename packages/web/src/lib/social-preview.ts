@@ -1,9 +1,9 @@
 /** Versioned first-party social artwork; old image URLs remain available. */
 export const SOCIAL_SITE_NAME = 'Julian.cafe';
-export const SOCIAL_IMAGE_VERSION = '1';
+export const SOCIAL_IMAGE_VERSION = '2';
 export const GENERATED_CARD_VERSION = '4';
-export const SITE_SOCIAL_IMAGE = '/social/julian-cafe-v1.png';
-export const SITE_SOCIAL_SQUARE = '/social/julian-cafe-square-v1.png';
+export const SITE_SOCIAL_IMAGE = '/social/julian-cafe-v2.png';
+export const SITE_SOCIAL_SQUARE = '/social/julian-cafe-square-v2.png';
 export const SITE_SOCIAL_ALT = 'Julian.cafe: an orange coffee cup with cream steam on deep green';
 export const HOME_SOCIAL = {
   zh: { title: 'Julian.cafe', description: '我最近在折腾的东西，都放在这里。随便看看。' },

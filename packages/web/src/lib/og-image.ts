@@ -71,8 +71,8 @@ function mark(size: number, accent = ACCENT): unknown {
   return { type: 'svg', props: { width: size, height: size, viewBox: '0 0 100 100', children:
     [[50,10,50,90],[10,50,90,50],[22,22,78,78],[22,78,78,22]].map(([x1,y1,x2,y2]) => ({ type:'line', props:{x1,y1,x2,y2,stroke:accent,strokeWidth:8,strokeLinecap:'round'} })) } };
 }
-function canvas(children: unknown[], width = WIDTH, height = HEIGHT): unknown {
-  return element('div', { width, height, display:'flex', flexDirection:'column', justifyContent:'center', alignItems:'center', backgroundColor:BG, color:INK, fontFamily:'Noto Sans SC', padding:32 }, children);
+function canvas(children: unknown[], width = WIDTH, height = HEIGHT, backgroundColor = BG, color = INK): unknown {
+  return element('div', { width, height, display:'flex', flexDirection:'column', justifyContent:'center', alignItems:'center', backgroundColor, color, fontFamily:'Noto Sans SC', padding:32 }, children);
 }
 function signature(accent = ACCENT): unknown {
   return element('div', { display:'flex', alignItems:'center', justifyContent:'center', gap:10, marginTop:30, color:MUTED, fontSize:24 }, [element('div', {}, SOCIAL_SITE_NAME), mark(18, accent)]);
@@ -126,9 +126,9 @@ export async function renderBrandIcon(size: number): Promise<Buffer> {
 export async function renderSiteOgImage(square = false): Promise<Buffer> {
   if (square) return renderBrandIcon(600);
   const tree = canvas([
-    {type:'img',props:{src:brandIcon(),width:456,height:456,style:{borderRadius:90}}},
+    {type:'img',props:{src:brandIcon(),width:456,height:456}},
     element('div', {fontSize:48,lineHeight:1.2,letterSpacing:-1,marginTop:20}, SOCIAL_SITE_NAME),
-  ]);
+  ], WIDTH, HEIGHT, '#202b24', BG);
   const svg = await satori(tree as any, {width:WIDTH,height:HEIGHT,fonts:[{name:'Noto Sans SC',data:fontData,weight:400,style:'normal'}]});
   return Buffer.from(new Resvg(svg, {font:{loadSystemFonts:false}}).render().asPng());
 }

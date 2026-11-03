@@ -69,7 +69,7 @@ describe('renderAppOgImage', () => {
   });
 });
 
-import { renderSiteOgImage, appOgCacheKey, balancedOgLines } from './og-image';
+import { renderSiteOgImage, renderBrandIcon, appOgCacheKey, balancedOgLines } from './og-image';
 import { Resvg } from '@resvg/resvg-js';
 describe('square-safe first-party social artwork', () => {
   it('keeps all key artwork inside the central square of the wide site card', async () => {
@@ -80,7 +80,7 @@ describe('square-safe first-party social artwork', () => {
     let left=1200,right=0,top=630,bottom=0;
     for(let y=0;y<630;y++) for(let x=0;x<1200;x++) {
       const i=(y*1200+x)*4;
-      if(Math.abs(pixels[i]-242)+Math.abs(pixels[i+1]-240)+Math.abs(pixels[i+2]-233)>20) { left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y); }
+      if(Math.abs(pixels[i]-32)+Math.abs(pixels[i+1]-43)+Math.abs(pixels[i+2]-36)>45) { left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y); }
     }
     expect(left).toBeGreaterThanOrEqual(285);expect(right).toBeLessThan(915);
     expect(top).toBeGreaterThan(20);expect(bottom).toBeLessThan(610);
@@ -103,4 +103,21 @@ it('balances CJK headlines without a single-character last line and retains Engl
   expect(Math.max(...lines.map(line => line.length)) - Math.min(...lines.map(line => line.length))).toBeLessThanOrEqual(1);
   expect(balancedOgLines('Notes on making useful things').join(' ')).toBe('Notes on making useful things');
   expect(balancedOgLines('很长的文章标题'.repeat(30)).length).toBeLessThanOrEqual(4);
+});
+
+it('keeps the emblem away from every edge and fills all four thumbnail corners', async () => {
+  const png = await renderBrandIcon(600);
+  const raster = new Resvg(`<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><image width="600" height="600" href="data:image/png;base64,${png.toString('base64')}"/></svg>`).render();
+  const px = raster.pixels;
+  for (const [x,y] of [[0,0],[599,0],[0,599],[599,599]]) {
+    const i = (y*600+x)*4;
+    expect(px[i]).toBeLessThan(60);expect(px[i+1]).toBeLessThan(70);expect(px[i+2]).toBeLessThan(60);expect(px[i+3]).toBe(255);
+  }
+  let left=600,right=0,top=600,bottom=0;
+  for(let y=0;y<600;y++) for(let x=0;x<600;x++) {
+    const i=(y*600+x)*4;
+    if(px[i]>150 && (px[i+1]>150 || px[i]>px[i+1]*1.8)) {left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y);}
+  }
+  expect(left).toBeGreaterThanOrEqual(60);expect(right).toBeLessThan(540);expect(top).toBeGreaterThanOrEqual(60);expect(bottom).toBeLessThan(540);
+  expect(bottom-top).toBeGreaterThan(300);
 });

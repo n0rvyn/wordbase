@@ -3,7 +3,7 @@ import { HOME_SOCIAL, socialImage, socialDescription } from './social-preview';
 describe('social preview metadata', () => {
   it('provides versioned wide and square first-party artwork with known dimensions', () => {
     const result = socialImage(undefined, 'https://norvyn.com');
-    expect(result).toMatchObject({ url:'https://norvyn.com/social/julian-cafe-v1.png?v=1',width:1200,height:630,type:'image/png',square:'https://norvyn.com/social/julian-cafe-square-v1.png' });
+    expect(result).toMatchObject({ url:'https://norvyn.com/social/julian-cafe-v2.png?v=2',width:1200,height:630,type:'image/png',square:'https://norvyn.com/social/julian-cafe-square-v2.png' });
     expect(HOME_SOCIAL.zh.title).toBe('Julian.cafe');
     expect(HOME_SOCIAL.zh.description).not.toContain('独立开发者');
   });
