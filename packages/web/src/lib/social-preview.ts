@@ -15,3 +15,8 @@ export function socialImage(input: string | undefined, origin: URL | string) {
   return { url: url.href, generated, width: generated ? 1200 : undefined, height: generated ? 630 : undefined,
     type: generated ? 'image/png' : undefined, square: !input ? new URL(SITE_SOCIAL_SQUARE, origin).href : undefined };
 }
+
+/** Never invent a summary when an authored excerpt is empty. */
+export function socialDescription(provided: string | undefined, title: string, siteName: string, siteDescription: string): string {
+  return provided?.trim() || (title.trim() && title !== siteName ? title.trim() : siteDescription.trim() || siteName);
+}

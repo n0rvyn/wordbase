@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HOME_SOCIAL, socialImage } from './social-preview';
+import { HOME_SOCIAL, socialImage, socialDescription } from './social-preview';
 describe('social preview metadata', () => {
   it('provides versioned wide and square first-party artwork with known dimensions', () => {
     const result = socialImage(undefined, 'https://norvyn.com');
@@ -11,4 +11,10 @@ describe('social preview metadata', () => {
     expect(socialImage('/og/apps/nearly.png','https://norvyn.com').url).toBe('https://norvyn.com/og/apps/nearly.png?v=3');
     expect(socialImage('https://cdn.example.com/my-cover.jpg','https://norvyn.com')).toMatchObject({ url:'https://cdn.example.com/my-cover.jpg',width:undefined,height:undefined,type:undefined,square:undefined });
   });
+});
+
+it('preserves authored summaries and uses the page subject for an empty legacy excerpt', () => {
+  expect(socialDescription(' Authored summary. ', 'Page title', 'norvyn', 'Site description')).toBe('Authored summary.');
+  expect(socialDescription('', 'IBM Personal Communications python script', 'norvyn', 'Site description')).toBe('IBM Personal Communications python script');
+  expect(socialDescription('   ', 'norvyn', 'norvyn', 'Site description')).toBe('Site description');
 });

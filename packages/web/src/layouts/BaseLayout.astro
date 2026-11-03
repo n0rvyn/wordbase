@@ -6,7 +6,7 @@ import { buildWebSiteLd, buildOrganizationLd } from '../lib/jsonld.js';
 import { getSiteIdentity } from '../lib/api';
 import { hreflangAlternates, stripEn, publicPathname } from '../lib/locale';
 import T from '../components/T.astro';
-import { socialImage, SITE_SOCIAL_ALT } from '../lib/social-preview';
+import { socialImage, socialDescription, SITE_SOCIAL_ALT } from '../lib/social-preview';
 import PublicSearch from '../components/PublicSearch.astro';
 
 interface Props {
@@ -46,7 +46,7 @@ const id = await getSiteIdentity();
 const TWITTER_HANDLE = '@NorvynZhang';
 // Fallback to the site's real description (settings-driven) when a page passes
 // none — never a generic placeholder. Page-specific descriptions still win.
-const description = descriptionProp ?? id.description;
+const description = socialDescription(descriptionProp, title, id.name, id.description);
 const siteTitle = id.name;
 const fullTitle = title === siteTitle ? title : `${title} — ${siteTitle}`;
 // Mirror the same join rule for the English title so 'Apps — norvyn' style

@@ -15,6 +15,8 @@ def sha(path):
   for block in iter(lambda:stream.read(1024*1024),b''):h.update(block)
  return h.hexdigest()
 def revision():return subprocess.check_output(['git','-C',str(ROOT),'rev-parse','HEAD'],text=True).strip()
+def journal_source_matches(recorded, current, command):
+ return recorded==current or (command=='verify' and subprocess.run(['git','-C',str(ROOT),'merge-base','--is-ancestor',recorded,current],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode==0)
 def metadata(app):return json.loads(app.get('meta') or '{}')
 def current_items(app):
  m=metadata(app);v=m.get('promotionalMedia')
@@ -52,7 +54,7 @@ def main():
  def save():
   args.journal.write_text(json.dumps(state,ensure_ascii=False,indent=2)+'\n');args.journal.chmod(0o600)
  if args.journal.exists():
-  state=json.loads(args.journal.read_text());assert state['inventorySHA256']==sha(inventory) and state['revision']==args.source_revision,'Journal/stage differs; inspect before retry'
+  state=json.loads(args.journal.read_text());assert state['inventorySHA256']==sha(inventory) and journal_source_matches(state['revision'],args.source_revision,args.command),'Journal/stage differs; inspect before retry'
  else:
   assert args.command=='apply','No prior publication journal'
   state={'revision':args.source_revision,'inventorySHA256':sha(inventory),'beforeApps':rows(),'uploads':{},'assigned':{}};save()
@@ -70,7 +72,7 @@ def main():
   for original in state['beforeApps']:
    if original['status']=='draft':assert original==by_slug[original['slug']],'Existing draft changed'
   build=call('/build/status');assert build['status']=='success' and build['startedAt']>=state['queuedAt']-2000,'Catalog rebuild not accepted yet'
-  state['verified']=True;save();(stage/'publication-result.json').write_text(json.dumps({'origin':ORIGIN,'revision':args.source_revision,'verifiedAt':int(time.time()*1000),'assets':receipt,'draftsPreserved':sum(a['status']=='draft' for a in final),'build':build},ensure_ascii=False,indent=2)+'\n');print('Verified deployed promos:',len(receipt));return
+  state['verified']=True;save();(stage/'publication-result.json').write_text(json.dumps({'origin':ORIGIN,'revision':args.source_revision,'publicationRevision':state['revision'],'verifiedAt':int(time.time()*1000),'assets':receipt,'draftsPreserved':sum(a['status']=='draft' for a in final),'build':build},ensure_ascii=False,indent=2)+'\n');print('Verified deployed promos:',len(receipt));return
  assert not state.get('verified'),'Already verified; use a new reviewed stage for another release'
  library=call('/media?limit=10000')['data']
  def upload(asset,kind):
