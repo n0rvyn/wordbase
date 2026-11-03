@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.9.0 (2026-11-03)
+## v1.9.1 (2026-11-03)
+
+### Bug Fixes
+
+- fix(web): give Julian.cafe artwork balanced spacing and solid corners (f3eac21)
 
 ### Features
 
