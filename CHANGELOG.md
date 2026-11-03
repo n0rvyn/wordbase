@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.6.3 (2026-09-19)
+## v1.7.0 (2026-11-03)
+
+### Features
+
+- feat(public): release curated portfolio redesign with safe runtime deployment (77b584f)
 
 ### Bug Fixes
 
