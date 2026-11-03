@@ -10,6 +10,6 @@ const featuredApp = selectFeaturedApp(apps);
 const ordered: App[] = featuredApp ? [featuredApp, ...restApps(apps, featuredApp)] : [...apps];
 ---
 
-<BaseLayout title="Apps" titleEn={t('title.apps').en} hasEnTwin description="我做的小而克制的应用。">
+<BaseLayout title="Apps" titleEn={t('title.apps').en} hasEnTwin description="我做的应用都在这里。看看演示，再挑一个试试。">
   <AppsIndexBody locale="zh" apps={ordered} />
 </BaseLayout>

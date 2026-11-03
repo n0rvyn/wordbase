@@ -3,9 +3,11 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import HomeBody from '../../components/page-bodies/HomeBody.astro';
 import { loadHomeData } from '../../lib/home';
 
+import { HOME_SOCIAL } from '../../lib/social-preview';
+
 const data = await loadHomeData('en');
 ---
 
-<BaseLayout title="norvyn" locale="en" description="Independent iOS developer — apps, writing, and a podcast. By norvyn.">
+<BaseLayout title={HOME_SOCIAL.en.title} locale="en" description={HOME_SOCIAL.en.description}>
   <HomeBody locale="en" {...data} />
 </BaseLayout>

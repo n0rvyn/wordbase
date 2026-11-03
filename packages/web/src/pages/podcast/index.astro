@@ -43,7 +43,7 @@ const jsonLd = podcast ? [buildPodcastLd(podcast, episodes, origin)] : [];
   title={podcast ? showTitle : '播客'}
   titleEn={t('title.podcast').en}
   description={podcast?.description ? stripMarkdown(podcast.description, 120) : '一档慢节奏的播客。'}
-  ogImage="/og-podcast.png"
+  ogImage={showCover || undefined}
   jsonLd={jsonLd}
   feeds={feedHref ? [{ title: `${showTitle} · Podcast`, href: feedHref }] : []}
 >

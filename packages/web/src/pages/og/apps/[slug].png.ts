@@ -3,6 +3,8 @@ import { getApps } from '../../../lib/api';
 import type { App } from '../../../lib/api';
 import { renderAppOgImageCached } from '../../../lib/og-image';
 
+import { displayName } from '../../../lib/app';
+
 // One static PNG per published app: /og/apps/<slug>.png — the dark landscape
 // social card (icon + name + tagline). Mirrors /og/<slug>.png for posts.
 export const getStaticPaths: GetStaticPaths = async () => {
@@ -13,7 +15,8 @@ export const getStaticPaths: GetStaticPaths = async () => {
 export const GET: APIRoute = async ({ props }) => {
   const { app } = props as { app: App };
   const png = await renderAppOgImageCached({
-    name: app.name,
+    name: displayName(app.name),
+    platform: app.platform,
     tagline: app.tagline || app.subtitle || '',
     iconUrl: app.icon,
     accentColor: app.accentColor,

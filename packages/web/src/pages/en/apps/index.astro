@@ -11,6 +11,6 @@ const orderedRaw: App[] = featuredApp ? [featuredApp, ...restApps(apps, featured
 const ordered = await Promise.all(orderedRaw.map((a) => localizeApp(a, 'en')));
 ---
 
-<BaseLayout title="Apps" locale="en" hasEnTwin description="Small, restrained apps I build.">
+<BaseLayout title="Apps" locale="en" hasEnTwin description="The apps I make. Watch a preview, then see what fits.">
   <AppsIndexBody locale="en" apps={ordered} />
 </BaseLayout>

@@ -673,7 +673,7 @@ _Annotations:_ `readOnlyHint: false` · `destructiveHint: false` · `openWorldHi
 | `bundleId` | string | Bundle identifier, e.g. com.example.app. |
 | `platform` | string | Platform: iOS, macOS or Web (default: iOS). |
 | `features` | array | Feature bullets shown on the landing page. 用户说『给它加三个卖点』时,每条卖点是一个 {icon, title, blurb} 对象. Example: [{ icon: '⚡', title: 'Fast', blurb: 'Starts in under a second.' }]. |
-| `promotionalMedia` | object | Editorial app-gallery media, separate from Apple screenshots. Upload files with media_upload, then set type and src; animated-image requires a still poster. Use type:none to remove. Merges without replacing other metadata. |
+| `promotionalMedia` | object | Ordered editorial app promos, separate from Apple screenshots. Use items:[...] for 1–12 promos, a legacy single type/src object, or type:none to remove. Animated images require still posters. Preserves other metadata. |
 | `screenshots` | array | Screenshot URLs, in display order. |
 | `links` | object | Additional links keyed by label, e.g. { website: 'https://...', support: 'https://...' }. Free-form: any key/value pair is kept as-is. |
 | `accentColor` | string | Accent color hex code, e.g. #5B8DEF. |
@@ -703,7 +703,7 @@ _Annotations:_ `readOnlyHint: false` · `destructiveHint: false` · `openWorldHi
 | `slug` | string | URL slug. |
 | `description` | string | Curated app description. |
 | `icon` | string | Curated icon URL. |
-| `promotionalMedia` | object | Editorial app-gallery media, separate from Apple screenshots. Upload files with media_upload, then set type and src; animated-image requires a still poster. Use type:none to remove. Merges without replacing other metadata. |
+| `promotionalMedia` | object | Ordered editorial app promos, separate from Apple screenshots. Use items:[...] for 1–12 promos, a legacy single type/src object, or type:none to remove. Animated images require still posters. Preserves other metadata. |
 | `screenshots` | array | Curated screenshot URLs in display order; replaces the array. |
 | `appStoreUrl` | string | Verified App Store listing URL. |
 | `platform` | string | Platform, e.g. iOS, macOS or Web. |

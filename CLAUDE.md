@@ -30,7 +30,7 @@ No linter is configured; `tsc` (via `pnpm build`) is the type gate. There is no 
 
 ## Deploy
 
-Production host is `norvyn`. **Deploy = `ssh norvyn 'bash -s' < deploy/setup.sh`** (idempotent: pull + build api + build web + restart `wordbase-api` and Caddy). Never hand-assemble ad-hoc ssh pull/build/restart commands. Content-only republish (no code change) happens automatically via a `.rebuild-request` marker watched by `wordbase-rebuild.path`. ASC app-sync on prod needs a gitignored `.p8` placed on the server manually — `setup.sh` does NOT ship it.
+Production host is `norvyn`. **Deploy = `ssh norvyn 'bash -s' < deploy/setup.sh`** (idempotent: pull + build api + build web + restart `wordbase-api`). Never hand-assemble ad-hoc ssh pull/build/restart commands. **Caddy/web-server configuration is owner-managed: never modify or apply it, or restart shared Caddy. If a change is needed, show the exact diff and manual commands to the owner. `setup.sh` stops at a Caddy difference without applying it.** Content-only republish (no code change) happens automatically via a `.rebuild-request` marker watched by `wordbase-rebuild.path`. ASC app-sync on prod needs a gitignored `.p8` placed on the server manually — `setup.sh` does NOT ship it.
 
 ## Architecture: services are the single source of truth
 

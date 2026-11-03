@@ -6,6 +6,7 @@ import { buildWebSiteLd, buildOrganizationLd } from '../lib/jsonld.js';
 import { getSiteIdentity } from '../lib/api';
 import { hreflangAlternates, stripEn, publicPathname } from '../lib/locale';
 import T from '../components/T.astro';
+import { socialImage, SITE_SOCIAL_ALT } from '../lib/social-preview';
 import PublicSearch from '../components/PublicSearch.astro';
 
 interface Props {
@@ -18,6 +19,7 @@ interface Props {
   titleEn?: string;
   description?: string;
   ogImage?: string;
+  ogImageAlt?: string;
   ogType?: 'website' | 'article';
   article?: { publishedTime?: number; modifiedTime?: number; author?: string; section?: string; tags?: string[] };
   jsonLd?: object[];
@@ -38,7 +40,7 @@ interface Props {
   noindex?: boolean;
 }
 
-const { title, titleEn, description: descriptionProp, ogImage, ogType = 'website', article, jsonLd = [], feeds = [], locale = 'zh', hasEnTwin = false, noindex = false } = Astro.props;
+const { title, titleEn, description: descriptionProp, ogImage, ogImageAlt, ogType = 'website', article, jsonLd = [], feeds = [], locale = 'zh', hasEnTwin = false, noindex = false } = Astro.props;
 const id = await getSiteIdentity();
 // X/Twitter handle for card attribution.
 const TWITTER_HANDLE = '@NorvynZhang';
@@ -54,7 +56,9 @@ const fullTitle = title === siteTitle ? title : `${title} — ${siteTitle}`;
 const fullTitleEn = titleEn ? (titleEn === siteTitle ? titleEn : `${titleEn} — ${siteTitle}`) : '';
 const apiUrl = (import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4100').replace(/\/$/, '');
 const currentPath = publicPathname(Astro.url.pathname);
-const ogImageUrl = new URL(ogImage ?? '/og-image.png', Astro.site).href;
+const social = socialImage(ogImage, Astro.site!);
+const ogImageUrl = social.url;
+const imageAlt = ogImageAlt || (ogImage ? fullTitle : SITE_SOCIAL_ALT);
 const canonicalUrl = new URL(currentPath, Astro.site).href;
 const ldOrigin = Astro.site!.href.replace(/\/$/, '');
 const isoMeta = (ts: number | undefined) => (ts ? new Date(ts * 1000).toISOString() : undefined);
@@ -92,7 +96,7 @@ const ogLocale = en ? 'en_US' : 'zh_CN';
 const ogLocaleAlt = en ? 'zh_CN' : 'en_US';
 ---
 
-<html data-public="true" lang={en ? 'en' : 'zh-CN'} data-theme="light" data-lang={en ? 'en' : undefined} data-has-en-twin={(hasEnTwin && !en) ? 'true' : undefined} data-title-en={fullTitleEn || undefined}>
+<html prefix="og: https://ogp.me/ns#" data-public="true" lang={en ? 'en' : 'zh-CN'} data-theme="light" data-lang={en ? 'en' : undefined} data-has-en-twin={(hasEnTwin && !en) ? 'true' : undefined} data-title-en={fullTitleEn || undefined}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -112,7 +116,19 @@ const ogLocaleAlt = en ? 'zh_CN' : 'en_US';
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImageUrl} />
-    <meta property="og:image:alt" content={fullTitle} />
+    {ogImageUrl.startsWith('https:') && <meta property="og:image:secure_url" content={ogImageUrl} />}
+    {social.type && <meta property="og:image:type" content={social.type} />}
+    {social.width && <meta property="og:image:width" content={social.width} />}
+    {social.height && <meta property="og:image:height" content={social.height} />}
+    <meta property="og:image:alt" content={imageAlt} />
+    {social.square && <>
+      <meta property="og:image" content={social.square} />
+      <meta property="og:image:type" content="image/png" />
+      <meta property="og:image:width" content="600" />
+      <meta property="og:image:height" content="600" />
+      <meta property="og:image:alt" content={SITE_SOCIAL_ALT} />
+    </>}
+    <link rel="image_src" href={social.square || ogImageUrl} />
     <meta property="og:locale" content={ogLocale} />
     {emitHreflang && <meta property="og:locale:alternate" content={ogLocaleAlt} />}
     {ogType === 'article' && article && (
@@ -132,6 +148,7 @@ const ogLocaleAlt = en ? 'zh_CN' : 'en_US';
     <meta name="twitter:title" content={fullTitle} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageUrl} />
+    <meta name="twitter:image:alt" content={imageAlt} />
     {[buildWebSiteLd(ldOrigin, id), buildOrganizationLd(ldOrigin, id), ...jsonLd].map((obj) => (
       <script type="application/ld+json" set:html={JSON.stringify(obj).replaceAll('<', String.fromCharCode(92)+'u003c')} />
     ))}

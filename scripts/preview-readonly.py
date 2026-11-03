@@ -36,6 +36,15 @@ def reviewed_links(app):
     return {**app, 'links': json.dumps({**additions, **existing})}
 
 
+def reviewed_promos(app):
+    assignments = json.loads((ROOT / '.preview/promos-review/assignments.json').read_text())
+    media = assignments.get(app.get('slug'))
+    if not media:
+        return app
+    meta = json.loads(app.get('meta') or '{}')
+    return {**app, 'meta': json.dumps({**meta, 'promotionalMedia': media})}
+
+
 def public_path(path):
     return any(path == p or path.startswith(p + '/') for p in PUBLIC[:-1]) or path.startswith('/uploads/')
 
@@ -54,6 +63,41 @@ class Preview(BaseHTTPRequestHandler):
         if self.command != 'HEAD':
             self.wfile.write(body)
 
+    def respond_asset(self, file):
+        size = file.stat().st_size
+        start, end, status = 0, size - 1, 200
+        header = self.headers.get('Range')
+        if header:
+            match = re.fullmatch(r'bytes=(\d*)-(\d*)', header)
+            if not match or not any(match.groups()):
+                return self.respond(416, b'Invalid range', 'text/plain')
+            first, last = match.groups()
+            start = int(first) if first else max(0, size - int(last))
+            end = min(size - 1, int(last)) if first and last else size - 1
+            if start > end:
+                return self.respond(416, b'Unsatisfiable range', 'text/plain')
+            status = 206
+        self.send_response(status)
+        self.send_header('Content-Type', mimetypes.guess_type(file)[0] or 'application/octet-stream')
+        self.send_header('Accept-Ranges', 'bytes')
+        self.send_header('Content-Length', str(end - start + 1))
+        self.send_header('Cache-Control', 'no-store')
+        if status == 206:
+            self.send_header('Content-Range', f'bytes {start}-{end}/{size}')
+        self.end_headers()
+        if self.command != 'HEAD':
+            try:
+                with file.open('rb') as source:
+                    source.seek(start)
+                    remaining = end - start + 1
+                    while remaining:
+                        chunk = source.read(min(1024 * 1024, remaining))
+                        if not chunk: break
+                        self.wfile.write(chunk)
+                        remaining -= len(chunk)
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+
     def do_POST(self):
         self.respond(405, b'{"error":{"code":"PREVIEW_READ_ONLY","message":"This preview cannot change data."}}', 'application/json')
 
@@ -68,13 +112,19 @@ class Preview(BaseHTTPRequestHandler):
         if path.rstrip('/') == '/__review':
             # Local review navigation is never included in the production build.
             return self.respond(200, (ROOT / 'scripts/preview-review.html').read_bytes(), 'text/html; charset=utf-8')
+        if self.server.promo_review and path.startswith('/__promos__/assets/'):
+            assets = json.loads((ROOT / '.preview/promos-review/assets.json').read_text())
+            file = (ROOT / assets[path]).resolve() if path in assets else None
+            if file and file.is_relative_to((ROOT / '.preview/prepared-promos').resolve()) and file.is_file():
+                return self.respond_asset(file)
+            return self.respond(404, b'Unknown local promo asset', 'text/plain')
         reviewed_apps = []
         if self.server.catalog_review:
             reviewed_apps = json.loads((ROOT / '.preview/catalog-review/apps.json').read_text())
             if path.startswith('/api/apps/'):
                 app = next((app for app in reviewed_apps if path.removeprefix('/api/apps/') in (app['id'], app['slug'])), None)
                 if app:
-                    return self.respond(200, json.dumps(app).encode(), 'application/json')
+                    return self.respond(200, json.dumps(reviewed_promos(app) if self.server.promo_review else app).encode(), 'application/json')
         if self.server.media_fixture and path.startswith('/__qa__/assets/'):
             assets = ROOT / '.preview/media-fixture/assets'
             asset = (assets / path.removeprefix('/__qa__/assets/')).resolve()
@@ -174,6 +224,13 @@ class Preview(BaseHTTPRequestHandler):
                     data['data'] = sorted(rows, key=lambda app: app['sortOrder'])
                     data['total'] += len(additions)
                     body = json.dumps(data).encode()
+            if self.server.promo_review and path.startswith('/api/apps') and meta['status'] == 200:
+                data = json.loads(body)
+                if path == '/api/apps':
+                    data['data'] = [reviewed_promos(app) for app in data['data']]
+                elif isinstance(data, dict) and 'slug' in data:
+                    data = reviewed_promos(data)
+                body = json.dumps(data).encode()
             return self.respond(meta['status'], body, meta['contentType'])
 
         dist = self.server.dist
@@ -195,11 +252,13 @@ if __name__ == '__main__':
     parser.add_argument('--dist', type=Path, default=DIST, help='Alternate local static build directory')
     parser.add_argument('--media-fixture', action='store_true', help='Add explicit QA-only media apps and local assets')
     parser.add_argument('--catalog-review', action='store_true', help='Include reviewed editorial additions created through the local SQLite service')
+    parser.add_argument('--promo-review', action='store_true', help='Preview prepared owner promo assignments and local derived files, without production writes')
     args = parser.parse_args()
     server = ThreadingHTTPServer(('127.0.0.1', args.port), Preview)
     server.offline = args.offline
     server.dist = args.dist.resolve()
     server.media_fixture = args.media_fixture
     server.catalog_review = args.catalog_review
+    server.promo_review = args.promo_review
     print(f'Read-only private preview: http://127.0.0.1:{args.port}', flush=True)
     server.serve_forever()

@@ -38,3 +38,20 @@ describe('promotional-media selection and playback policy', () => {
     expect(shouldPlayPromo({ ...normal, pageVisible: false, manual: 'play' })).toBe(false);
   });
 });
+
+import { promotionalMediaList } from './app';
+describe('ordered multi-promo readers', () => {
+  const first = { type: 'video', src: '/uploads/1.mp4', poster: '/uploads/1.jpg', id: 'p_1', label: '01', width: 720, height: 1280 };
+  const second = { type: 'animated-image', src: '/uploads/2.gif', poster: '/uploads/2.jpg' };
+  it('keeps every item in editorial order and reads its dimensions', () => {
+    const list = promotionalMediaList(JSON.stringify({ promotionalMedia: { items: [first, second] }, video: '/legacy.mp4' }));
+    expect(list.map(m => m.src)).toEqual([first.src, second.src]);
+    expect(list[0]).toMatchObject({ width: 720, height: 1280, id: 'p_1', label: '01' });
+    expect(promotionalMedia(JSON.stringify({ promotionalMedia: { items: [first, second] } }))).toEqual(list[0]);
+  });
+  it('fails closed for empty, duplicate, oversized or partially unsafe galleries', () => {
+    for (const items of [[], [first, first], [first, { ...second, poster: undefined }], Array(13).fill(first)]) {
+      expect(promotionalMediaList(JSON.stringify({ promotionalMedia: { items }, video: '/legacy.mp4' }))).toEqual([]);
+    }
+  });
+});

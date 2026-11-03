@@ -1,25 +1,39 @@
 import type { App } from './api';
 
-export type PromotionalMedia = { type: 'video' | 'animated-image' | 'image'; src: string; poster: string | null; alt: string | null };
+export type PromotionalMedia = { type: 'video' | 'animated-image' | 'image'; src: string; poster: string | null; alt: string | null; id?: string; label?: string; width?: number; height?: number };
 
-/** Explicit editorial media takes precedence over legacy video metadata. */
-export function promotionalMedia(meta: string | null): PromotionalMedia | null {
+/** Explicit ordered editorial galleries take precedence over legacy video metadata. */
+export function promotionalMediaList(meta: string | null): PromotionalMedia[] {
   const safe = (value: unknown): value is string => {
-    if (typeof value !== 'string' || !value || /[\\\x00-\x1f]/.test(value)) return false;
+    if (typeof value !== 'string' || !value || value.length > 4096 || /[\\\x00-\x1f]/.test(value)) return false;
     if (/^\/(?!\/)/.test(value)) return true;
     try { const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password; } catch { return false; }
   };
+  const read = (media: any): PromotionalMedia | null => {
+    if (!['video', 'animated-image', 'image'].includes(media?.type) || !safe(media.src)) return null;
+    const poster = safe(media.poster) ? media.poster : null;
+    if (media.type === 'animated-image' && !poster) return null;
+    const dimensions = [media.width, media.height].every(n => Number.isInteger(n) && n > 0 && n <= 16384);
+    return { type: media.type, src: media.src, poster, alt: typeof media.alt === 'string' ? media.alt : null,
+      ...(typeof media.id === 'string' ? { id: media.id } : {}), ...(typeof media.label === 'string' ? { label: media.label } : {}),
+      ...(dimensions ? { width: media.width, height: media.height } : {}) };
+  };
   try {
     const data = JSON.parse(meta || '{}');
-    const media = data?.promotionalMedia;
-    if (media !== undefined) {
-      if (!['video', 'animated-image', 'image'].includes(media?.type) || !safe(media.src)) return null;
-      const poster = safe(media.poster) ? media.poster : null;
-      if (media.type === 'animated-image' && !poster) return null;
-      return { type: media.type, src: media.src, poster, alt: typeof media.alt === 'string' ? media.alt : null };
+    if (data?.promotionalMedia !== undefined) {
+      const media = data.promotionalMedia;
+      if (media?.type === 'none') return [];
+      const items = media && typeof media === 'object' && 'items' in media ? media.items : [media];
+      if (!Array.isArray(items) || !items.length || items.length > 12) return [];
+      const parsed = items.map(read);
+      return parsed.every((item): item is PromotionalMedia => item !== null) && new Set(parsed.map(item => item.src)).size === parsed.length ? parsed : [];
     }
-    return safe(data?.video) ? { type: 'video', src: data.video, poster: safe(data.videoPoster) ? data.videoPoster : null, alt: null } : null;
-  } catch { return null; }
+    return safe(data?.video) ? [{ type: 'video', src: data.video, poster: safe(data.videoPoster) ? data.videoPoster : null, alt: null }] : [];
+  } catch { return []; }
+}
+/** Backward-compatible first item for older callers. */
+export function promotionalMedia(meta: string | null): PromotionalMedia | null {
+  return promotionalMediaList(meta)[0] ?? null;
 }
 
 /** Optional, manually maintained promotional media. Apple imports never own it. */

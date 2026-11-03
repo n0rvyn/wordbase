@@ -10,7 +10,7 @@ export function shouldPlayPromo(policy: PlaybackPolicy): boolean {
 export function setupPromotionalPlayback(root: Document) {
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const saveData = Boolean((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData);
-  type State = { target: HTMLElement; visible: boolean; manual?: 'play' | 'pause'; playing: boolean; toggle?: HTMLButtonElement | null };
+  type State = { target: HTMLElement; visible: boolean; manual?: 'play' | 'pause'; playing: boolean; policyPlay?: boolean; policyPause?: boolean; toggle?: HTMLButtonElement | null };
   const states = new Map<HTMLElement, State>();
   const isEn = () => root.documentElement.dataset.lang === 'en';
   function label(state: State, playing: boolean) {
@@ -43,13 +43,18 @@ export function setupPromotionalPlayback(root: Document) {
   function update() {
     const modal = root.querySelector('dialog[open]');
     states.forEach(state => {
-      const card = state.target.closest<HTMLElement>('[data-app-card]');
-      const play = shouldPlayPromo({ visible: state.visible && !card?.hidden, pageVisible: !root.hidden,
+      const hidden = state.target.closest('[hidden]');
+      const play = shouldPlayPromo({ visible: state.visible && !hidden, pageVisible: !root.hidden,
         modalBlocked: Boolean(modal && !modal.contains(state.target)), reducedMotion: reduced.matches, saveData, manual: state.manual });
       if (state.target instanceof HTMLVideoElement) {
-        state.target.muted = true;
-        if (play) void state.target.play().catch(() => { label(state, false); });
-        else state.target.pause();
+        if (play && state.target.paused) {
+          state.target.muted = true; // Every automatic start/resume is silent.
+          state.policyPlay = true;
+          void state.target.play().catch(() => { state.policyPlay = false; label(state, false); });
+        } else if (!play && !state.target.paused) {
+          state.policyPause = true;
+          state.target.pause();
+        }
         label(state, !state.target.paused);
       } else {
         if (play && !state.playing) {
@@ -76,13 +81,21 @@ export function setupPromotionalPlayback(root: Document) {
     states.forEach((state, target) => { if (!target.isConnected) { observer.unobserve(target); states.delete(target); } });
     root.querySelectorAll<HTMLElement>('video[data-promo], [data-promo-animation]').forEach(target => {
       if (states.has(target)) return;
-      const state: State = { target, visible: false, playing: false, toggle: target.parentElement?.querySelector<HTMLButtonElement>('[data-promo-toggle]') };
+      const state: State = { target, visible: false, playing: false, toggle: (target.closest('[data-promo-panel]') || target.closest('[data-promo-modal-content]') || target.parentElement)?.querySelector<HTMLButtonElement>('[data-promo-toggle]') };
       states.set(target, state);
       if (target instanceof HTMLVideoElement) {
-        target.controls = false;
+        target.controls = target.hasAttribute('data-promo-native-controls');
         target.muted = true;
-        target.addEventListener('play', () => label(state, true));
-        target.addEventListener('pause', () => label(state, false));
+        target.addEventListener('play', () => {
+          if (target.controls && !state.policyPlay) state.manual = 'play';
+          state.policyPlay = false;
+          label(state, true);
+        });
+        target.addEventListener('pause', () => {
+          if (target.controls && !state.policyPause) state.manual = 'pause';
+          state.policyPause = false;
+          label(state, false);
+        });
       }
       state.toggle?.addEventListener('click', () => {
         state.manual = (target instanceof HTMLVideoElement ? !target.paused : state.playing) ? 'pause' : 'play';
@@ -94,6 +107,10 @@ export function setupPromotionalPlayback(root: Document) {
     update();
   }
   root.addEventListener('visibilitychange', update);
+  root.addEventListener('promos:visibility', update);
+  root.addEventListener('close', update, true);
+  const modalObserver = new MutationObserver(update);
+  root.querySelectorAll('dialog').forEach(dialog => modalObserver.observe(dialog, { attributes: true, attributeFilter: ['open'] }));
   reduced.addEventListener('change', update);
   refresh();
   return { update, refresh };

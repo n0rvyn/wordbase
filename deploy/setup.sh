@@ -178,8 +178,7 @@ sudo semanage fcontext -m -t httpd_sys_rw_content_t "$ROOT/packages/api/data(/.*
 # Apply
 sudo restorecon -Rv "$ROOT"
 
-# Allow Caddy to proxy to Node.js on port 4100
-sudo setsebool -P httpd_can_network_connect 1 2>/dev/null || true
+# Existing host web-server/SELinux policy is owner-managed. Do not change it here.
 
 # 9. Install systemd services
 echo "[9/10] Installing systemd services..."
@@ -196,16 +195,18 @@ API_STOPPED=0
 sudo systemctl enable wordbase-rebuild.path
 WATCHER_ACTIVE=1
 
-# 10. Install Caddy config
-echo "[10/10] Installing Caddy configuration..."
+# 10. Check owner-managed Caddy config; hand off any difference.
+echo "[10/10] Checking owner-managed Caddy configuration..."
 CADDY_SITE=${WORDBASE_CADDY_SITE:-/etc/caddy/sites.v2/wordbase}
 if cmp -s "$ROOT/deploy/wordbase" "$CADDY_SITE"; then
     echo 'Wordbase Caddy configuration unchanged; shared Caddy is not restarted.'
 else
-    sudo cp "$ROOT/deploy/wordbase" "$CADDY_SITE"
-    sudo ln -sf wordbase /etc/caddy/sites.v2/wordbase.enable
-    # The host disables Caddy's admin API; a changed config needs a restart.
-    sudo systemctl restart caddy
+    echo 'Caddy configuration differs. Owner review and manual application are required; no Caddy files or services changed.' >&2
+    echo 'After reviewing the config difference, the owner can run:' >&2
+    printf '  sudo cp %q %q\n' "$ROOT/deploy/wordbase" "$CADDY_SITE" >&2
+    echo '  sudo ln -sf wordbase /etc/caddy/sites.v2/wordbase.enable' >&2
+    echo '  sudo systemctl restart caddy' >&2
+    exit 1
 fi
 
 # Verify

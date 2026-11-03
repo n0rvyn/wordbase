@@ -26,14 +26,23 @@ import { hasScope } from '../middleware/auth.js';
 import { z } from 'zod';
 import { buildInputSchema, type PropDescriptor } from './schema.js';
 
+const promoItemFields: Record<string, PropDescriptor> = {
+  type: { type: 'string', required: true, enum: ['video', 'animated-image', 'image'], description: 'Media kind.' },
+  src: { type: 'string', required: true, description: 'Uploaded root-relative or HTTPS media URL.' },
+  poster: { type: 'string', description: 'Still cover; required for animated images.' },
+  alt: { type: 'string', description: 'Description of this demonstration.' },
+  id: { type: 'string', description: 'Stable editorial asset identifier.' },
+  label: { type: 'string', description: 'Short selector label, such as a version.' },
+  width: { type: 'number', min: 1, max: 16384, description: 'Intrinsic media width; include height too.' },
+  height: { type: 'number', min: 1, max: 16384, description: 'Intrinsic media height; include width too.' },
+};
 const promotionalMediaDescriptor: PropDescriptor = {
   type: 'object',
-  description: 'Editorial app-gallery media, separate from Apple screenshots. Upload files with media_upload, then set type and src; animated-image requires a still poster. Use type:none to remove. Merges without replacing other metadata.',
+  description: 'Ordered editorial app promos, separate from Apple screenshots. Use items:[...] for 1–12 promos, a legacy single type/src object, or type:none to remove. Animated images require still posters. Preserves other metadata.',
   shape: {
-    type: { type: 'string', required: true, enum: ['video', 'animated-image', 'image', 'none'], description: 'Video (MP4/WebM), animated GIF/WebP, static image, or none.' },
-    src: { type: 'string', description: 'Uploaded root-relative URL or HTTPS media URL.' },
-    poster: { type: 'string', description: 'Still cover image; required for animated images, recommended for video.' },
-    alt: { type: 'string', description: 'Visitor-facing description of the demonstration.' },
+    ...Object.fromEntries(Object.entries(promoItemFields).map(([key, value]) => [key, { ...value, required: false }])),
+    type: { type: 'string', enum: ['video', 'animated-image', 'image', 'none'], description: 'Legacy single-item kind, or none. Do not combine with items.' },
+    items: { type: 'array', items: z.object(buildInputSchema(promoItemFields)).strict(), description: 'Ordered gallery of 1–12 videos, GIFs or images. Each animated image needs a still poster.' },
   },
 };
 

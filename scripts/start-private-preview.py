@@ -32,7 +32,8 @@ with (STATE / 'review-server.log').open('ab') as log:
     process = subprocess.Popen(
         [sys.executable, '-u', str(ROOT / 'scripts/preview-readonly.py'),
          '--port', '4413', '--offline',
-         *(['--catalog-review'] if (STATE / 'catalog-review/apps.json').is_file() else [])],
+         *(['--catalog-review'] if (STATE / 'catalog-review/apps.json').is_file() else []),
+         *(['--promo-review'] if (STATE / 'promos-review/assignments.json').is_file() else [])],
         cwd=ROOT, stdin=subprocess.DEVNULL, stdout=log, stderr=log,
         start_new_session=True, close_fds=True,
     )

@@ -2,11 +2,12 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import HomeBody from '../components/page-bodies/HomeBody.astro';
 import { loadHomeData } from '../lib/home';
-import { t } from '../lib/i18n.js';
+
+import { HOME_SOCIAL } from '../lib/social-preview';
 
 const data = await loadHomeData('zh');
 ---
 
-<BaseLayout title="norvyn" titleEn={t('title.home').en} hasEnTwin>
+<BaseLayout title={HOME_SOCIAL.zh.title} titleEn={HOME_SOCIAL.en.title} description={HOME_SOCIAL.zh.description} hasEnTwin>
   <HomeBody locale="zh" {...data} />
 </BaseLayout>

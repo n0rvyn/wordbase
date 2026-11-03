@@ -4,6 +4,8 @@ import type { App } from '../../../../lib/api';
 import { localizeApp } from '../../../../lib/localize';
 import { renderAppOgImageCached } from '../../../../lib/og-image';
 
+import { displayName } from '../../../../lib/app';
+
 // One static PNG per published app: /og/en/apps/<slug>.png — the English card.
 // Tagline comes from localizeApp (same source en/apps/[slug].astro uses); the
 // name stays Chinese (ASC-owned), matching the page <title>.
@@ -16,7 +18,8 @@ export const GET: APIRoute = async ({ props }) => {
   const { app } = props as { app: App };
   const localized = await localizeApp(app, 'en');
   const png = await renderAppOgImageCached({
-    name: localized.name,
+    name: displayName(localized.name),
+    platform: localized.platform,
     tagline: localized.tagline || localized.subtitle || '',
     iconUrl: localized.icon,
     accentColor: localized.accentColor,

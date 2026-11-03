@@ -59,3 +59,6 @@ docs/11-crystals/
 
 # Generated session reports (not for the public repo)
 docs/reports/
+
+# Owner-supplied promo originals; inventory/associations are tracked separately.
+app_promos/

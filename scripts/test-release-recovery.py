@@ -122,7 +122,8 @@ class Recovery(unittest.TestCase):
         bindir=self.base/'bin';bindir.mkdir()
         for name in ['git','sudo','systemctl','flock','node','curl','sleep','pnpm','mv','chown','restorecon','semanage','setsebool','cp','ln','ls']:
             path=bindir/name;path.write_text(MOCK.replace('#!PYTHON','#!'+sys.executable));path.chmod(0o755)
-        self.env={**os.environ,'PATH':str(bindir)+os.pathsep+os.environ['PATH'],'WORDBASE_RELEASE_ROOT':str(self.repo),'REAL_GIT':GIT,'BASE':BASE,'STATE':str(self.state),'CALLS':str(self.calls),'MIGRATION_SQL':str(self.migration)}
+        self.caddy_site=self.base/'caddy-wordbase';self.caddy_site.write_bytes((self.repo/'deploy/wordbase').read_bytes())
+        self.env={**os.environ,'PATH':str(bindir)+os.pathsep+os.environ['PATH'],'WORDBASE_RELEASE_ROOT':str(self.repo),'REAL_GIT':GIT,'BASE':BASE,'STATE':str(self.state),'CALLS':str(self.calls),'MIGRATION_SQL':str(self.migration),'WORDBASE_CADDY_SITE':str(self.caddy_site)}
 
     def tearDown(self):
         self.temp.cleanup()
@@ -267,6 +268,20 @@ class Recovery(unittest.TestCase):
         calls=[json.loads(row) for row in self.calls.read_text().splitlines()]
         self.assertNotIn(['systemctl','restart','caddy'],calls)
         self.assertTrue(self.services()['caddy'])
+
+    def test_changed_caddy_config_is_handed_to_owner_without_applying(self):
+        self.caddy_site.write_text('owner-managed configuration')
+        result=self.run_script('setup.sh')
+        self.assertNotEqual(result.returncode,0)
+        self.assertIn('Owner review and manual application',result.stderr)
+        self.assertEqual(self.caddy_site.read_text(),'owner-managed configuration')
+        calls=[json.loads(row) for row in self.calls.read_text().splitlines()]
+        self.assertNotIn(['systemctl','restart','caddy'],calls)
+        self.assertNotIn(['cp',str(self.repo/'deploy/wordbase'),str(self.caddy_site)],calls)
+        self.assertTrue(self.services()['caddy'])
+        self.assertTrue(self.services()['wordbase-api'])
+        self.assertTrue(self.services()['wordbase-rebuild.path'])
+        self.assertEqual((self.repo/'packages/web/dist/index.html').read_text(),'new-static')
 
     def test_managed_api_readiness_retries_slow_startup(self):
         result=self.run_script('setup.sh',FINAL_HEALTH_FAILURES='3')

@@ -1,0 +1,103 @@
+---
+import type { PromotionalMedia } from '../lib/app';
+import type { Locale } from '../lib/locale';
+import PromotionalAnimation from './PromotionalAnimation.astro';
+interface Props { items: PromotionalMedia[]; title: string; galleryId: string; locale: Locale; context?: 'catalog' | 'detail' }
+const { items, title, galleryId, locale, context = 'catalog' } = Astro.props;
+const en = locale === 'en';
+const label = (index: number) => {
+  const value = items[index].label;
+  const common: Record<string, [string, string]> = { Overview: ['概览', 'Overview'], Workflow: ['操作流程', 'Workflow'], Examples: ['效果展示', 'Examples'] };
+  return value && common[value] ? common[value][en ? 1 : 0] : value || `${en ? 'Preview' : '演示'} ${index + 1}`;
+};
+---
+<div class="promo-gallery" data-promo-gallery data-context={context} aria-label={`${title} ${en ? 'previews' : '演示'}`}>
+  <div class="promo-stage">
+    {items.map((media, index) => <figure class="promo-panel" data-promo-panel id={`${galleryId}-${index}`} hidden={index !== 0}>
+      <div class="promo-screen" data-shape={media.width && media.height && media.width >= media.height ? "wide" : "portrait"} style={media.width && media.height ? `--promo-ratio:${media.width}/${media.height}` : undefined}>
+        {media.type === 'video' ? <video data-promo controls muted loop playsinline preload="none" poster={media.poster || undefined} width={media.width} height={media.height} aria-label={media.alt || `${title} ${label(index)}`}><source src={media.src} /></video>
+          : media.type === 'animated-image' ? <PromotionalAnimation src={media.src} poster={media.poster!} alt={media.alt || `${title} ${label(index)}`} />
+          : <img src={media.src} alt={media.alt || `${title} ${label(index)}`} width={media.width} height={media.height} loading="lazy" />}
+      </div>
+      <figcaption class="promo-actions">
+        {media.type !== 'image' && <button type="button" data-promo-toggle aria-pressed="false">{en ? 'Play' : '播放'}</button>}
+        <button type="button" data-promo-expand data-promo-title={`${title} · ${label(index)}`}>{en ? 'Expand' : '展开'} ↗</button>
+      </figcaption>
+    </figure>)}
+  </div>
+  {items.length > 1 && <div class="promo-selectors" role="group" aria-label={en ? 'Choose a preview' : '选择演示'}>
+    {items.map((media, index) => <button type="button" data-promo-select={index} aria-controls={`${galleryId}-${index}`} aria-pressed={index === 0 ? 'true' : 'false'}><span>{String(index + 1).padStart(2, '0')}</span>{label(index)}</button>)}
+  </div>}
+  <dialog class="promo-modal" aria-label={`${title} ${en ? 'expanded preview' : '完整演示'}`}>
+    <div class="promo-modal-bar"><h2 data-promo-modal-title></h2><button type="button" data-promo-close autofocus>{en ? 'Close' : '关闭'} ×</button></div>
+    <div data-promo-modal-content></div>
+  </dialog>
+</div>
+<style is:global>
+  :root[data-public] .promo-gallery { --promo-height:320px; width:100%; min-width:0; }
+  :root[data-public] .promo-gallery[data-context="detail"] { --promo-height:min(520px,58svh); }
+  :root[data-public] .studio-card[data-promo-layout="wide"] { grid-template-columns:minmax(0,1fr); gap:20px; }
+  :root[data-public] .studio-card[data-promo-layout="wide"] .studio-copy { display:grid; grid-template-columns:52px minmax(0,1fr); column-gap:18px; align-items:start; }
+  :root[data-public] .studio-card[data-promo-layout="wide"] .studio-icon { grid-row:1 / 4; }
+  :root[data-public] .studio-card[data-promo-layout="wide"] :is(.studio-platform,h2,.studio-description) { grid-column:2; }
+  :root[data-public] .studio-card[data-promo-layout="wide"] .studio-description { margin:12px 0 0; }
+  :root[data-public] .studio-card[data-promo-layout="wide"] :is(.studio-actions,.studio-support) { grid-column:1 / -1; }
+  :root[data-public] .studio-card[data-promo-layout="wide"] .studio-actions { margin-top:0; padding-top:12px; }
+  :root[data-public] .ad-piece[data-has-promos] { background:none; border:0; padding:0; min-height:0; }
+  :root[data-public] .promo-stage { background:color-mix(in srgb,var(--ink) 4%,var(--surface)); border:1px solid var(--line); border-radius:16px; padding:16px; }
+  :root[data-public] .promo-panel { margin:0; width:100%; min-width:0; }
+  :root[data-public] .promo-panel[hidden] { display:none !important; }
+  :root[data-public] .promo-screen { display:flex; align-items:center; justify-content:center; width:100%; min-width:0; height:var(--promo-height); }
+  :root[data-public] .promo-screen[data-shape="wide"] { height:auto; aspect-ratio:var(--promo-ratio,16/9); }
+  :root[data-public] .promo-gallery .promo-screen :is(video,img,canvas) { display:block; width:100%; height:100%; max-width:100%; max-height:100%; object-fit:contain; border-radius:5px; }
+  :root[data-public] .promo-gallery .promo-screen .studio-animation { width:100%; height:100%; }
+  :root[data-public] .promo-gallery .promo-screen [hidden] { display:none !important; }
+  :root[data-public] .promo-actions { display:flex; justify-content:center; gap:10px; margin-top:12px; flex-wrap:wrap; }
+  :root[data-public] .promo-actions button,:root[data-public] .promo-modal-bar button { font:inherit; font-size:12px; color:var(--ink); background:var(--surface); border:1px solid var(--line-2); border-radius:8px; padding:10px 14px; min-height:44px; cursor:pointer; }
+  :root[data-public] .promo-selectors { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  :root[data-public] .promo-selectors button { display:flex; align-items:baseline; gap:8px; max-width:100%; overflow-wrap:anywhere; text-align:start; font:inherit; font-size:12px; border:1px solid var(--line); background:transparent; color:var(--ink-2); border-radius:9px; padding:10px 12px; min-height:44px; cursor:pointer; }
+  :root[data-public] .promo-selectors button span { font:10px var(--font-mono,monospace); opacity:.65; }
+  :root[data-public] .promo-selectors button[aria-pressed="true"] { border-color:var(--ink); color:var(--ink); background:color-mix(in srgb,var(--ink) 6%,var(--surface)); }
+  :root[data-public] .promo-gallery button:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+  :root[data-public] .promo-modal { width:min(1000px,calc(100vw - 32px)); max-width:calc(100vw - 32px); max-height:92svh; padding:16px; border:1px solid var(--line); border-radius:18px; background:var(--surface); color:var(--ink); }
+  :root[data-public] .promo-modal::backdrop { background:#000b; }
+  :root[data-public] .promo-modal-bar { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:16px; }
+  :root[data-public] .promo-modal-bar h2 { font:inherit; font-size:15px; margin:0; }
+  :root[data-public] .promo-modal .promo-screen { height:min(70svh,850px); }
+  @media(max-width:560px) { :root[data-public] .studio-card[data-has-promos] { grid-template-columns:minmax(0,1fr); } :root[data-public] .promo-gallery { --promo-height:320px; } :root[data-public] .promo-gallery[data-context="detail"] { --promo-height:min(440px,58svh); } :root[data-public] .promo-stage { padding:12px; } }
+</style>
+<script>
+  import { setupPromotionalPlayback } from '../lib/promotional-playback';
+  const playback = setupPromotionalPlayback(document);
+  document.querySelectorAll<HTMLElement>('[data-promo-gallery]').forEach(gallery => {
+    const panels = Array.from(gallery.querySelectorAll<HTMLElement>('[data-promo-panel]'));
+    const selectors = Array.from(gallery.querySelectorAll<HTMLButtonElement>('[data-promo-select]'));
+    selectors.forEach(button => button.addEventListener('click', () => {
+      const index = Number(button.dataset.promoSelect);
+      panels.forEach((panel, i) => { panel.hidden = i !== index; });
+      selectors.forEach((selector, i) => selector.setAttribute('aria-pressed', String(i === index)));
+      playback.update();
+    }));
+    const dialog = gallery.querySelector<HTMLDialogElement>('.promo-modal')!;
+    const content = dialog.querySelector<HTMLElement>('[data-promo-modal-content]')!;
+    let opener: HTMLButtonElement | null = null;
+    gallery.querySelectorAll<HTMLButtonElement>('[data-promo-expand]').forEach(button => button.addEventListener('click', () => {
+      opener = button;
+      dialog.querySelector('[data-promo-modal-title]')!.textContent = button.dataset.promoTitle || '';
+      const screen = button.closest('[data-promo-panel]')!.querySelector('.promo-screen')!.cloneNode(true) as HTMLElement;
+      const expandedVideo = screen.querySelector('video');
+      if (expandedVideo) { expandedVideo.setAttribute('data-promo-native-controls', ''); expandedVideo.controls = true; }
+      const actions = document.createElement('div'); actions.className = 'promo-actions';
+      if (screen.querySelector('video,[data-promo-animation]')) {
+        const toggle = document.createElement('button'); toggle.type = 'button'; toggle.dataset.promoToggle = '';
+        toggle.textContent = document.documentElement.dataset.lang === 'en' ? 'Play' : '播放'; actions.append(toggle);
+      }
+      content.replaceChildren(screen, actions); dialog.showModal(); playback.refresh();
+    }));
+    dialog.querySelector('[data-promo-close]')!.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+    dialog.addEventListener('close', () => {
+      content.querySelectorAll('video').forEach(video => video.pause()); content.replaceChildren(); playback.refresh(); opener?.focus();
+    });
+  });
+</script>

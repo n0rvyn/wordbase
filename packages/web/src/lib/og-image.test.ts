@@ -68,3 +68,39 @@ describe('renderAppOgImage', () => {
     expect(width).toBe(1200);
   });
 });
+
+import { renderSiteOgImage, appOgCacheKey, balancedOgLines } from './og-image';
+import { Resvg } from '@resvg/resvg-js';
+describe('square-safe first-party social artwork', () => {
+  it('keeps all key artwork inside the central square of the wide site card', async () => {
+    const png = await renderSiteOgImage();
+    expect(pngDimensions(png)).toEqual({width:1200,height:630});
+    const image = new Resvg(`<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630"><image width="1200" height="630" href="data:image/png;base64,${png.toString('base64')}"/></svg>`).render();
+    const pixels = image.pixels;
+    let left=1200,right=0,top=630,bottom=0;
+    for(let y=0;y<630;y++) for(let x=0;x<1200;x++) {
+      const i=(y*1200+x)*4;
+      if(Math.abs(pixels[i]-242)+Math.abs(pixels[i+1]-240)+Math.abs(pixels[i+2]-233)>20) { left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y); }
+    }
+    expect(left).toBeGreaterThanOrEqual(285);expect(right).toBeLessThan(915);
+    expect(top).toBeGreaterThan(20);expect(bottom).toBeLessThan(610);
+    expect(right-left).toBeGreaterThan(200);
+    expect(pngDimensions(await renderSiteOgImage(true))).toEqual({width:600,height:600});
+  });
+  it('uses the actual app platform in rendering and the content cache identity', async () => {
+    const input={name:'Nearly',tagline:'Photo editing in your browser.',iconUrl:null};
+    expect(appOgCacheKey({...input,platform:'Web'})).not.toBe(appOgCacheKey({...input,platform:'iOS'}));
+    const web=await renderAppOgImage({...input,platform:'Web'});
+    const ios=await renderAppOgImage({...input,platform:'iOS'});
+    expect(web.equals(ios)).toBe(false);
+  });
+});
+
+it('balances CJK headlines without a single-character last line and retains English word boundaries', () => {
+  const title = '我最近在做的几个小东西';
+  const lines = balancedOgLines(title);
+  expect(lines.join('')).toBe(title);
+  expect(Math.max(...lines.map(line => line.length)) - Math.min(...lines.map(line => line.length))).toBeLessThanOrEqual(1);
+  expect(balancedOgLines('Notes on making useful things').join(' ')).toBe('Notes on making useful things');
+  expect(balancedOgLines('很长的文章标题'.repeat(30)).length).toBeLessThanOrEqual(4);
+});

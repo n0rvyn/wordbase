@@ -62,12 +62,13 @@ describe('reviewed import REST contract', () => {
   });
 });
 
-describe('curated catalog MCP contract', () => {
   const handlers = (scopes = ['apps:write']) => {
     const result = new Map<string, (args: Record<string, unknown>) => Promise<any>>();
     registerTools({ tool(name: string, _description: string, _schema: unknown, handler: any) { result.set(name, handler); } } as never, scopes);
     return result;
   };
+
+describe('curated catalog MCP contract', () => {
   it('withholds review tools without write scope', () => {
     expect(handlers(['apps:read']).has('app_import_list')).toBe(false);
     expect(handlers(['apps:read']).has('app_import_review')).toBe(false);
@@ -116,6 +117,25 @@ describe('curated catalog MCP contract', () => {
 });
 
 describe('promotional-media REST authoring', () => {
+  it('persists ordered video/GIF galleries through REST and MCP without touching publication or copy', async () => {
+    const { catalog } = await suggestion();
+    const items = [
+      { type: 'video', id: 'p_recording', src: '/uploads/recording.mp4', poster: '/uploads/recording.jpg', label: 'Overview', width: 720, height: 1280 },
+      { type: 'animated-image', id: 'p_launch', src: '/uploads/launch.gif', poster: '/uploads/launch.jpg', label: 'v1.3' },
+    ];
+    const result = await app.request(`/api/apps/${catalog.id}`, { method: 'PUT', headers: headers(), body: JSON.stringify({ promotionalMedia: { items } }) });
+    expect(result.status).toBe(200);
+    const stored = (await getApp(catalog.id))!;
+    expect(JSON.parse(stored.meta!).promotionalMedia.items).toEqual(items);
+    for (const key of ['name', 'slug', 'status', 'description', 'links', 'appStoreId', 'appStoreUrl'] as const) expect(stored[key]).toBe(catalog[key]);
+    const invalid = await app.request(`/api/apps/${catalog.id}`, { method: 'PUT', headers: headers(), body: JSON.stringify({ promotionalMedia: { items: [items[0], { ...items[1], poster: undefined }] } }) });
+    expect(invalid.status).toBe(400);
+    expect((await getApp(catalog.id))!.meta).toBe(stored.meta);
+    const response = await handlers().get('app_update')!({ id: catalog.id, promotionalMedia: { items: [...items].reverse() } });
+    expect(response.isError).not.toBe(true);
+    expect(JSON.parse((await getApp(catalog.id))!.meta!).promotionalMedia.items).toEqual([...items].reverse());
+  });
+
   it('validates media and requires write authorization without changing existing content', async () => {
     const { catalog } = await suggestion();
     const path = `/api/apps/${catalog.id}`;

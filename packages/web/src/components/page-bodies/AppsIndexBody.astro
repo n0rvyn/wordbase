@@ -1,7 +1,7 @@
 ---
 import { type App } from '../../lib/api';
-import { displayName, heroShot, parseJsonArray, storeHref, websiteHref, promotionalMedia } from '../../lib/app';
-import PromotionalAnimation from '../PromotionalAnimation.astro';
+import { displayName, heroShot, parseJsonArray, storeHref, websiteHref, promotionalMediaList } from '../../lib/app';
+import AppPromos from '../AppPromos.astro';
 import { enHref, type Locale } from '../../lib/locale';
 import T from '../T.astro';
 import { publicProjects } from '../../lib/public-projects';
@@ -23,7 +23,7 @@ const catalog = apps.map((app, index) => ({
   app, index, title: displayName(app.name), detail: lhref(`/apps/${app.slug}`),
   store: storeHref(app), website: websiteHref(app), links: linksFor(app),
   shot: heroShot(parseJsonArray<string>(app.screenshots), app.platform),
-  media: promotionalMedia(app.meta), description: app.tagline || app.subtitle,
+  media: promotionalMediaList(app.meta), description: app.tagline || app.subtitle,
 }));
 ---
 <header class="studio-hero wrap">
@@ -41,7 +41,7 @@ const catalog = apps.map((app, index) => ({
   </div>
   <p class="studio-count" id="appCount" aria-live="polite" data-count-zh="款应用" data-count-en="apps">{apps.length} <T zh="款应用" en="apps" /></p>
   <div class="studio-grid" id="appGrid">
-    {catalog.map(({ app, index, title, detail, store, website, links, shot, media, description }) => <article class="studio-card" style={`--app-tint:${/^#[0-9a-f]{6}$/i.test(app.accentColor || '') ? app.accentColor : '#a5b1a4'}`} data-app-card data-platform={app.platform} data-search={`${app.name} ${app.tagline || ''} ${app.subtitle || ''} ${app.description || ''}`}>
+    {catalog.map(({ app, index, title, detail, store, website, links, shot, media, description }) => <article class="studio-card" style={`--app-tint:${/^#[0-9a-f]{6}$/i.test(app.accentColor || '') ? app.accentColor : '#a5b1a4'}`} data-app-card data-has-promos={media.length ? "" : undefined} data-promo-layout={media.some(item => item.width && item.height && item.width >= item.height) ? "wide" : undefined} data-platform={app.platform} data-search={`${app.name} ${app.tagline || ''} ${app.subtitle || ''} ${app.description || ''}`}>
         <div class="studio-copy">
           <div class="studio-icon">{app.icon ? <img src={app.icon} alt="" width="52" height="52" loading="lazy" /> : <span>{title.charAt(0)}</span>}</div>
           <p class="studio-platform">{String(index + 1).padStart(2, '0')} / {app.platform}</p>
@@ -52,15 +52,7 @@ const catalog = apps.map((app, index) => ({
           {(links.support || links.privacy) && <div class="studio-support">{links.support && <a href={links.support}><T zh="支持" en="Support" /></a>}{links.privacy && <a href={links.privacy}><T zh="隐私" en="Privacy" /></a>}</div>}
         </div>
         <div class="studio-media">
-          {media?.type === 'video' ? <>
-            <video data-promo controls muted loop playsinline preload="none" poster={media.poster || shot?.url || undefined} aria-label={media.alt || (en ? `${title} preview` : `${title} 预览`)}><source src={media.src} /></video>
-            <div class="studio-media-actions"><button type="button" data-promo-toggle><T zh="播放" en="Play" /></button><button type="button" data-expand-video={media.src} data-title={title} data-poster={media.poster || shot?.url || ''}><T zh="展开" en="Expand" /> ↗</button></div>
-          </> : media?.type === 'animated-image' ? <>
-            <PromotionalAnimation src={media.src} poster={media.poster!} alt={media.alt || `${title} ${en ? 'demonstration' : '演示'}`} />
-            <div class="studio-media-actions"><button type="button" data-promo-toggle><T zh="播放" en="Play" /></button><button type="button" data-expand-animation={media.src} data-title={title} data-poster={media.poster}><T zh="展开" en="Expand" /> ↗</button></div>
-          </> : media?.type === 'image' ? <button class="studio-shot" type="button" data-expand-image={media.src} data-title={title} aria-label={media.alt || (en ? `View ${title} demonstration` : `查看 ${title} 演示`)}>
-            <img src={media.src} alt={media.alt || `${title} ${en ? 'demonstration' : '演示'}`} loading="lazy" /><span><T zh="展开" en="Expand" /> ↗</span>
-          </button> : shot ? <button class="studio-shot" type="button" data-expand-image={shot.url} data-title={title} aria-label={en ? `View ${title} screenshot` : `查看 ${title} 截图`}>
+          {media.length ? <AppPromos items={media} title={title} galleryId={`catalog-${app.id}`} locale={locale} /> : shot ? <button class="studio-shot" type="button" data-expand-image={shot.url} data-title={title} aria-label={en ? `View ${title} screenshot` : `查看 ${title} 截图`}>
             <img src={shot.url} alt={en ? `${title} screenshot` : `${title} 截图`} width={shot.width ?? undefined} height={shot.height ?? undefined} loading="lazy" />
             <span><T zh="查看截图" en="View screenshot" /> ↗</span>
           </button> : <div class="studio-no-media" aria-hidden="true">{title.charAt(0)}<span>✳</span></div>}
@@ -102,9 +94,7 @@ const catalog = apps.map((app, index) => ({
 </dialog>
 
 <script>
-  import { setupPromotionalPlayback } from '../../lib/promotional-playback';
-  const playback = setupPromotionalPlayback(document);
-  const updatePromos = () => playback.update();
+  const updatePromos = () => document.dispatchEvent(new Event('promos:visibility'));
   const cards = Array.from(document.querySelectorAll<HTMLElement>('[data-app-card]'));
   const search = document.getElementById('appSearch') as HTMLInputElement | null;
   const filters = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-platform]:is(button)'));
@@ -166,7 +156,7 @@ const catalog = apps.map((app, index) => ({
       const actions = document.createElement('div'); actions.className = 'studio-media-actions';
       const toggle = document.createElement('button'); toggle.type = 'button'; toggle.dataset.promoToggle = ''; toggle.textContent = isEn() ? 'Play' : '播放';
       actions.append(toggle); wrapper.append(frame, actions); content.append(wrapper);
-      playback.refresh();
+      updatePromos();
     } else {
       const image = document.createElement('img');
       image.src = button.dataset.expandImage || '';
@@ -182,7 +172,7 @@ const catalog = apps.map((app, index) => ({
   dialog?.addEventListener('close', () => {
     content?.querySelector('video')?.pause();
     content?.replaceChildren();
-    playback.refresh();
+    updatePromos();
     document.body.classList.remove('media-open');
     opener?.focus();
     updatePromos();

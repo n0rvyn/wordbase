@@ -17,6 +17,7 @@
 //   · section numbers are derived from the sections actually present, so an
 //     app without features no longer jumps 00 → 02
 import ShareButtons from '../ShareButtons.astro';
+import AppPromos from '../AppPromos.astro';
 import { formatMonoDate } from '../../lib/home';
 import {
   parseJsonArray,
@@ -30,6 +31,7 @@ import {
   parseReleaseNotes,
   storeHref,
   websiteHref,
+  promotionalMediaList,
 } from '../../lib/app';
 import { enHref, type Locale } from '../../lib/locale';
 import type { App } from '../../lib/api';
@@ -57,6 +59,7 @@ const paras = descriptionParagraphs(app.description);
 // still carries the document <title>, the spine label, JSON-LD and the OG card.
 const title = displayName(app.name);
 
+const promos = promotionalMediaList(app.meta);
 const hero = heroShot(screenshots, app.platform);
 const groups = groupScreenshots(screenshots, app.platform);
 const secondary = hero?.device === 'phone' ? groups.find(group => group.device === hero.device)?.shots.find(shot => shot.url !== hero.url) : undefined;
@@ -144,11 +147,11 @@ const shareUrl = new URL(lhref(`/apps/${app.slug}`), Astro.site).href;
             </div>
           </div>
 
-          <div class="ad-piece" data-device={hero?.device || 'unknown'}>
-            {hero ? <button class="ad-hero-shot" type="button" data-app-media={hero.url} data-media-title={`${title} screenshot`} aria-label={locale === 'en' ? `Expand ${title} screenshot` : `展开 ${title} 截图`}>
+          <div class="ad-piece" data-has-promos={promos.length ? "" : undefined} data-device={hero?.device || 'unknown'}>
+            {promos.length ? <AppPromos items={promos} title={title} galleryId={`detail-${app.id}`} locale={locale} context="detail" /> : hero ? <button class="ad-hero-shot" type="button" data-app-media={hero.url} data-media-title={`${title} screenshot`} aria-label={locale === 'en' ? `Expand ${title} screenshot` : `展开 ${title} 截图`}>
               <img class="ad-screenshot" src={hero.url} alt={`${title} screenshot`} width={hero.width ?? undefined} height={hero.height ?? undefined} />
             </button> : <div class="ad-empty">{app.icon && <img src={app.icon} alt="" width="100" height="100" />}<span>{title}</span></div>}
-            {secondary && <button class="ad-hero-shot ad-hero-secondary" type="button" data-app-media={secondary.url} data-media-title={`${title} screenshot 2`} aria-label={locale === 'en' ? `Expand ${title} screenshot 2` : `展开 ${title} 截图 2`}><img class="ad-screenshot" src={secondary.url} alt={`${title} screenshot 2`} width={secondary.width ?? undefined} height={secondary.height ?? undefined} /></button>}
+            {!promos.length && secondary && <button class="ad-hero-shot ad-hero-secondary" type="button" data-app-media={secondary.url} data-media-title={`${title} screenshot 2`} aria-label={locale === 'en' ? `Expand ${title} screenshot 2` : `展开 ${title} 截图 2`}><img class="ad-screenshot" src={secondary.url} alt={`${title} screenshot 2`} width={secondary.width ?? undefined} height={secondary.height ?? undefined} /></button>}
           </div>
         </div>
       </div>
