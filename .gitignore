@@ -1,4 +1,11 @@
 node_modules/
+.preview/
+__pycache__/
+.rollback-stage.*/
+.release-stage.*/
+.rebuild-stage.*/
+packages/api/data/.release.lock
+packages/api/data/.deployment.lock
 dist/
 *.db
 *.db-wal

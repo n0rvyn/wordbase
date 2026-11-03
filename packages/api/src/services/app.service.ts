@@ -3,6 +3,7 @@ import { nanoid } from 'nanoid';
 import { db } from '../db/index.js';
 import { apps } from '../db/schema.js';
 import { listAscApps } from './asc.service.js';
+import { mergePromotionalMedia } from './app-media.service.js';
 
 function slugify(text: string): string {
   return text
@@ -89,6 +90,12 @@ interface CreateAppData {
   status?: string;
   sortOrder?: number;
   meta?: string;
+  promotionalMedia?: unknown;
+  category?: string;
+  version?: string;
+  minimumOsVersion?: string;
+  subtitle?: string;
+  whatsNew?: string;
 }
 
 export async function createApp(data: CreateAppData) {
@@ -103,6 +110,7 @@ export async function createApp(data: CreateAppData) {
       slug,
       name: data.name,
       tagline: data.tagline ?? null,
+      subtitle: data.subtitle ?? null,
       icon: data.icon ?? null,
       description: data.description ?? null,
       appStoreUrl: data.appStoreUrl ?? null,
@@ -121,7 +129,7 @@ export async function createApp(data: CreateAppData) {
       publishedAt: null,
       createdAt: now,
       updatedAt: now,
-      meta: data.meta ?? null,
+      meta: data.promotionalMedia === undefined ? data.meta ?? null : mergePromotionalMedia(data.meta ?? null, data.promotionalMedia),
     })
     .returning();
 
@@ -152,13 +160,18 @@ export async function updateApp(id: string, data: Partial<CreateAppData>) {
   if (data.sortOrder !== undefined) updateValues.sortOrder = data.sortOrder;
   if (data.meta !== undefined) updateValues.meta = data.meta;
 
-  const [app] = await db
-    .update(apps)
-    .set(updateValues)
-    .where(eq(apps.id, id))
-    .returning();
+  for (const field of ['category', 'version', 'minimumOsVersion', 'subtitle', 'whatsNew'] as const) {
+    if (data[field] !== undefined) updateValues[field] = data[field];
+  }
 
-  return app || null;
+  return db.transaction((tx) => {
+    const current = tx.select().from(apps).where(eq(apps.id, id)).get();
+    if (!current) return null;
+    if (data.promotionalMedia !== undefined) {
+      updateValues.meta = mergePromotionalMedia(data.meta === undefined ? current.meta : data.meta, data.promotionalMedia);
+    }
+    return tx.update(apps).set(updateValues).where(eq(apps.id, id)).returning().get() || null;
+  });
 }
 
 export async function deleteApp(id: string) {

@@ -7,6 +7,7 @@ import { decodeEntities } from '../../lib/home';
 import type { Category } from '../../lib/api';
 import { enHref, type Locale } from '../../lib/locale';
 import T from '../T.astro';
+import IndexHeader from '../IndexHeader.astro';
 
 interface Props {
   locale: Locale;
@@ -18,66 +19,34 @@ const { locale, categories, catCounts } = Astro.props;
 const lhref = (p: string) => (locale === 'en' ? enHref(p) : p);
 ---
 
-<header class="sec wrap" style="border-top:none;padding-top:clamp(44px,6vw,80px)">
-  <div class="row2">
-    <div class="spine">
-      <span class="no">00</span>
-      <span class="lab">Categories</span>
-      <span class="note"><T zh={`${categories.length} 个分类。`} en={`${categories.length} categories.`} /></span>
+<IndexHeader>
+  <span slot="label"><T k="cat.index.eyebrow" /></span>
+  <span slot="title"><T k="cat.index.h1" /></span>
+  <span slot="summary"><T zh={`${categories.length} 个分类，按主题浏览文章。`} en={`${categories.length} categories to explore the writing.`} /></span>
+</IndexHeader>
+<section class="categories-index wrap" aria-label={locale === 'en' ? 'All categories' : '全部分类'}>
+  {categories.length === 0 ? <p class="categories-empty"><T k="cat.index.empty" /></p> : (
+    <div class="categories-grid">
+      {categories.map((cat: Category) => (
+        <a class="category-entry" href={lhref(`/categories/${cat.slug}`)}>
+          <div class="category-copy"><h2>{decodeEntities(cat.name)}</h2>{cat.description && <p>{cat.description}</p>}</div>
+          <span class="category-count"><T zh={`${catCounts.get(cat.slug) ?? 0} 篇`} en={`${catCounts.get(cat.slug) ?? 0} posts`} /><span class="category-arrow" aria-hidden="true">↗</span></span>
+        </a>
+      ))}
     </div>
-    <div>
-      <div class="eyebrow"><T k="cat.index.eyebrow" /></div>
-      <h1><T k="cat.index.h1" /></h1>
-    </div>
-  </div>
-</header>
-
-<section class="sec wrap">
-  <div class="row2">
-    <div class="spine">
-      <span class="no">01</span>
-      <span class="lab"><T k="cat.index.all.lab" /></span>
-    </div>
-    <div>
-      {categories.length === 0 ? (
-        <div class="empty"><T k="cat.index.empty" /></div>
-      ) : (
-        <div class="list">
-          {categories.map((cat: Category) => (
-            <a class="item" href={lhref(`/categories/${cat.slug}`)}>
-              <div>
-                <div class="item-title">{decodeEntities(cat.name)}</div>
-                {cat.description && <div class="item-sub">{cat.description}</div>}
-              </div>
-              <div class="item-meta"><T zh={`${catCounts.get(cat.slug) ?? 0} 篇`} en={`${catCounts.get(cat.slug) ?? 0} posts`} /></div>
-            </a>
-          ))}
-        </div>
-      )}
-    </div>
-  </div>
+  )}
 </section>
-
 <style>
-  /* ── Sections ─────────────────────────────────────────────────────────────── */
-  .sec { padding: clamp(44px, 6vw, 84px) 0; border-top: 1px solid var(--line); }
-
-  /* ── Hero ─────────────────────────────────────────────────────────────────── */
-  .eyebrow {
-    font-family: var(--font-mono); font-size: 12.5px;
-    letter-spacing: .16em; text-transform: uppercase;
-    color: var(--ink-3); margin-bottom: 20px;
-  }
-  h1 {
-    font-family: var(--font-display); font-weight: 500;
-    font-size: clamp(40px, 6vw, 76px); line-height: 1.02;
-    letter-spacing: -.035em; margin: 0 0 22px;
-  }
-
-  /* ── Empty state ──────────────────────────────────────────────────────────── */
-  .empty { font-family: var(--font-read); color: var(--ink-3); font-size: 16px; padding: 48px 0; }
-
-  /* ── Row list (local overrides — grid 2-col) ──────────────────────────────── */
-  .item { grid-template-columns: 1fr auto; gap: 6px 28px; }
-  .item-title { font-size: clamp(19px, 2vw, 24px); }
+  .categories-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); column-gap: 48px; border-top: 1px solid var(--line); }
+  .category-entry { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 88px; padding-block: 20px; border-bottom: 1px solid var(--line); }
+  .category-copy { min-width: 0; }
+  .category-copy h2 { font: 500 19px/1.4 var(--font-display); letter-spacing: -.02em; margin: 0; overflow-wrap: anywhere; }
+  .category-copy p { font-size: 13px; color: var(--ink-2); line-height: 1.6; margin-top: 5px; }
+  .category-count { display: flex; align-items: center; gap: 16px; white-space: nowrap; font-size: 12px; color: var(--ink-2); }
+  .category-arrow { font-size: 17px; color: var(--ink-2); }
+  .category-entry:hover h2, .category-entry:hover .category-arrow { color: var(--accent); }
+  .category-entry:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+  .categories-empty { padding-block: 30px; color: var(--ink-2); }
+  @media(max-width:760px) { .categories-grid { grid-template-columns: 1fr; } }
+  @media(max-width:560px) { .category-entry { min-height: 76px; padding-block: 16px; gap: 14px; } .category-copy h2 { font-size: 17px; } .category-count { gap: 10px; } }
 </style>

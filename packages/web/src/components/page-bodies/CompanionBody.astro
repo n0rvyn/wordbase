@@ -12,35 +12,29 @@ interface Props {
 }
 
 const { title, htmlContent } = Astro.props;
+// Tables need a real scroll container: overflow on a CSS table does not
+// constrain its intrinsic minimum width. Keep all authored cells and links.
+const tableLabel = Astro.url.pathname.startsWith('/en/') ? 'Scrollable table' : '可横向滚动的表格';
+const readableHtml = htmlContent.replace(/<table\b[\s\S]*?<\/table>/gi, table => `<div class="legal-table-scroll" tabindex="0" role="region" aria-label="${tableLabel}">${table}</div>`);
 ---
 
-<header class="sec wrap" style="border-top:none;padding-top:clamp(44px,6vw,80px)">
-  <div class="row2">
-    <div class="spine">
-      <span class="no">00</span>
-      <span class="lab">Page</span>
-    </div>
-    <div>
-      <h1>{title}</h1>
-    </div>
-  </div>
-</header>
-
-<section class="sec wrap">
-  <div class="row2">
-    <div class="spine"></div>
-    <div class="prose" set:html={htmlContent} />
-  </div>
-</section>
+<article class="companion-document">
+  <header><h1>{title}</h1></header>
+  <div class="prose" set:html={readableHtml} />
+</article>
 
 <style>
-  /* ── Sections ─────────────────────────────────────────────────────────────── */
-  .sec { padding: clamp(44px, 6vw, 84px) 0; border-top: 1px solid var(--line); }
-
-  /* ── Hero ─────────────────────────────────────────────────────────────────── */
-  h1 {
-    font-family: var(--font-display); font-weight: 500;
-    font-size: clamp(40px, 6vw, 76px); line-height: 1.02;
-    letter-spacing: -.035em; margin: 0 0 22px; color: var(--ink);
-  }
+  .companion-document { max-width: 760px; margin: 40px auto 0; }
+  .companion-document header { padding-bottom: 24px; border-bottom: 1px solid var(--line); }
+  .companion-document h1 { font: 500 clamp(26px,3vw,36px)/1.3 var(--font-display); letter-spacing: -.025em; color: var(--ink); margin: 0; }
+  .companion-document .prose { max-width: none; margin-top: 28px; color: var(--ink); font: 16px/1.85 var(--font-read); --tw-prose-headings: var(--ink); --tw-prose-bold: var(--ink); --tw-prose-code: var(--ink); --tw-prose-counters: var(--ink-2); --tw-prose-bullets: var(--ink-3); --tw-prose-th-borders: var(--line-2); --tw-prose-td-borders: var(--line); }
+  .companion-document :global(.prose :is(h1,h2,h3,h4,h5,h6,th,td)) { color: var(--ink); }
+  .companion-document :global(.prose h2) { font-size: 23px; line-height: 1.4; margin-top: 1.8em; }
+  .companion-document :global(.prose h3) { font-size: 19px; line-height: 1.45; }
+  .companion-document :global(.prose a) { color: #a7381c; }
+  :global([data-theme="dark"]) .companion-document :global(.prose a) { color: #ffb291; }
+  .companion-document :global(.legal-table-scroll) { max-width: 100%; overflow-x: auto; margin-block: 24px; }
+  .companion-document :global(.legal-table-scroll table) { width: 100%; min-width: 480px; margin: 0; font-size: 14px; line-height: 1.65; }
+  .companion-document :global(.prose code) { overflow-wrap: anywhere; color: var(--ink); }
+  @media(max-width:600px) { .companion-document { margin-top: 28px; } .companion-document .prose { font-size: 16px; line-height: 1.8; } }
 </style>

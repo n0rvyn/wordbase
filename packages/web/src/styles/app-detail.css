@@ -17,36 +17,21 @@
    page's featured card became the second consumer — imported by AppDetailBody. */
 
 /* ---- hero ---- */
-.ad-top {
-  position: relative;
-  /* clips the wall's bleed so it can never make the page scroll sideways */
-  overflow: hidden;
-  padding: clamp(40px, 6vw, 84px) 0 clamp(44px, 6vw, 88px);
-}
-/*
-  The wall the piece hangs on. Anchored to the art column and bled to the right
-  page edge, NOT sized as a fraction of the viewport: a fixed `min(40%, 566px)`
-  put the wall's left edge at x=874 on a 1440 viewport while the label column
-  ran to x=912, so the last spec cell sat on top of the wall.
-*/
-.ad-piece { position: relative; }
-.ad-piece::before {
-  content: "";
-  position: absolute;
-  top: calc(-1 * clamp(40px, 6vw, 84px));
-  bottom: calc(-1 * clamp(44px, 6vw, 88px));
-  left: calc(-1 * clamp(15px, 2.3vw, 29px));
-  right: -100vw;
-  background: var(--surface-2);
-  pointer-events: none;
-}
-.ad-piece > * { position: relative; }
-.ad-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(240px, 24vw, 340px);
-  gap: clamp(30px, 4.6vw, 58px);
-  align-items: center;
-}
+ .app-detail > .sec { max-width: 1280px; padding-inline: 0; }
+.ad-top { padding: 32px 0 56px; }
+.ad-top > .wrap { max-width: 1280px; padding-inline: 0; }
+.ad-back { display: inline-block; font-size: 12px; color: var(--ink-2); margin-bottom: 28px; }
+.ad-hero { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: clamp(32px,5vw,72px); align-items: center; }
+.ad-piece { min-width: 0; min-height: 500px; display: flex; justify-content: center; align-items: center; gap: 22px; padding: 36px; background: color-mix(in srgb,var(--app) 7%,var(--surface)); border: 1px solid var(--line); border-radius: 24px; }
+.ad-hero-shot, .ad-gallery-shot { display: block; min-width: 0; padding: 0; border: 0; background: transparent; cursor: zoom-in; border-radius: 8px; }
+.ad-screenshot { display: block; width: auto; height: auto; max-width: 100%; border-radius: 8px; }
+.ad-hero-shot .ad-screenshot { max-height: 420px; box-shadow: 0 16px 32px #0002; }
+.ad-hero-secondary { align-self: end; margin-bottom: 8px; }
+.ad-hero-secondary .ad-screenshot { max-height: 330px; }
+.ad-piece[data-device="desktop"], .ad-piece[data-device="unknown"] { min-height: 380px; }
+.ad-piece[data-device="desktop"] .ad-hero-shot .ad-screenshot { max-height: 360px; width: 100%; }
+.ad-empty { display: grid; justify-items: center; gap: 24px; color: var(--ink-2); }
+.ad-empty img { border-radius: 24px; }
 .ad-eyebrow {
   font-family: var(--font-mono);
   font-size: var(--type-meta);
@@ -222,15 +207,18 @@
   color: var(--ink-4);
   white-space: nowrap;
 }
-.shots-grid {
-  display: grid;
-  gap: clamp(20px, 3.4vw, 47px);
-  /* Default (phone art): three across. Overridden per device below. */
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-.shots-grid[data-device="tablet"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.shots-grid[data-device="desktop"],
-.shots-grid[data-device="unknown"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.shots-grid { display: flex; gap: 24px; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; padding: 28px; border: 1px solid var(--line); border-radius: 16px; background: color-mix(in srgb,var(--app) 4%,var(--paper)); }
+.shots-grid figure { flex: 0 0 auto; margin: 0; scroll-snap-align: start; }
+.shots-grid .ad-screenshot { width: auto; height: auto; max-height: 320px; max-width: min(72vw,460px); }
+.shots-grid figcaption { margin-top: 12px; font-size: 11px; color: var(--ink-2); }
+.shot-controls { order: 1; display: flex; gap: 8px; }
+.shot-controls button { min-width: 44px; min-height: 44px; border: 1px solid var(--line); border-radius: 50%; color: var(--ink); background: transparent; cursor: pointer; }
+.ad-media-dialog { margin: auto; max-width: min(96vw,1200px); max-height: 94dvh; padding: 20px; background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; }
+.ad-media-dialog::backdrop { background: #101510b3; backdrop-filter: blur(8px); }
+.ad-media-bar { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 16px; }
+.ad-media-bar h2 { font-size: 16px; font-weight: 500; }
+.ad-media-bar button { min-height: 44px; padding: 10px 16px; border-radius: 24px; border: 1px solid var(--line); background: transparent; color: inherit; cursor: pointer; }
+.ad-media-dialog > img { display: block; width: auto; height: auto; max-width: 100%; max-height: 76dvh; margin: auto; object-fit: contain; }
 
 /* ---- what's new ---- */
 .wn {
@@ -333,7 +321,8 @@
 }
 
 /* ---- more apps row ---- */
-.app { grid-template-columns: 50px 1fr auto; gap: 20px; }
+.app { grid-template-columns: 50px minmax(0, 1fr) auto; gap: 20px; }
+.app > * { min-width: 0; }
 .app-ic {
   width: 50px;
   height: 50px;
@@ -387,10 +376,6 @@
   .wn { grid-template-columns: minmax(0, 1fr); gap: 20px; }
   .wn-ver { flex-direction: row; align-items: baseline; gap: 14px; }
   .about { columns: 1; }
-  .shots-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .shots-grid[data-device="tablet"],
-  .shots-grid[data-device="desktop"],
-  .shots-grid[data-device="unknown"] { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 560px) {
   .ad-id { gap: 15px; margin-top: 24px; }
@@ -400,13 +385,14 @@
   .ad-cta { margin-top: 28px; }
   .ad-cta .btn { flex: 1 1 auto; }
   .plate-cap { flex-direction: column; gap: 2px; }
-  .app { grid-template-columns: 44px 1fr; }
+  .app { grid-template-columns: 44px minmax(0, 1fr); }
   .app-ic { width: 44px; height: 44px; border-radius: 12px; }
   .app-r {
     grid-column: 2;
     align-items: flex-start;
     text-align: left;
     flex-direction: row;
+    flex-wrap: wrap;
     gap: 14px;
     margin-top: 8px;
   }
@@ -421,3 +407,15 @@
   letter-spacing: -.03em;
   margin: 14px 0 clamp(28px, 3.6vw, 46px);
 }
+
+/* The composition scales as a whole; media retain their intrinsic proportions. */
+:root[data-public] body[data-space="apps"] .app-detail .ad-id h1 { font-size: clamp(32px,3.6vw,54px); line-height: 1.12; }
+.app-detail .ad-meta { justify-content: start; gap: 20px 36px; }
+.app-detail .spine .no { font-size: 32px; }
+.app-detail .spine { position: static; }
+.app-detail .sec { padding-block: 44px; }
+.app-detail .about { font-size: 16px; line-height: 1.85; }
+@media(max-width:1080px) { .ad-piece { padding: 24px; gap: 16px; min-height: 440px; } .ad-hero-shot .ad-screenshot { max-height: 360px; } .ad-hero-secondary .ad-screenshot { max-height: 280px; } }
+@media(max-width:880px) { .ad-piece { max-width: 600px; width: 100%; margin-inline: auto; } .ad-hero { gap: 28px; } }
+@media(max-width:560px) { .ad-top { padding-top: 24px; } .ad-piece { min-height: 360px; padding: 20px; } .ad-hero-shot .ad-screenshot { max-height: 300px; } .ad-hero-secondary .ad-screenshot { max-height: 240px; } .ad-piece[data-device="tablet"] .ad-screenshot { max-height: 300px; } .ad-piece[data-device="desktop"], .ad-piece[data-device="unknown"] { min-height: 220px; } .shots-grid { padding: 18px; gap: 18px; } .shots-grid .ad-screenshot { max-height: 280px; max-width: calc(100vw - 80px); } }
+@media(max-width:350px) { .ad-hero-secondary { display: none; } }

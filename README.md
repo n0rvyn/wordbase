@@ -72,7 +72,7 @@ wordbase/
 
 ### Prerequisites
 
-- Node.js >= 18
+- Node.js compatible with the frozen dependencies (currently 20.x or 22–25; Node 18 is unsupported)
 - pnpm
 
 ### Configuration (`.env`)
@@ -157,9 +157,15 @@ All endpoints at `/api/*`. Auth via `Authorization: Bearer <api-key>`.
 | `/api/build/status` | GET | Yes | Build status |
 | `/api/redirects` | GET/POST/DELETE | Yes | URL redirect management |
 
+### Curated Apple imports
+
+App content is maintained by hand. The existing sync endpoints, including webhooks and scheduled refreshes, now prepare suggestions without modifying displayed apps. Review with `GET /api/apps/imports` (optional `appId`), or `GET /api/apps/imports/:id`; these require `apps:write` authorization. Apply/reject with `POST /api/apps/imports/:id/review` and `{ "reviewToken": "<from readback>", "action": "apply", "fields": ["version", "icon"] }`. Only selected server-stored differences are accepted. Seven-day expiry, a complete row hash and an atomic transaction protect concurrent edits; rejected/stale proposals never write catalog values. Applying to a published app queues a build.
+
+`app_imports` is an additive table created by the existing `db:migrate`/startup initializer. Existing app rows, IDs, URLs and content remain intact. Rollback may leave the unused table in place; do not drop it or restore the entire database over newer editorial content. **Older code re-enables automatic sync**, so isolate old sync/webhook/cron paths when rolling back the API; rolling back only the static frontend leaves curated protection active.
+
 ## MCP Server
 
-68 tools for AI-powered content management (posts · taxonomy · media · comments · analytics · podcast · apps · companion pages · settings · observability · i18n) via the MCP stdio protocol. An MCP client discovers the full, authoritative tool list at runtime via `tools/list`; the tables below mirror it for quick reference.
+70 tools for AI-powered content management (posts · taxonomy · media · comments · analytics · podcast · apps · companion pages · settings · observability · i18n) via the MCP stdio protocol. An MCP client discovers the full, authoritative tool list at runtime via `tools/list`; the tables below mirror it for quick reference.
 
 ### Setup (Claude Desktop)
 
@@ -262,7 +268,7 @@ Mint a key with `pnpm --filter api cli key:create <name>` (printed once). The se
 | `podcast_analytics` | Podcast download/subscriber analytics |
 | `podcast_get_feedback` | Read listener feedback for an episode |
 
-**Apps (8)**
+**Apps (10)**
 
 | Tool | Description |
 |------|------------|
@@ -270,10 +276,12 @@ Mint a key with `pnpm --filter api cli key:create <name>` (printed once). The se
 | `app_get` | Get an app by id |
 | `app_create` | Create an app landing page |
 | `app_publish` | Publish an app landing page |
-| `app_update` | Update an app's editorial fields (tagline / features / accentColor / links / sortOrder / status / meta). NOTE: description, screenshots, and icon are App-Store-synced and NOT editable here |
+| `app_update` | Edit curated app copy, icon, screenshots, display metadata, features, links and ordering |
 | `app_delete` | Delete an app (rebuilds only if previously published) |
 | `app_discover` | Discover apps from App Store Connect — creates draft rows for new ones (no sync, no publish, no ASC write-back) |
-| `app_sync` | Sync app metadata from the App Store (iTunes Lookup + ASC). `id` given = one app; `id` omitted = every app with an App Store ID. Rebuilds the site when a **published** app actually changed, and reports the changed fields per app |
+| `app_import_list` | Read persisted before/after proposals and review tokens |
+| `app_import_review` | Apply explicitly approved fields or reject a proposal; stale reviews fail; published applications rebuild |
+| `app_sync` | Prepare Apple metadata review proposals only; never modifies display content or rebuilds. `id` selects one app; omit for all |
 
 **Companion pages (6)** — privacy / terms / help / support / changelog, served at public `/{slug}` URLs
 
@@ -450,7 +458,7 @@ Web-based admin at `/admin`. Login with API key.
 
 ### Server Requirements
 
-- Node.js >= 18
+- Node.js compatible with the frozen dependencies (currently 20.x or 22–25; Node 18 is unsupported)
 - Caddy (or any reverse proxy)
 - systemd (for service management)
 

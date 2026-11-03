@@ -54,12 +54,12 @@ beforeEach(() => {
   triggerBuild.mockReset();
 });
 
-describe('app_sync rebuild decision', () => {
-  it('rebuilds when a published app actually changed', async () => {
+describe('app_sync proposes without publishing', () => {
+  it('does not rebuild when a published app has proposed changes', async () => {
     syncApp.mockResolvedValue(change({ status: 'published', fields: ['version', 'icon'] }));
     const res = await handler()({ id: 'app1' });
-    expect(triggerBuild).toHaveBeenCalledTimes(1);
-    expect(JSON.parse(res.content[0].text).rebuildTriggered).toBe(true);
+    expect(triggerBuild).not.toHaveBeenCalled();
+    expect(JSON.parse(res.content[0].text).rebuildTriggered).toBe(false);
   });
 
   it('does NOT rebuild when the sync changed nothing', async () => {
@@ -103,7 +103,7 @@ describe('app_sync scope selection', () => {
     expect(body.failed).toHaveLength(1);
     expect(body.changed).toHaveLength(1);
     expect(body.unchanged).toEqual(['cashie']);
-    expect(triggerBuild).toHaveBeenCalledTimes(1);
+    expect(triggerBuild).not.toHaveBeenCalled();
   });
 
   it('surfaces a sync failure as isError instead of a silent success', async () => {

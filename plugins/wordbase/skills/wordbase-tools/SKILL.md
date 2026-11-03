@@ -38,7 +38,7 @@ Tag and category tools return usage counts; rename/delete trigger a site rebuild
 `podcast_list_shows` · `podcast_get_show` · `podcast_create_show` · `podcast_update_show` · `podcast_publish_show` · `podcast_delete_show` · `podcast_list_episodes` · `podcast_get_episode` · `podcast_create_episode` · `podcast_update_episode` · `podcast_upload_audio_from_url` · `podcast_publish_episode` · `podcast_delete_episode` · `podcast_import_feed` · `podcast_analytics` · `podcast_get_feedback`
 
 ## Apps (8) — scopes: `apps:read` / `apps:write`
-`app_list` · `app_get` · `app_create` · `app_publish` · `app_update` · `app_delete` · `app_discover` · `app_sync`
+`app_list` · `app_get` · `app_create` · `app_publish` · `app_update` · `app_delete` · `app_discover` · `app_sync` · `app_import_list` · `app_import_review`
 
 ## Pages (6) — scopes: `pages:read` / `pages:write`
 `page_list` · `page_get` · `page_create` · `page_update` · `page_delete` · `page_publish`
@@ -56,6 +56,6 @@ A companion page has ONE authored source (Chinese) served at `https://norvyn.com
 
 ## Notes
 - Content changes (publish, create, update) do not appear on the live site until a rebuild runs. Use `build_trigger` / the `wb-rebuild` skill.
-- App `description`, `screenshots`, and `icon` are sync-owned (from App Store Connect) and not editable via `app_update`.
+- Apps are curated. `app_update` can edit description, screenshots and icon. `app_sync` only prepares persisted diffs; read them with `app_import_list` and apply only owner-approved fields with `app_import_review`. No sync/webhook automatically changes public copy or rebuilds.
 - Merging tags (e.g. replacing one tag across all posts and deleting the source) is a session-orchestrated workflow: `tag_list` → `post_list` (filter by source tag) → `post_update` (reassign `tagIds`) → `tag_delete`. See the blog MCP parity dev-guide Phase 3 for the full SOP.
 - For common workflows, prefer the dedicated skills: `wb-status`, `wb-rebuild`, `wb-publish`, `wb-apps-sync`.

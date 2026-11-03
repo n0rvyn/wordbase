@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { authMiddleware, requireScope } from '../middleware/index.js';
 import * as appService from '../services/app.service.js';
 import * as appSyncService from '../services/app-sync.service.js';
+import * as appImportService from '../services/app-import.service.js';
 import { triggerBuild } from '../services/build.service.js';
 import { db } from '../db/index.js';
 import { apps } from '../db/schema.js';
@@ -78,10 +79,8 @@ appsRouter.post('/asc-webhook', async (c) => {
     return c.json({ ok: true });
   }
 
-  void appSyncService.syncApp(matched.id);
-  if (matched.status === 'published') {
-    void triggerBuild();
-  }
+  // Apple notifications only prepare suggestions; public content never changes.
+  void appSyncService.syncApp(matched.id).catch((error) => console.error('[app-import] webhook proposal failed', error instanceof Error ? error.message : 'Unknown error'));
 
   return c.json({ ok: true });
 });
@@ -94,6 +93,26 @@ appsRouter.get('/', async (c) => {
     limit: limit ? parseInt(limit) : undefined,
   });
   return c.json(result);
+});
+
+// Review endpoints are authenticated: suggestions may contain unreleased copy.
+appsRouter.get('/imports', authMiddleware, requireScope('apps:write'), (c) =>
+  c.json(appImportService.listAppImports(c.req.query('appId'))));
+appsRouter.get('/imports/:id', authMiddleware, requireScope('apps:write'), (c) => {
+  const proposal = appImportService.getAppImport(c.req.param('id'));
+  return proposal ? c.json(proposal) : c.json({ error: { code: 'NOT_FOUND', message: 'Import proposal not found' } }, 404);
+});
+appsRouter.post('/imports/:id/review', authMiddleware, requireScope('apps:write'), async (c) => {
+  try {
+    const body = await c.req.json().catch(() => null);
+    if (!body || typeof body !== 'object' || Array.isArray(body)) return c.json({ error: { code: 'INVALID_REVIEW', message: 'Expected a review object' } }, 400);
+    const result = appImportService.reviewAppImport(c.req.param('id'), body.reviewToken, body.fields ?? [], body.action);
+    if (result.action === 'apply' && result.status === 'published') void triggerBuild();
+    return c.json(result);
+  } catch (error) {
+    if (error instanceof appImportService.AppImportError) return c.json({ error: { code: error.code, message: error.message } }, error.code === 'NOT_FOUND' ? 404 : error.code === 'STALE_IMPORT' ? 409 : 400);
+    throw error;
+  }
 });
 
 appsRouter.get('/:slug', async (c) => {
@@ -115,12 +134,6 @@ appsRouter.post('/discover', authMiddleware, requireScope('apps:write'), async (
 appsRouter.post('/sync', authMiddleware, requireScope('apps:write'), async (c) => {
   try {
     const result = await appSyncService.syncAllApps();
-    // Same build hook the single-app route (:id/sync) already had — `/apps/*` is
-    // static output, so a DB-only bulk sync stayed invisible on the live site.
-    // Only a PUBLISHED app that actually changed warrants rebuilding.
-    if (result.changes.some((ch) => ch.status === 'published' && ch.fields.length > 0)) {
-      void triggerBuild();
-    }
     return c.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -132,13 +145,6 @@ appsRouter.post('/:id/sync', authMiddleware, requireScope('apps:write'), async (
   const id = c.req.param('id');
   try {
     const change = await appSyncService.syncApp(id);
-    // Fire-and-forget build trigger if app is published
-    const app = await appService.getApp(id);
-    if (app?.status === 'published') {
-      void triggerBuild();
-    }
-    // `{ ok: true }` alone could not tell "refreshed" from "no storefront lists
-    // this app", which is the one outcome a caller needs to act on.
     return c.json({ ok: true, ...change });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

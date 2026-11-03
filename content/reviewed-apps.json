@@ -1,0 +1,48 @@
+[
+  {
+    "name": "EXT4 Access",
+    "slug": "ext4-access",
+    "platform": "macOS",
+    "tagline": "在 Mac 访达中访问受支持的 EXT4 USB 分区。",
+    "description": "在 Mac 访达中访问受支持的 EXT4 USB 分区。使用前请阅读支持页面中的功能与兼容性说明。",
+    "links": {
+      "website": "https://norvyn.com/extfs-support",
+      "support": "https://norvyn.com/extfs-support",
+      "privacy": "https://norvyn.com/extfs-privacy"
+    },
+    "screenshots": [],
+    "sortOrder": -10,
+    "meta": {
+      "editorialI18n": {
+        "en": {
+          "tagline": "Access supported EXT4 USB partitions in Mac Finder.",
+          "description": "Access supported EXT4 USB partitions in Mac Finder. Read the support page for features and compatibility before use."
+        }
+      }
+    }
+  },
+  {
+    "name": "Nearly",
+    "slug": "nearly",
+    "platform": "Web",
+    "subtitle": "邀请制访问 · 浏览器照片编辑",
+    "tagline": "在浏览器里编辑照片：调整场景、穿搭与人像。",
+    "description": "在浏览器中从一个具体想法开始编辑照片。Nearly 的公开首页提供美食场景、餐桌整理、自然自拍、证件照、职业形象照、穿搭、旧照修复与自由编辑入口。创作需要登录并使用体验码。访问与费用以 Nearly 网站的当前说明为准。",
+    "links": {
+      "website": "https://nearly.run/"
+    },
+    "screenshots": [
+      "/images/apps/nearly-public.jpg"
+    ],
+    "sortOrder": 100,
+    "meta": {
+      "editorialI18n": {
+        "en": {
+          "subtitle": "Invite access · Browser photo editing",
+          "tagline": "Edit photos in your browser: scenes, outfits and portraits.",
+          "description": "Start with a specific idea and edit your photos in a browser. Nearly's public homepage offers food scenes, table cleanup, natural selfies, ID photos, professional portraits, outfit changes, old-photo restoration and free-form editing. Creating images requires signing in and an experience code. See Nearly for current access and pricing details."
+        }
+      }
+    }
+  }
+]

@@ -24,6 +24,8 @@ const MIME_TO_EXTENSION: Record<string, string> = {
   'image/gif': 'gif',
   'image/webp': 'webp',
   'image/avif': 'avif',
+  'video/mp4': 'mp4',
+  'video/webm': 'webm',
   'audio/mpeg': 'mp3',
   'audio/mp4': 'm4a',
   'audio/x-m4a': 'm4a',
@@ -38,6 +40,7 @@ const MIME_TO_EXTENSION: Record<string, string> = {
 const ALLOWED_UPLOAD_MIME_TYPES = new Set(Object.keys(MIME_TO_EXTENSION));
 const ALLOWED_UPLOAD_EXTENSIONS = new Set([
   'jpg', 'jpeg', 'png', 'gif', 'webp', 'avif',        // images
+  'mp4', 'webm',                                  // promotional video
   'mp3', 'm4a', 'aac', 'wav', 'flac', 'ogg', 'oga',   // audio
 ]);
 
@@ -103,7 +106,10 @@ export async function uploadMedia(options: UploadOptions) {
 
   const { file, altText } = options;
   const ext = resolveMediaExtension(file.name, file.type);
-  const limit = options.maxSize ?? MAX_FILE_SIZE;
+  const videoLimit = Number(process.env.APP_PROMO_MAX_VIDEO_MB || 50);
+  const limit = options.maxSize ?? (file.type.startsWith('video/')
+    ? (Number.isFinite(videoLimit) && videoLimit > 0 ? videoLimit : 50) * 1024 * 1024
+    : MAX_FILE_SIZE);
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 

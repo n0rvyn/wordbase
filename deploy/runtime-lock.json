@@ -1,0 +1,19 @@
+{
+  "node": "24.22.2",
+  "pnpm": "10.28.2",
+  "release": "https://nodejs.org/en/blog/release/v24.22.2",
+  "artifacts": {
+    "linux-x64": {
+      "filename": "node-v24.22.2-linux-x64.tar.xz",
+      "sha256": "48cc0e21e048790e54c0cf5749c2725005313d652651c40b7a21feb9697aaf75",
+      "minimumGlibc": "2.28"
+    },
+    "darwin-x64": {
+      "filename": "node-v24.22.2-darwin-x64.tar.xz",
+      "sha256": "6965578fd823e72c1b5387f5ab84cb25368f886e02eb8779e6f0fce6b91c27b7"
+    }
+  },
+  "productionPrefix": "/opt/wordbase",
+  "apiDropIn": "/etc/systemd/system/wordbase-api.service.d/90-wordbase-runtime.conf",
+  "rebuildDropIn": "/etc/systemd/system/wordbase-rebuild.service.d/90-wordbase-runtime.conf"
+}

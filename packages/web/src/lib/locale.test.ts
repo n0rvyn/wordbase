@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { enHref, stripEn, isEnPath, hreflangAlternates } from './locale';
+import { enHref, stripEn, isEnPath, hreflangAlternates, publicPathname } from './locale';
 
 describe('enHref', () => {
   it('apex / maps to /en', () => {
@@ -105,5 +105,29 @@ describe('hreflangAlternates', () => {
     expect(out[0].href).toBe('/posts/foo');
     expect(out[1].href).toBe('/en/posts/foo');
     expect(out[2].href).toBe('/posts/foo');
+  });
+});
+
+
+describe('static output public paths', () => {
+  it('keeps file output aliases out of the canonical and navigation paths', () => {
+    expect(publicPathname('/en.html')).toBe('/en');
+    expect(publicPathname('/index.html')).toBe('/');
+    expect(publicPathname('/apps/index.html')).toBe('/apps/index');
+    expect(publicPathname('/posts/index')).toBe('/posts/index');
+    expect(publicPathname('/en/index')).toBe('/en/index');
+    expect(publicPathname('/apps/cashie.html')).toBe('/apps/cashie');
+    expect(publicPathname('/posts/the-index')).toBe('/posts/the-index');
+    expect(publicPathname('/slowlook-privacy')).toBe('/slowlook-privacy');
+  });
+  it('identifies the English homepage and emits one locale prefix from file output', () => {
+    expect(isEnPath('/en.html')).toBe(true);
+    expect(stripEn('/en.html')).toBe('/');
+    expect(enHref('/index.html')).toBe('/en');
+    expect(hreflangAlternates('/en.html', 'https://norvyn.com')).toEqual([
+      { hreflang: 'zh-CN', href: 'https://norvyn.com/' },
+      { hreflang: 'en', href: 'https://norvyn.com/en' },
+      { hreflang: 'x-default', href: 'https://norvyn.com/' },
+    ]);
   });
 });

@@ -1,0 +1,32 @@
+---
+import T from './T.astro';
+interface Props { standalone?: boolean }
+const { standalone = false } = Astro.props;
+const Tag = standalone ? 'section' : 'dialog';
+---
+<Tag class:list={['public-search', { 'search-page-panel': standalone }]} data-public-search data-standalone={standalone ? 'true' : undefined} aria-label="Search">
+  <div class="public-search-head"><h2><T zh="在三个空间里找一找" en="Find something in the three spaces" /></h2><button type="button" data-search-close aria-label="Close search">×</button></div>
+  <input type="search" data-search-input aria-label="Search apps, writing or podcasts" placeholder="Search apps, writing or podcasts…" autocomplete="off" />
+  <p class="public-search-status" data-search-status role="status" aria-live="polite"></p>
+  <div class="public-search-results" data-search-results></div>
+</Tag>
+<script>
+  import { setupPublicSearch } from '../lib/public-search';
+  setupPublicSearch();
+</script>
+<style is:global>
+  :root[data-public] .public-search { width: min(720px,94vw); max-height: 88dvh; overflow-y: auto; margin: auto; padding: 32px 38px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--ink); box-shadow: 0 30px 100px #0005; }
+  :root[data-public] .public-search::backdrop { background: #12181399; backdrop-filter: blur(7px); }
+  :root[data-public] .public-search-head { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+  :root[data-public] .public-search-head h2 { font-size: 12px; font-weight: 500; }
+  :root[data-public] .public-search-head button { width: 44px; height: 44px; font-size: 26px; cursor: pointer; background: none; border: 0; color: inherit; }
+  :root[data-public] .public-search [data-search-input] { display: block; width: 100%; min-width: 0; font: 22px var(--font-ui); padding: 25px 0; margin-top: 16px; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: var(--surface); color: var(--ink); }
+  :root[data-public] .public-search [data-search-input]::placeholder { color: var(--ink-2); opacity: 1; }
+  :root[data-public] .public-search-results { margin-top: 15px; }
+  :root[data-public] .public-search-results a { display: block; padding: 13px 0; border-bottom: 1px solid var(--line); font-size: 16px; line-height: 1.6; }
+  :root[data-public] .public-search-results a small { display: block; color: var(--ink-2); font-size: 12px; }
+  :root[data-public] .public-search-results a:hover { color: var(--accent); }
+  :root[data-public] .public-search-status { color: var(--ink-2); font-size: 12px; margin-top: 16px; }
+  :root[data-public] .search-page-panel { margin: 48px auto 0; box-shadow: none; max-height: none; }
+  @media(max-width:600px) { :root[data-public] .public-search { padding: 22px; } :root[data-public] .public-search [data-search-input] { font-size: 19px; } :root[data-public] .search-page-panel { width: 100%; margin-top: 30px; } }
+</style>

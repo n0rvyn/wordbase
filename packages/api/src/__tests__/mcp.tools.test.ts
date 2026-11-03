@@ -272,15 +272,15 @@ describe('registerTools — handler behavior (Phase 8)', () => {
     registerTools(server);
   });
 
-  it('app_update drops sync-owned fields (description/screenshots/icon/appStoreId/rating)', async () => {
+  it('app_update allows curated copy and artwork while excluding identity and ratings from this adapter', async () => {
     const { updateApp } = await import('../services/app.service.js');
     const handler = server.getHandler('app_update')!;
     await handler({
       id: 'app1',
       name: 'My App',
       tagline: 'Cool tagline',
-      // sync-owned fields that must be dropped:
-      description: 'Should be dropped',
+      // Curated fields pass through; identity and rating are excluded here:
+      description: 'Handwritten copy',
       screenshots: '["url1"]',
       icon: 'http://icon.png',
       appStoreId: '12345',
@@ -295,10 +295,10 @@ describe('registerTools — handler behavior (Phase 8)', () => {
     expect(passedData.name).toBe('My App');
     expect(passedData.tagline).toBe('Cool tagline');
 
-    // sync-owned fields must NOT be forwarded
-    expect(passedData).not.toHaveProperty('description');
-    expect(passedData).not.toHaveProperty('screenshots');
-    expect(passedData).not.toHaveProperty('icon');
+    // Public artwork and copy are manually editable
+    expect(passedData.description).toBe('Handwritten copy');
+    expect(passedData.screenshots).toBe('["url1"]');
+    expect(passedData.icon).toBe('http://icon.png');
     expect(passedData).not.toHaveProperty('appStoreId');
     expect(passedData).not.toHaveProperty('rating');
   });

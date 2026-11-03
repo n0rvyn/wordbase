@@ -1,5 +1,43 @@
 import type { App } from './api';
 
+export type PromotionalMedia = { type: 'video' | 'animated-image' | 'image'; src: string; poster: string | null; alt: string | null };
+
+/** Explicit editorial media takes precedence over legacy video metadata. */
+export function promotionalMedia(meta: string | null): PromotionalMedia | null {
+  const safe = (value: unknown): value is string => {
+    if (typeof value !== 'string' || !value || /[\\\x00-\x1f]/.test(value)) return false;
+    if (/^\/(?!\/)/.test(value)) return true;
+    try { const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password; } catch { return false; }
+  };
+  try {
+    const data = JSON.parse(meta || '{}');
+    const media = data?.promotionalMedia;
+    if (media !== undefined) {
+      if (!['video', 'animated-image', 'image'].includes(media?.type) || !safe(media.src)) return null;
+      const poster = safe(media.poster) ? media.poster : null;
+      if (media.type === 'animated-image' && !poster) return null;
+      return { type: media.type, src: media.src, poster, alt: typeof media.alt === 'string' ? media.alt : null };
+    }
+    return safe(data?.video) ? { type: 'video', src: data.video, poster: safe(data.videoPoster) ? data.videoPoster : null, alt: null } : null;
+  } catch { return null; }
+}
+
+/** Optional, manually maintained promotional media. Apple imports never own it. */
+export function editorialMedia(meta: string | null): { video: string | null; poster: string | null } {
+  const safeUrl = (value: unknown): string | null => {
+    if (typeof value !== 'string' || !value.trim()) return null;
+    if (/^\/(?!\/)/.test(value) && !value.includes('\\')) return value;
+    try {
+      const url = new URL(value);
+      return url.protocol === 'https:' ? value : null;
+    } catch { return null; }
+  };
+  try {
+    const data = JSON.parse(meta || '{}');
+    return { video: safeUrl(data?.video), poster: safeUrl(data?.videoPoster) };
+  } catch { return { video: null, poster: null }; }
+}
+
 /**
  * Lighten/darken a hex colour by pct (-100..100).
  * Ported verbatim from App Detail.html:423-424; non-hex input returned unchanged.
@@ -208,7 +246,7 @@ export function groupScreenshots(urls: string[], platform: string | null = null)
     byDevice.get(meta.device)!.push(meta);
   }
 
-  const preferred: ShotDevice[] = platform === 'macOS'
+  const preferred: ShotDevice[] = (platform === 'macOS' || platform === 'Web')
     ? ['desktop', 'tablet', 'phone', 'unknown']
     : ['phone', 'tablet', 'desktop', 'unknown'];
   const order = [...seen].sort((a, b) => preferred.indexOf(a) - preferred.indexOf(b));
@@ -234,7 +272,7 @@ export function groupScreenshots(urls: string[], platform: string | null = null)
 export function heroShot(urls: string[], platform: string | null): ShotMeta | null {
   if (urls.length === 0) return null;
   const metas = urls.map(parseShotMeta);
-  const want: ShotDevice = platform === 'macOS' ? 'desktop' : 'phone';
+  const want: ShotDevice = (platform === 'macOS' || platform === 'Web') ? 'desktop' : 'phone';
   return metas.find((m) => m.device === want) ?? metas.find((m) => m.device !== 'unknown') ?? metas[0];
 }
 
@@ -369,4 +407,14 @@ export function pickShowcase<T extends {
       (b.currentVersionReleaseDate ?? 0) - (a.currentVersionReleaseDate ?? 0),
     )
     .slice(0, limit);
+}
+
+/** A Web application has a real website destination, independent of Apple. */
+export function websiteHref(app: Pick<App, 'links'>): string | null {
+  try {
+    const value = JSON.parse(app.links || '{}').website;
+    if (typeof value !== 'string') return null;
+    const url = new URL(value);
+    return ['https:', 'http:'].includes(url.protocol) && !url.username && !url.password ? value : null;
+  } catch { return null; }
 }

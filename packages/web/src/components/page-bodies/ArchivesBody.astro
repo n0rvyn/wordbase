@@ -20,107 +20,44 @@ const { locale, groups, totalPosts } = Astro.props;
 const lhref = (p: string) => (locale === 'en' ? enHref(p) : p);
 ---
 
-<header class="sec wrap" style="border-top:none;padding-top:clamp(44px,6vw,80px)">
-  <div class="row2">
-    <div class="spine">
-      <span class="no">00</span>
-      <span class="lab">Archive</span>
-      <span class="note"><T zh={`${totalPosts} 篇文章，按时间倒序。`} en={`${totalPosts} posts, newest first.`} /></span>
-    </div>
-    <div>
-      <div class="eyebrow"><T k="archives.eyebrow" /></div>
-      <h1><T k="archives.h1" /></h1>
-      <p class="lede-w"><T k="archives.lede" /></p>
-    </div>
-  </div>
+<header class="archive-header wrap">
+  <div><span class="archive-label">THE WRITING / ARCHIVE</span><h1><T k="archives.h1" /></h1><p><T zh={`${totalPosts} 篇文章，按时间倒序。`} en={`${totalPosts} posts, newest first.`} /></p></div>
+  <label class="archive-search"><span><T zh="查找文章" en="Find an article" /></span><input type="search" id="archiveSearch" placeholder={locale === 'en' ? 'Search titles…' : '搜索标题…'} /></label>
 </header>
-
-<section class="sec wrap">
-  <div class="row2">
-    <div class="spine">
-      <span class="no">01</span>
-      <span class="lab"><T k="archives.all.lab" /></span>
-    </div>
-    <div id="postList">
-      {groups.map(group => (
-        <div class="year-section">
-          <div class="year-head">
-            <span class="mono">{group.year === 0 ? <T k="writing.yearUnknown" /> : group.year}</span>
-          </div>
-          <div class="list">
-            {group.posts.map((p: Post) => (
-              <a class="item post compact" href={lhref(`/posts/${p.slug}`)}>
-                <div class="compact-inner">
-                  {p.publishedAt && <span class="pdate compact-date">{formatMonoDate(p.publishedAt)}</span>}
-                  <span class="item-title compact-title">{p.title}</span>
-                  <span class="item-meta compact-cat">{estimateReadTime(p.content)} min</span>
-                </div>
-              </a>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
+<nav class="archive-years wrap" aria-label={locale === 'en' ? 'Jump to year' : '按年份浏览'}>{groups.map(group => <a href={`#year-${group.year}`}>{group.year || (locale === 'en' ? 'Undated' : '未注明日期')}<span>{group.posts.length}</span></a>)}</nav>
+<section class="archive-index wrap" aria-label={locale === 'en' ? 'Articles' : '文章'}>
+  {groups.map(group => <section class="archive-year" id={`year-${group.year}`}><h2>{group.year || (locale === 'en' ? 'Undated' : '未注明日期')}</h2><div class="archive-rows">{group.posts.map((post: Post) => <a class="archive-entry" data-archive-title={post.title.toLocaleLowerCase()} href={lhref(`/posts/${post.slug}`)}>
+    <time>{post.publishedAt ? formatMonoDate(post.publishedAt) : '—'}</time><span>{post.title}</span><small>{estimateReadTime(post.content)} min</small>
+  </a>)}</div></section>)}
+  <p id="archiveEmpty" hidden><T zh="没有匹配的文章。" en="No matching articles." /></p>
 </section>
-
+<script>
+  const input = document.getElementById('archiveSearch') as HTMLInputElement;
+  input.addEventListener('input', () => {
+    const query = input.value.trim().toLocaleLowerCase(); let count = 0;
+    document.querySelectorAll<HTMLElement>('[data-archive-title]').forEach(row => { row.hidden = !row.dataset.archiveTitle!.includes(query); if (!row.hidden) count++; });
+    document.querySelectorAll<HTMLElement>('.archive-year').forEach(year => { year.hidden = !year.querySelector('[data-archive-title]:not([hidden])'); });
+    document.getElementById('archiveEmpty')!.hidden = count > 0;
+  });
+</script>
 <style>
-  /* ── Sections ─────────────────────────────────────────────────────────────── */
-  .sec { padding: clamp(44px, 6vw, 84px) 0; border-top: 1px solid var(--line); }
-
-  /* ── Hero ─────────────────────────────────────────────────────────────────── */
-  .eyebrow {
-    font-family: var(--font-mono); font-size: 12.5px;
-    letter-spacing: .16em; text-transform: uppercase;
-    color: var(--ink-3); margin-bottom: 20px;
-  }
-  h1 {
-    font-family: var(--font-display); font-weight: 500;
-    font-size: clamp(40px, 6vw, 76px); line-height: 1.02;
-    letter-spacing: -.035em; margin: 0 0 22px;
-  }
-  .lede-w {
-    font-family: var(--font-read); font-size: clamp(16px, 1.6vw, 19px);
-    line-height: 1.75; color: var(--ink-2); max-width: 46ch; margin: 0;
-  }
-
-  /* ── Year heading ─────────────────────────────────────────────────────────── */
-  .year-head {
-    padding: 28px 4px 8px;
-    border-top: 1px solid var(--line);
-  }
-  .year-head .mono {
-    font-family: var(--font-mono); font-size: 12px;
-    letter-spacing: .13em; text-transform: uppercase;
-    color: var(--ink-3);
-  }
-  .year-section:first-child .year-head { border-top: none; }
-
-  /* ── Compact post rows ────────────────────────────────────────────────────── */
-  .post.compact { grid-template-columns: 1fr; }
-  .compact-inner {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: 0 16px;
-    align-items: baseline;
-  }
-  .compact-date {
-    font-family: var(--font-mono); font-size: 11.5px;
-    color: var(--ink-3); white-space: nowrap;
-  }
-  .compact-title {
-    font-family: var(--font-display); font-weight: 600;
-    font-size: 16px; letter-spacing: -.018em; transition: color .2s;
-  }
-  .item:hover .compact-title { color: var(--accent); }
-  .compact-cat {
-    font-family: var(--font-mono); font-size: 11px;
-    color: var(--ink-3); white-space: nowrap; text-align: right;
-  }
-
-  /* ── Responsive ───────────────────────────────────────────────────────────── */
-  @media (max-width: 560px) {
-    .compact-inner { grid-template-columns: 1fr auto; }
-    .compact-date { display: none; }
-  }
+  .archive-header { display: flex; justify-content: space-between; align-items: end; gap: 32px; padding: 32px 0 24px; }
+  .archive-label { color: var(--ink-2); font-size: 10px; letter-spacing: .12em; }
+  .archive-header h1 { font: 500 clamp(28px,3vw,38px)/1.2 var(--font-display); letter-spacing: -.03em; margin: 10px 0; }
+  .archive-header p { color: var(--ink-2); font-size: 14px; }
+  .archive-search { display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+  .archive-search input { min-height: 44px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); color: var(--ink); max-width: 100%; }
+  .archive-years { display: flex; flex-wrap: wrap; gap: 12px 28px; border-block: 1px solid var(--line); padding-block: 14px; }
+  .archive-years a { font-size: 14px; padding-block: 4px; }
+  .archive-years span { font-size: 11px; color: var(--ink-2); margin-left: 10px; }
+  .archive-year { display: grid; grid-template-columns: 80px minmax(0,1fr); gap: 32px; padding-top: 24px; scroll-margin-top: 20px; }
+  .archive-year h2 { font: 500 20px var(--font-display); }
+  .archive-rows { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 32px; }
+  .archive-entry { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 4px 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .archive-entry time { grid-column: 1 / -1; color: var(--ink-2); font-size: 11px; }
+  .archive-entry span { font-size: 16px; line-height: 1.5; }
+  .archive-entry small { font-size: 11px; color: var(--ink-2); align-self: center; }
+  .archive-entry:hover span { color: var(--accent); }
+  @media(max-width:760px) { .archive-rows { grid-template-columns: 1fr; } .archive-year { grid-template-columns: 1fr; gap: 10px; } }
+  @media(max-width:560px) { .archive-header { align-items: start; flex-direction: column; gap: 14px; padding-top: 24px; } .archive-search { width: 100%; } .archive-search input { width: 100%; } .archive-year { padding-top: 20px; } .archive-years { flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; } .archive-years a { flex-shrink: 0; } }
 </style>

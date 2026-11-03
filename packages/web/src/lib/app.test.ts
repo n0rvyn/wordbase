@@ -13,6 +13,7 @@ import {
   pickShowcase,
   parseReleaseNotes,
   storeHref,
+  websiteHref,
   enStoreCopy,
 } from './app';
 
@@ -567,5 +568,21 @@ describe('enStoreCopy', () => {
     ['en that is an array', '{"i18n":{"en":[]}}'],
   ])('returns null for %s', (_label, input) => {
     expect(enStoreCopy(input as string | null)).toBeNull();
+  });
+});
+
+describe('browser app destinations', () => {
+  it('uses the real website without fabricating a store link', () => {
+    expect(websiteHref({ links: JSON.stringify({ website: 'https://nearly.run/' }) })).toBe('https://nearly.run/');
+    expect(storeHref({ appStoreId: null, appStoreUrl: null, icon: null })).toBeNull();
+  });
+  it('rejects unsafe or malformed website metadata', () => {
+    for (const website of ['javascript:alert(1)', 'https://user:password@example.com/']) {
+      expect(websiteHref({ links: JSON.stringify({ website }) })).toBeNull();
+    }
+    expect(websiteHref({ links: 'bad JSON' })).toBeNull();
+  });
+  it('prefers browser landscape media over phone media when both exist', () => {
+    expect(heroShot(['https://example.com/shot/1284x2778bb.png', 'https://example.com/shot/2880x1800bb.png'], 'Web')?.device).toBe('desktop');
   });
 });

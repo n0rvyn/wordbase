@@ -36,6 +36,7 @@ vi.mock('../services/build.service.js', async (importOriginal) => {
 // Import app AFTER mocks are set up
 const { app } = await import('../app.js');
 const { syncApp } = await import('../services/app-sync.service.js');
+const { triggerBuild } = await import('../services/build.service.js');
 const syncAppSpy = syncApp as ReturnType<typeof vi.fn>;
 
 // Import the pure verifyAscSignature function from routes/apps.ts
@@ -67,6 +68,7 @@ beforeAll(async () => {
 afterEach(async () => {
   await db.delete(apps);
   syncAppSpy.mockClear();
+  vi.mocked(triggerBuild).mockClear();
 });
 
 describe('verifyAscSignature (pure function)', () => {
@@ -121,7 +123,7 @@ describe('POST /api/apps/asc-webhook', () => {
       slug: 'webhook-app',
       name: 'Webhook App',
       appStoreId: '361304891',
-      status: 'draft',
+      status: 'published',
       platform: 'iOS',
       createdAt: now,
       updatedAt: now,
@@ -139,6 +141,7 @@ describe('POST /api/apps/asc-webhook', () => {
     });
     expect(res.status).toBe(200);
     expect(syncAppSpy).toHaveBeenCalledWith(appId);
+    expect(triggerBuild).not.toHaveBeenCalled();
   });
 
   it('returns 200 and does NOT call syncApp when no matching app found', async () => {

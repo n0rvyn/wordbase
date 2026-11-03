@@ -1,0 +1,250 @@
+[
+  {
+    "name": "transbridge",
+    "html_url": "https://github.com/n0rvyn/transbridge",
+    "fork": false,
+    "archived": false,
+    "language": "Python",
+    "description": null
+  },
+  {
+    "name": "claudex",
+    "html_url": "https://github.com/n0rvyn/claudex",
+    "fork": false,
+    "archived": false,
+    "language": "Swift",
+    "description": null
+  },
+  {
+    "name": "adam-agent-server",
+    "html_url": "https://github.com/n0rvyn/adam-agent-server",
+    "fork": false,
+    "archived": true,
+    "language": "TypeScript",
+    "description": "Historical Adam agent orchestration source snapshot. No longer actively maintained; npm package retained."
+  },
+  {
+    "name": "personal-os",
+    "html_url": "https://github.com/n0rvyn/personal-os",
+    "fork": false,
+    "archived": false,
+    "language": "Python",
+    "description": "Personal OS plugin marketplace for Claude Code: health-insights, session-reflect, domain-intel, youtube-scout, pkos, portfolio-lens"
+  },
+  {
+    "name": "wordbase",
+    "html_url": "https://github.com/n0rvyn/wordbase",
+    "fork": false,
+    "archived": false,
+    "language": "TypeScript",
+    "description": null
+  },
+  {
+    "name": "model-proxy",
+    "html_url": "https://github.com/n0rvyn/model-proxy",
+    "fork": false,
+    "archived": false,
+    "language": "Swift",
+    "description": "A macOS menu bar app · Transparent local API proxy for multi-vendor model routing. Route AI model requests from Claude Code and Codex to different providers based on model ID."
+  },
+  {
+    "name": "indie-toolkit",
+    "html_url": "https://github.com/n0rvyn/indie-toolkit",
+    "fork": false,
+    "archived": false,
+    "language": "Python",
+    "description": "A Claude Code plugin market for iOS development and macOS tools."
+  },
+  {
+    "name": "podcast-studio",
+    "html_url": "https://github.com/n0rvyn/podcast-studio",
+    "fork": false,
+    "archived": true,
+    "language": "Python",
+    "description": "[DEPRECATED — migrated 2026-06-12 into the personal-os marketplace; install podcast-studio@personal-os] Self-contained Claude Code podcast-production plugin: a 6-persona pipeline with stance-card continuity and a per-run Character Bible, plus vendored prep + TTS skills"
+  },
+  {
+    "name": "swift-mail-core",
+    "html_url": "https://github.com/n0rvyn/swift-mail-core",
+    "fork": false,
+    "archived": false,
+    "language": "Swift",
+    "description": null
+  },
+  {
+    "name": "Pico",
+    "html_url": "https://github.com/n0rvyn/Pico",
+    "fork": false,
+    "archived": false,
+    "language": "Swift",
+    "description": "A native macOS local photo-library app — SwiftUI + SwiftData, non-destructive editor, People/Places, Liquid Glass."
+  },
+  {
+    "name": "swift-llm-gateway",
+    "html_url": "https://github.com/n0rvyn/swift-llm-gateway",
+    "fork": false,
+    "archived": false,
+    "language": "Swift",
+    "description": null
+  },
+  {
+    "name": "pypm",
+    "html_url": "https://github.com/n0rvyn/pypm",
+    "fork": false,
+    "archived": true,
+    "language": "Python",
+    "description": "Preventive Maintenance Scripts for Brocade San Switch, IBM XIV and Huawei OceanStor Serial Storage."
+  },
+  {
+    "name": "ParallelShell",
+    "html_url": "https://github.com/n0rvyn/ParallelShell",
+    "fork": false,
+    "archived": true,
+    "language": "Python",
+    "description": "Parallel shell for multiple hosts."
+  },
+  {
+    "name": "relaymsg",
+    "html_url": "https://github.com/n0rvyn/relaymsg",
+    "fork": false,
+    "archived": true,
+    "language": "Python",
+    "description": "Relay Android Messages to Wechat User."
+  },
+  {
+    "name": "devmon",
+    "html_url": "https://github.com/n0rvyn/devmon",
+    "fork": false,
+    "archived": true,
+    "language": "Python",
+    "description": "A tool for monitoring devices hardware with SNMP values."
+  },
+  {
+    "name": "wlstoolkit",
+    "html_url": "https://github.com/n0rvyn/wlstoolkit",
+    "fork": false,
+    "archived": true,
+    "language": "Shell",
+    "description": "Create Domain for Weblogic"
+  },
+  {
+    "name": "dingtalkcheckin",
+    "html_url": "https://github.com/n0rvyn/dingtalkcheckin",
+    "fork": false,
+    "archived": true,
+    "language": "Python",
+    "description": "Auto Checkin Script for DingTalk"
+  },
+  {
+    "name": "ibmrcms",
+    "html_url": "https://github.com/n0rvyn/ibmrcms",
+    "fork": false,
+    "archived": true,
+    "language": "Python",
+    "description": "IBM PComm CLI"
+  },
+  {
+    "name": "claude-code",
+    "html_url": "https://github.com/n0rvyn/claude-code",
+    "fork": true,
+    "archived": false,
+    "language": null,
+    "description": "Claude Code is an agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster by executing routine tasks, explaining complex code, and handling git workflows - all through natural language commands."
+  },
+  {
+    "name": "aipilot",
+    "html_url": "https://github.com/n0rvyn/aipilot",
+    "fork": false,
+    "archived": false,
+    "language": "TypeScript",
+    "description": "AI powered writing & organization assistance plugin for Obsidian."
+  },
+  {
+    "name": "cursor-rules",
+    "html_url": "https://github.com/n0rvyn/cursor-rules",
+    "fork": false,
+    "archived": false,
+    "language": "Python",
+    "description": "Advanced extensions based on the official guide."
+  },
+  {
+    "name": "obsidian-deduplicator",
+    "html_url": "https://github.com/n0rvyn/obsidian-deduplicator",
+    "fork": false,
+    "archived": false,
+    "language": "TypeScript",
+    "description": "A tool for deduplicating files for Obsidian."
+  },
+  {
+    "name": "pkgdiff",
+    "html_url": "https://github.com/n0rvyn/pkgdiff",
+    "fork": true,
+    "archived": false,
+    "language": null,
+    "description": "A tool for visualizing changes in Linux software packages"
+  },
+  {
+    "name": "cross-mind-consensus",
+    "html_url": "https://github.com/n0rvyn/cross-mind-consensus",
+    "fork": false,
+    "archived": false,
+    "language": "Python",
+    "description": "Large Language Model Consensus"
+  },
+  {
+    "name": "sysperftest",
+    "html_url": "https://github.com/n0rvyn/sysperftest",
+    "fork": false,
+    "archived": false,
+    "language": "Python",
+    "description": "Script for Linux System Bench Test."
+  },
+  {
+    "name": "obsidian-releases",
+    "html_url": "https://github.com/n0rvyn/obsidian-releases",
+    "fork": true,
+    "archived": false,
+    "language": null,
+    "description": "Community plugins list, theme list, and releases of Obsidian."
+  },
+  {
+    "name": "obsidian-notes-sync",
+    "html_url": "https://github.com/n0rvyn/obsidian-notes-sync",
+    "fork": false,
+    "archived": false,
+    "language": "TypeScript",
+    "description": "A plugin for syncing notes between LuojiLab and Obsidian"
+  },
+  {
+    "name": "obsidian-css-test",
+    "html_url": "https://github.com/n0rvyn/obsidian-css-test",
+    "fork": false,
+    "archived": false,
+    "language": "TypeScript",
+    "description": "for testing, will delete soon."
+  },
+  {
+    "name": "dupclean",
+    "html_url": "https://github.com/n0rvyn/dupclean",
+    "fork": false,
+    "archived": false,
+    "language": "Python",
+    "description": "A simple tool for cleaning duplicate files."
+  },
+  {
+    "name": "fileoperator",
+    "html_url": "https://github.com/n0rvyn/fileoperator",
+    "fork": false,
+    "archived": false,
+    "language": "Python",
+    "description": "Record time of different method removing a directory which contains large number of small files"
+  },
+  {
+    "name": "n0rvyn",
+    "html_url": "https://github.com/n0rvyn/n0rvyn",
+    "fork": false,
+    "archived": false,
+    "language": null,
+    "description": "Config files for my GitHub profile."
+  }
+]

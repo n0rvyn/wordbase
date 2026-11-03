@@ -205,3 +205,16 @@ describe('localizeApp — English store copy', () => {
     expect(out.name).toBe('佳同步 - 国区国际版活动记录互传');
   });
 });
+
+describe('manually authored browser app copy', () => {
+  it('keeps editorial English independent of App Store fields and cache availability', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+    const app = { ...APP, platform: 'Web', meta: JSON.stringify({ editorialI18n: { en: { tagline: 'Edit photos in your browser.', subtitle: 'Invite access', description: 'Public browser editor.' } } }) };
+    const translated = await localizeApp(app, 'en');
+    expect(translated.tagline).toBe('Edit photos in your browser.');
+    expect(translated.subtitle).toBe('Invite access');
+    expect(translated.description).toBe('Public browser editor.');
+    expect((await localizeApp(app, 'zh')).tagline).toBe(APP.tagline);
+    vi.unstubAllGlobals();
+  });
+});

@@ -29,6 +29,7 @@ import {
   heroShot,
   parseReleaseNotes,
   storeHref,
+  websiteHref,
 } from '../../lib/app';
 import { enHref, type Locale } from '../../lib/locale';
 import type { App } from '../../lib/api';
@@ -58,6 +59,7 @@ const title = displayName(app.name);
 
 const hero = heroShot(screenshots, app.platform);
 const groups = groupScreenshots(screenshots, app.platform);
+const secondary = hero?.device === 'phone' ? groups.find(group => group.device === hero.device)?.shots.find(shot => shot.url !== hero.url) : undefined;
 const release = parseReleaseNotes(app.whatsNew);
 
 // Section index: numbered by what is actually rendered.
@@ -83,21 +85,17 @@ const eyebrow = [app.category, app.platform, app.version ? `v${app.version}` : n
   .join('  ·  ');
 
 const appStoreHref = storeHref(app);
+const website = websiteHref(app);
 const shareUrl = new URL(lhref(`/apps/${app.slug}`), Astro.site).href;
 ---
 
-<div id="top" style={`--app:${appC};--app-2:${app2}`}>
+<div id="top" class="app-detail" style={`--app:${appC};--app-2:${app2}`}>
 
   {/* 00 HERO */}
   <header class="ad-top">
-    <div class="wrap" style="position:relative">
-      <div class="row2">
-        <div class="spine">
-          <span class="no">{no('hero')}</span>
-          <span class="lab">{app.name}</span>
-          <span class="note"><T k="apps.spineNote" /></span>
-        </div>
-
+    <div class="wrap">
+      <a class="ad-back" href={lhref('/apps')}><T zh="← 全部应用" en="← All apps" /></a>
+      <div class="ad-hero-wrap">
         <div class="ad-hero">
           <div>
             {eyebrow && <span class="ad-eyebrow">{eyebrow}</span>}
@@ -141,24 +139,16 @@ const shareUrl = new URL(lhref(`/apps/${app.slug}`), Astro.site).href;
                   </svg>
                 </a>
               )}
+              {!appStoreHref && website && <a class="btn btn-1" href={website} target="_blank" rel="noopener noreferrer"><T zh="打开网站" en="Open website" /> ↗</a>}
               <a class="btn btn-2" href="#about"><T k="apps.viewMore" /></a>
             </div>
           </div>
 
-          {/* The piece: hung at its own aspect, never cropped. */}
-          <div class="ad-piece">
-            {hero ? (
-              <img
-                class="plate"
-                src={hero.url}
-                alt={`${title} screenshot`}
-                width={hero.width ?? undefined}
-                height={hero.height ?? undefined}
-                style={hero.width && hero.height ? `aspect-ratio:${hero.width}/${hero.height}` : undefined}
-              />
-            ) : (
-              <div class="plate-blank">Preview</div>
-            )}
+          <div class="ad-piece" data-device={hero?.device || 'unknown'}>
+            {hero ? <button class="ad-hero-shot" type="button" data-app-media={hero.url} data-media-title={`${title} screenshot`} aria-label={locale === 'en' ? `Expand ${title} screenshot` : `展开 ${title} 截图`}>
+              <img class="ad-screenshot" src={hero.url} alt={`${title} screenshot`} width={hero.width ?? undefined} height={hero.height ?? undefined} />
+            </button> : <div class="ad-empty">{app.icon && <img src={app.icon} alt="" width="100" height="100" />}<span>{title}</span></div>}
+            {secondary && <button class="ad-hero-shot ad-hero-secondary" type="button" data-app-media={secondary.url} data-media-title={`${title} screenshot 2`} aria-label={locale === 'en' ? `Expand ${title} screenshot 2` : `展开 ${title} 截图 2`}><img class="ad-screenshot" src={secondary.url} alt={`${title} screenshot 2`} width={secondary.width ?? undefined} height={secondary.height ?? undefined} /></button>}
           </div>
         </div>
       </div>
@@ -196,7 +186,6 @@ const shareUrl = new URL(lhref(`/apps/${app.slug}`), Astro.site).href;
         <div class="spine">
           <span class="no">{no('screens')}</span>
           <span class="lab"><T k="apps.screens.lab" /></span>
-          <span class="note"><T k="apps.screens.noteGrid" /></span>
         </div>
         <div>
           <span class="ad-eyebrow" style="color:var(--ink-4)"><T k="apps.onDisplay" /></span>
@@ -205,14 +194,14 @@ const shareUrl = new URL(lhref(`/apps/${app.slug}`), Astro.site).href;
           {groups.map(group => (
             <div class="shot-group">
               <div class="shot-group-head">
+                <div class="shot-controls"><button type="button" data-shot-scroll="-1" aria-label={locale === 'en' ? 'Previous screenshots' : '上一组截图'}>←</button><button type="button" data-shot-scroll="1" aria-label={locale === 'en' ? 'Next screenshots' : '下一组截图'}>→</button></div>
                 <span class="dev"><T k={deviceKey[group.device]} /></span>
-                {group.dimensions && <span class="dim">{group.dimensions}</span>}
               </div>
               <div class="shots-grid" data-device={group.device}>
                 {group.shots.map((shot, i) => (
-                  <figure style="margin:0">
-                    <img
-                      class="plate"
+                  <figure>
+                    <button class="ad-gallery-shot" type="button" data-app-media={shot.url} data-media-title={`${title} screenshot ${i + 1}`} aria-label={locale === 'en' ? `Expand screenshot ${i + 1}` : `展开截图 ${i + 1}`}><img
+                      class="ad-screenshot"
                       src={shot.url}
                       alt={`${title} screenshot ${i + 1}`}
                       width={shot.width ?? undefined}
@@ -220,7 +209,7 @@ const shareUrl = new URL(lhref(`/apps/${app.slug}`), Astro.site).href;
                       style={shot.width && shot.height ? `aspect-ratio:${shot.width}/${shot.height}` : undefined}
                       loading="lazy"
                       decoding="async"
-                    />
+                    /></button>
                     <figcaption class="plate-cap">
                       <span class="n">{String(i + 1).padStart(2, '0')}</span>
                     </figcaption>
@@ -341,4 +330,20 @@ const shareUrl = new URL(lhref(`/apps/${app.slug}`), Astro.site).href;
     </section>
   )}
 
+<dialog class="ad-media-dialog" id="appMediaDialog" aria-labelledby="appMediaTitle"><div class="ad-media-bar"><h2 id="appMediaTitle"></h2><button type="button" data-app-media-close><T zh="关闭" en="Close" /> ×</button></div><img id="appMediaImage" alt="" /></dialog>
 </div>
+<script>
+  const dialog = document.getElementById('appMediaDialog') as HTMLDialogElement;
+  const image = document.getElementById('appMediaImage') as HTMLImageElement;
+  let opener: HTMLElement | null = null;
+  document.querySelectorAll<HTMLButtonElement>('[data-app-media]').forEach(button => button.addEventListener('click', () => {
+    opener = button; image.src = button.dataset.appMedia!; image.alt = button.dataset.mediaTitle || '';
+    document.getElementById('appMediaTitle')!.textContent = image.alt; dialog.showModal();
+  }));
+  dialog.querySelector('[data-app-media-close]')?.addEventListener('click', () => dialog.close());
+  dialog.addEventListener('close', () => { image.removeAttribute('src'); opener?.focus(); });
+  document.querySelectorAll<HTMLButtonElement>('[data-shot-scroll]').forEach(button => button.addEventListener('click', () => {
+    const track = button.closest('.shot-group')?.querySelector('.shots-grid');
+    track?.scrollBy({left: Number(button.dataset.shotScroll) * track.clientWidth * .8, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'});
+  }));
+</script>

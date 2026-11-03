@@ -1,0 +1,9 @@
+---
+interface Props { src: string; poster: string; alt: string }
+const { src, poster, alt } = Astro.props;
+---
+<div class="studio-animation" data-promo-animation role="img" aria-label={alt}>
+  <img data-promo-poster src={poster} alt="" loading="lazy" />
+  <img data-promo-animated data-src={src} alt="" hidden />
+  <canvas width="0" height="0" aria-hidden="true" hidden></canvas>
+</div>

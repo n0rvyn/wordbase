@@ -3,13 +3,13 @@
 // pages/en/posts/[slug].astro (en). getStaticPaths + the SEO jsonLd/article
 // meta stay in the shells; the shells localize the post and compute the
 // rendered html/toc/description and pass them here. This component renders the
-// rail + reading column + comments, owns the progress-bar/TOC script and the
+// reading column + expandable tools + comments, owns the progress-bar/TOC script and the
 // scoped layout styles. Locale prefixes the prev/next + share URLs with /en.
 // prev/next titles use the source (zh) titles — categories/adjacent titles are
 // not localized, matching the prior behavior.
 import ShareButtons from '../ShareButtons.astro';
 import CommentSection from '../CommentSection.astro';
-import { formatDate, type Post } from '../../lib/api';
+import { type Post } from '../../lib/api';
 import { formatMonoDate } from '../../lib/home';
 import { enHref, type Locale } from '../../lib/locale';
 import T from '../T.astro';
@@ -30,7 +30,7 @@ interface Props {
   slugTitle: Record<string, string>;
 }
 
-const { locale, post, description, readTime, html, toc, newer, older, firstCat, slugTitle } = Astro.props;
+const { locale, post, readTime, html, toc, newer, older, firstCat, slugTitle } = Astro.props;
 const lhref = (p: string) => (locale === 'en' ? enHref(p) : p);
 const shareUrl = new URL(lhref(`/posts/${post.slug}`), Astro.site).href;
 ---
@@ -38,60 +38,12 @@ const shareUrl = new URL(lhref(`/posts/${post.slug}`), Astro.site).href;
 {/* Progress bar (owned by this page, fixed at top) */}
 <div class="progress" id="progress"></div>
 
-<div class="art-wrap">
-  <div class="art-grid">
-    {/* Left rail */}
-    <aside class="rail">
-      <div class="meta">
-        {post.publishedAt && (
-          <div class="m">
-            <span class="k"><T k="post.publishedAt" /></span>
-            <span class="v mono">{formatMonoDate(post.publishedAt)}</span>
-          </div>
-        )}
-        {firstCat && (
-          <div class="m">
-            <span class="k"><T k="post.category" /></span>
-            <span class="v">{firstCat}</span>
-          </div>
-        )}
-        <div class="m">
-          <span class="k"><T k="post.readTime" /></span>
-          <span class="v"><T zh={`约 ${readTime} 分钟`} en={`${readTime} min`} /></span>
-        </div>
-      </div>
-
-      {toc.length > 0 && (
-        <>
-          <div class="rail-div"></div>
-          <nav class="toc">
-            <h5><T k="post.toc" /></h5>
-            {toc.map((t, i) => (
-              <a
-                href={`#${t.id}`}
-                class:list={[{ active: i === 0 }]}
-                style={t.level === 3 ? 'padding-left:26px' : ''}
-              >{t.text}</a>
-            ))}
-          </nav>
-        </>
-      )}
-
-      <div class="rail-div"></div>
-      <ShareButtons title={post.title} url={shareUrl} />
-    </aside>
-
+<div class="art-wrap"><a class="article-back" href={lhref('/writing')}><T zh="← 返回博客" en="← Back to writing" /></a>
+  <div class="article-flow">
     {/* Article body */}
     <article class="reading">
-      {firstCat && <div class="cat">{firstCat}</div>}
+      <div class="article-eyebrow">{firstCat && <span>{firstCat} · </span>}{post.publishedAt && <time datetime={new Date(post.publishedAt * 1000).toISOString()}>{formatMonoDate(post.publishedAt)}</time>}</div>
       <h1>{post.title}</h1>
-      {description && <p class="dek">{description}</p>}
-      <div class="byline">
-        <div class="av">N</div>
-        <div class="bm">
-          <b>norvyn</b> · {post.publishedAt ? formatDate(post.publishedAt) : ''}
-        </div>
-      </div>
 
       <div class="prose" set:html={html} />
       <div class="endmark">◆</div>
@@ -121,12 +73,50 @@ const shareUrl = new URL(lhref(`/posts/${post.slug}`), Astro.site).href;
         </nav>
       )}
     </article>
-  </div>
-</div>
 
-{/* Comments below the grid */}
-<div class="comments-wrap">
-  <CommentSection postId={post.id} />
+    <details class="article-tools"><summary><T zh="目录与分享" en="Contents and sharing" /></summary>
+      <div class="article-tools-body">
+      <div class="article-meta">
+        {post.publishedAt && (
+          <div class="article-meta-item">
+            <span class="article-meta-key"><T k="post.publishedAt" /></span>
+            <span class="article-meta-value mono">{formatMonoDate(post.publishedAt)}</span>
+          </div>
+        )}
+        {firstCat && (
+          <div class="article-meta-item">
+            <span class="article-meta-key"><T k="post.category" /></span>
+            <span class="article-meta-value">{firstCat}</span>
+          </div>
+        )}
+        <div class="article-meta-item">
+          <span class="article-meta-key"><T k="post.readTime" /></span>
+          <span class="article-meta-value"><T zh={`约 ${readTime} 分钟`} en={`${readTime} min`} /></span>
+        </div>
+      </div>
+
+      {toc.length > 0 && (
+        <>
+          <nav class="toc">
+            <h5><T k="post.toc" /></h5>
+            {toc.map((t, i) => (
+              <a
+                href={`#${t.id}`}
+                class:list={[{ active: i === 0 }]}
+                style={t.level === 3 ? 'padding-left:26px' : ''}
+              >{t.text}</a>
+            ))}
+          </nav>
+        </>
+      )}
+
+      <ShareButtons title={post.title} url={shareUrl} />
+      </div>
+    </details>
+
+
+    <CommentSection postId={post.id} />
+  </div>
 </div>
 
 <style>
@@ -144,63 +134,29 @@ const shareUrl = new URL(lhref(`/posts/${post.slug}`), Astro.site).href;
   .art-wrap {
     max-width: var(--maxw);
     margin: 0 auto;
-    /* Gut zeroed so the rail bleeds to the band edge, matching the
-       home spine (.hero/.sec also zero the inline gut). main supplies
-       the gut below the band width so mobile prose stays gutter'd. */
+    /* main supplies the viewport gutter; the flow owns its reading measure. */
     padding-inline: 0;
   }
 
-  .art-grid {
-    display: grid;
-    grid-template-columns: clamp(150px, 18vw, 236px) minmax(0, var(--measure));
-    gap: var(--col-gap);
-    padding: clamp(40px, 6vw, 72px) 0 60px;
+  /* One column in DOM order: article, optional tools, comments. */
+  .article-flow {
+    max-width: var(--measure);
+    margin: 55px auto 0;
   }
 
-  /* Rail */
-  .rail {
-    position: sticky;
-    top: 90px;
-    align-self: start;
-    display: flex;
-    flex-direction: column;
-    gap: 22px;
+  .article-tools {
+    margin-top: 40px;
+    padding-block: 18px;
+    border-top: 1px solid var(--line);
   }
 
-  .rail .meta {
-    display: flex;
-    flex-direction: column;
-    gap: 13px;
-  }
-
-  .rail .m {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
-
-  .rail .k {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--ink-3);
-  }
-
-  .rail .v {
-    font-size: 14px;
-    font-weight: 600;
-  }
-
-  .rail .mono {
-    font-family: var(--font-mono);
-    letter-spacing: 0.1em;
-  }
-
-  .rail-div {
-    height: 1px;
-    background: var(--line);
-  }
+  .article-tools summary { cursor: pointer; font-size: 13px; }
+  .article-tools-body { display: grid; gap: 24px; padding-top: 24px; }
+  .article-meta { display: flex; flex-wrap: wrap; gap: 20px 40px; }
+  .article-meta-item { display: grid; gap: 4px; }
+  .article-meta-key { font: 10px var(--font-mono); letter-spacing: .1em; color: var(--ink-3); }
+  .article-meta-value { font-size: 14px; font-weight: 600; }
+  .article-meta-value.mono { font-family: var(--font-mono); letter-spacing: .1em; }
 
   /* TOC */
   .toc h5 {
@@ -234,15 +190,6 @@ const shareUrl = new URL(lhref(`/posts/${post.slug}`), Astro.site).href;
   }
 
   /* Reading area */
-  .reading .cat {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin-bottom: 18px;
-  }
-
   .reading h1 {
     font-family: var(--font-display);
     font-weight: 600;
@@ -254,15 +201,6 @@ const shareUrl = new URL(lhref(`/posts/${post.slug}`), Astro.site).href;
        never reaches the body's right edge; normal wrap fills the measure. */
   }
 
-  .reading .dek {
-    font-family: var(--font-read);
-    font-size: clamp(17px, 1.9vw, 21px);
-    line-height: 1.6;
-    color: var(--ink-2);
-    margin: 0 0 26px;
-    max-width: none;
-  }
-
   /* Override @tailwindcss/typography's .prose 65ch cap so the body fills the
      reading column (var(--measure)) and aligns with h1 + .dek. Scoped to
      .reading so companion pages ([slug].astro) keep Tailwind's default. */
@@ -270,40 +208,7 @@ const shareUrl = new URL(lhref(`/posts/${post.slug}`), Astro.site).href;
     max-width: none;
   }
 
-  .byline {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding-bottom: 24px;
-    border-bottom: 1px solid var(--line);
-    margin-bottom: 8px;
-  }
-
-  .byline .av {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--surface-2);
-    border: 1px solid var(--line);
-    display: grid;
-    place-items: center;
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 15px;
-    color: var(--ink-3);
-  }
-
-  .byline .bm {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--ink-3);
-    letter-spacing: 0.03em;
-  }
-
-  .byline .bm b {
-    color: var(--ink);
-    font-weight: 600;
-  }
+  .reading :global(.prose :is(h2, h3)) { scroll-margin-top: 92px; }
 
   .endmark {
     margin: 2.2em 0 0;
@@ -404,37 +309,9 @@ const shareUrl = new URL(lhref(`/posts/${post.slug}`), Astro.site).href;
     text-align: right;
   }
 
-  /* Comments container */
-  .comments-wrap {
-    max-width: var(--maxw);
-    margin: 0 auto;
-    /* gut supplied by main; keep 0 here so it aligns with the article body */
-    padding-inline: 0;
-    padding-bottom: 60px;
-  }
-
   /* Responsive */
   @media (max-width: 880px) {
-    .art-grid {
-      /* minmax(0,1fr) (not bare 1fr = minmax(auto,1fr)) so a wide <pre>
-         code block scrolls inside its own box instead of blowing the
-         column past the viewport. */
-      grid-template-columns: minmax(0, 1fr);
-      gap: 8px;
-    }
-
-    .rail {
-      position: static;
-      flex-direction: row;
-      flex-wrap: wrap;
-      gap: 18px 28px;
-      margin-bottom: 18px;
-    }
-
-    .toc,
-    .rail-div {
-      display: none;
-    }
+    .article-flow { margin-top: 35px; }
 
     .pn-nav {
       grid-template-columns: 1fr;
@@ -462,22 +339,15 @@ const shareUrl = new URL(lhref(`/posts/${post.slug}`), Astro.site).href;
   const tocLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('.toc a'));
   const secs = tocLinks.map(a => document.getElementById(a.getAttribute('href')!.slice(1)));
   function spy() {
-    const y = scrollY + 120;
     let idx = 0;
     for (let i = 0; i < secs.length; i++) {
-      if (secs[i] && (secs[i] as HTMLElement).offsetTop <= y) idx = i;
+      if (secs[i] && (secs[i] as HTMLElement).getBoundingClientRect().top <= 120) idx = i;
     }
     tocLinks.forEach((a, i) => a.classList.toggle('active', i === idx));
   }
   addEventListener('scroll', spy, { passive: true });
   spy();
 
-  // Smooth-scroll on TOC click
-  tocLinks.forEach(a => {
-    a.addEventListener('click', e => {
-      e.preventDefault();
-      const t = document.getElementById(a.getAttribute('href')!.slice(1));
-      if (t) window.scrollTo({ top: (t as HTMLElement).offsetTop - 92, behavior: 'smooth' });
-    });
-  });
+  // Native anchors retain fragment URLs, keyboard navigation and reduced-motion
+  // behavior; heading scroll-margin provides the reading offset.
 </script>

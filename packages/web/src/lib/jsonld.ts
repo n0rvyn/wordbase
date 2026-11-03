@@ -47,7 +47,7 @@ export function buildSoftwareApplicationLd(app: App, origin: string) {
   const download = storeHref(app);
   const base = {
     '@context': 'https://schema.org',
-    '@type': 'SoftwareApplication',
+    '@type': app.platform === 'Web' ? 'WebApplication' : 'SoftwareApplication',
     name: app.name,
     url,
     ...(app.tagline ? { description: app.tagline } : {}),

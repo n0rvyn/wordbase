@@ -19,7 +19,31 @@ vi.mock('../services/asc.service.js', () => ({
 
 import { lookupApp, lookupAppAnyStorefront, lookupEnCopy } from '../services/appstore-lookup.service.js';
 import { isAscConfigured, fetchAppMetadata } from '../services/asc.service.js';
-import { syncApp, syncAllApps, mergeEnCopyIntoMeta } from '../services/app-sync.service.js';
+import { syncApp as prepareSync, syncAllApps as prepareAll, mergeEnCopyIntoMeta } from '../services/app-sync.service.js';
+
+import { getAppImport, reviewAppImport } from '../services/app-import.service.js';
+
+// These merge-policy regressions explicitly review and apply the suggestion.
+// Proposal-only behavior, stale review protection and publication isolation are
+// covered independently in app-import.service.test.ts.
+async function syncApp(id: string) {
+  const change = await prepareSync(id);
+  if (change.proposalId) {
+    const proposal = getAppImport(change.proposalId)!;
+    reviewAppImport(change.proposalId, proposal.reviewToken, change.fields, 'apply');
+  }
+  return change;
+}
+async function syncAllApps() {
+  const result = await prepareAll();
+  for (const change of result.changes) {
+    if (change.proposalId) {
+      const proposal = getAppImport(change.proposalId)!;
+      reviewAppImport(change.proposalId, proposal.reviewToken, change.fields, 'apply');
+    }
+  }
+  return result;
+}
 
 const lookupMock = lookupApp as ReturnType<typeof vi.fn>;
 const lookupAnyMock = lookupAppAnyStorefront as ReturnType<typeof vi.fn>;
@@ -588,7 +612,7 @@ describe('syncApp — English storefront copy', () => {
     releaseNotes: '修复问题。', platform: 'iOS',
   };
 
-  it('stores the English listing at meta.i18n.en and reports meta as changed', async () => {
+  it('applies the reviewed English copy at meta.i18n.en and reports englishCopy as changed', async () => {
     lookupMock.mockResolvedValue(cnMeta);
     lookupEnCopyMock.mockResolvedValue(GLINK_EN);
     isAscConfiguredMock.mockReturnValue(false);
@@ -601,7 +625,7 @@ describe('syncApp — English storefront copy', () => {
     expect(row.price).toBe('免费');
     // …and /en reads the English one off meta.
     expect(JSON.parse(row.meta!).i18n.en).toEqual(GLINK_EN);
-    expect(change.fields).toContain('meta');
+    expect(change.fields).toContain('englishCopy');
   });
 
   it('asks the English store only about apps that are listed, and tells it which storefront already answered', async () => {
@@ -633,7 +657,7 @@ describe('syncApp — English storefront copy', () => {
     expect(lookupEnCopyMock).not.toHaveBeenCalled();
   });
 
-  it('drops the overlay when the app is listed but no longer on the English store', async () => {
+  it('proposes and applies removal of the English overlay only after explicit review', async () => {
     await db.update(apps)
       .set({ meta: JSON.stringify({ i18n: { en: GLINK_EN } }) })
       .where(eq(apps.id, appId));

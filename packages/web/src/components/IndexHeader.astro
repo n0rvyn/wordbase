@@ -1,0 +1,17 @@
+---
+// Compact heading shared by navigation and result indexes in both locales.
+---
+<header class="index-header wrap">
+  <div class="index-label"><slot name="label" /></div>
+  <div class="index-heading"><h1><slot name="title" /></h1><p><slot name="summary" /></p></div>
+  {Astro.slots.has('description') && <div class="index-description"><slot name="description" /></div>}
+</header>
+<style>
+  .index-header { padding-block: 30px 24px; }
+  .index-label { font-size: 10px; letter-spacing: .12em; color: var(--ink-2); }
+  .index-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 24px; margin-top: 8px; }
+  .index-heading h1 { font: 500 clamp(28px,3vw,38px)/1.2 var(--font-display); letter-spacing: -.03em; margin: 0; overflow-wrap: anywhere; }
+  .index-heading p { font-size: 14px; color: var(--ink-2); margin: 0; }
+  .index-description { max-width: 65ch; font-size: 15px; color: var(--ink-2); margin-top: 12px; line-height: 1.7; }
+  @media(max-width:560px) { .index-header { padding-block: 24px 20px; } .index-heading { display: block; } .index-heading p { margin-top: 8px; } }
+</style>

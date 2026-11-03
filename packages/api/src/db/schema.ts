@@ -264,6 +264,17 @@ export const apps = sqliteTable('apps', {
   appStoreIdUnique: uniqueIndex('ux_apps_app_store_id').on(t.appStoreId),
 }));
 
+// Reviewed Apple imports are separate from the curated display record.
+export const appImports = sqliteTable('app_imports', {
+  id: text('id').primaryKey(),
+  appId: text('app_id').notNull().references(() => apps.id, { onDelete: 'cascade' }),
+  baseHash: text('base_hash').notNull(),
+  payload: text('payload').notNull(),
+  status: text('status').notNull().default('pending'),
+  createdAt: integer('created_at').notNull(),
+  reviewedAt: integer('reviewed_at'),
+});
+
 // podcast_events table — one row per consumption signal (downloads + RSS feed polls).
 // Raw event stream: deduplication is computed at READ time (mirroring page_views),
 // so we keep every hit and report raw + deduped counts from the same data.

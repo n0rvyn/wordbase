@@ -1,0 +1,5 @@
+#!/bin/sh
+# Project-private pnpm; the host's standalone pnpm embeds a different Node.
+export npm_config_store_dir="${WORDBASE_STORE_DIR:-/opt/wordbase/store-node24}"
+export XDG_CACHE_HOME="${WORDBASE_CACHE_DIR:-/var/www/wordbase/packages/api/data/.cache/node24}"
+exec /opt/wordbase/runtime/node-v24.22.2-linux-x64/bin/node /opt/wordbase/tooling/pnpm-10.28.2/node_modules/pnpm/bin/pnpm.cjs "$@"

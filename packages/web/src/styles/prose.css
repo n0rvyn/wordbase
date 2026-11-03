@@ -1,6 +1,18 @@
 /* ── Prose typography — shared by posts/[slug].astro and [slug].astro ── */
 /* Container .prose base lives in tokens.css; these are descendant rules only. */
 
+/* Tailwind Typography's default heading/code palette is light-only. Resolve
+   those roles through the same live theme tokens as the surrounding prose. */
+:root[data-public] .prose {
+  --tw-prose-headings: var(--ink);
+  --tw-prose-bold: var(--ink);
+  --tw-prose-code: var(--ink);
+  --tw-prose-counters: var(--ink-2);
+  --tw-prose-bullets: var(--ink-3);
+  --tw-prose-th-borders: var(--line-2);
+  --tw-prose-td-borders: var(--line);
+}
+
 .prose {
   font-family: var(--font-read);
   font-size: 18px;

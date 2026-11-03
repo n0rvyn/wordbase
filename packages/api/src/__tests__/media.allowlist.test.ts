@@ -51,6 +51,20 @@ describe('media upload allow-list', () => {
     expect(rec.path).toMatch(/\.mp3$/);
   });
 
+  it('accepts promotional MP4, WebM and animated GIF uploads', async () => {
+    for (const [name, mime] of [['promo.mp4', 'video/mp4'], ['promo.webm', 'video/webm'], ['animated.gif', 'image/gif']]) {
+      const record = await uploadMedia({ file: fakeFile(name, mime) });
+      createdPaths.push(record.path);
+      expect(record.path).toMatch(new RegExp('\\.' + name.split('.').pop() + '$'));
+    }
+  });
+
+  it('permits a promotional video above the image limit while still limiting images', async () => {
+    const record = await uploadMedia({ file: fakeFile('promo.mp4', 'video/mp4', 11 * 1024 * 1024) });
+    createdPaths.push(record.path);
+    await expect(uploadMedia({ file: fakeFile('huge.gif', 'image/gif', 11 * 1024 * 1024) })).rejects.toThrow(/File too large/);
+  });
+
   // MCP tools (blog_upload_media / podcast_upload_audio) pass a caller-supplied
   // filename that may lack an extension — the extension must be derived from the
   // (validated) MIME so these uploads are NOT regressed by the allow-list.

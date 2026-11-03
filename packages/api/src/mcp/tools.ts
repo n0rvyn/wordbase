@@ -12,6 +12,7 @@ import * as podcastAnalytics from '../services/podcast-analytics.service.js';
 import * as feedbackService from '../services/feedback.service.js';
 import * as appService from '../services/app.service.js';
 import * as appSyncService from '../services/app-sync.service.js';
+import * as appImportService from '../services/app-import.service.js';
 import * as pageService from '../services/page.service.js';
 import * as feedImportService from '../services/feed-import.service.js';
 import * as i18nContent from '../services/i18n-content.service.js';
@@ -24,6 +25,17 @@ import { safeFetch } from '../lib/safe-fetch.js';
 import { hasScope } from '../middleware/auth.js';
 import { z } from 'zod';
 import { buildInputSchema, type PropDescriptor } from './schema.js';
+
+const promotionalMediaDescriptor: PropDescriptor = {
+  type: 'object',
+  description: 'Editorial app-gallery media, separate from Apple screenshots. Upload files with media_upload, then set type and src; animated-image requires a still poster. Use type:none to remove. Merges without replacing other metadata.',
+  shape: {
+    type: { type: 'string', required: true, enum: ['video', 'animated-image', 'image', 'none'], description: 'Video (MP4/WebM), animated GIF/WebP, static image, or none.' },
+    src: { type: 'string', description: 'Uploaded root-relative URL or HTTPS media URL.' },
+    poster: { type: 'string', description: 'Still cover image; required for animated images, recommended for video.' },
+    alt: { type: 'string', description: 'Visitor-facing description of the demonstration.' },
+  },
+};
 
 // Shared Zod shape for one `features` array entry ({icon, title, blurb}).
 // `items` on an array PropDescriptor takes a compiled ZodTypeAny, not a
@@ -120,6 +132,8 @@ export const TOOL_SCOPES: Record<string, string> = {
   app_update: 'apps:write',
   app_discover: 'apps:write',
   app_sync: 'apps:write',
+  app_import_list: 'apps:write',
+  app_import_review: 'apps:write',
   page_list: 'pages:read',
   page_get: 'pages:read',
   page_create: 'pages:write',
@@ -786,7 +800,7 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
 
   server.tool(
     'media_upload',
-    'Upload a file to the media library (base64 encoded)',
+    'Upload an image, animated GIF/WebP, MP4/WebM video or audio file to the media library (base64 encoded). Promotional video limit defaults to 50 MB; images default to 10 MB.',
     {
       filename: { type: 'string', required: true, description: "Original filename, e.g. filename: 'cover.png'." },
       content: {
@@ -1647,7 +1661,7 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
   // App tools
   server.tool(
     'app_list',
-    'List iOS app landing pages, optionally filtered by status',
+    'List iOS, macOS and Web app landing pages, optionally filtered by status',
     {
       status: {
         type: 'string',
@@ -1673,7 +1687,7 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
 
   server.tool(
     'app_get',
-    'Get a single iOS app landing page by ID or slug.',
+    'Get a single app landing page by ID or slug.',
     {
       idOrSlug: { type: 'string', required: true, description: "App ID or slug. Example: idOrSlug: 'delphi'." },
     },
@@ -1690,21 +1704,23 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
 
   server.tool(
     'app_create',
-    'Create a new iOS app landing page with name, description, features, and App Store info',
+    'Create a new iOS, macOS or Web app landing page with name, description, features, and App Store info',
     {
       name: { type: 'string', required: true, description: "App name. Example: name: 'Delphi'." },
       tagline: { type: 'string', description: 'Short tagline shown under the app name.' },
+      subtitle: { type: 'string', description: 'Secondary product/access line, e.g. invite access for a Web app.' },
       description: { type: 'string', description: 'Full description.' },
       appStoreUrl: { type: 'string', description: 'App Store URL.' },
       appStoreId: { type: 'string', description: 'App Store numeric ID.' },
       bundleId: { type: 'string', description: 'Bundle identifier, e.g. com.example.app.' },
-      platform: { type: 'string', description: "Platform (default: 'iOS')." },
+      platform: { type: 'string', description: "Platform: iOS, macOS or Web (default: iOS)." },
       features: {
         type: 'array',
         description:
           "Feature bullets shown on the landing page. 用户说『给它加三个卖点』时,每条卖点是一个 {icon, title, blurb} 对象. Example: [{ icon: '⚡', title: 'Fast', blurb: 'Starts in under a second.' }].",
         items: appFeatureItemSchema,
       },
+      promotionalMedia: promotionalMediaDescriptor,
       screenshots: { type: 'array', items: 'string', description: 'Screenshot URLs, in display order.' },
       links: {
         type: 'object',
@@ -1719,12 +1735,14 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
       const app = await appService.createApp({
         name: args.name as string,
         tagline: args.tagline as string | undefined,
+        subtitle: args.subtitle as string | undefined,
         description: args.description as string | undefined,
         appStoreUrl: args.appStoreUrl as string | undefined,
         appStoreId: args.appStoreId as string | undefined,
         bundleId: args.bundleId as string | undefined,
         platform: args.platform as string | undefined,
         features: args.features === undefined ? undefined : JSON.stringify(args.features),
+        promotionalMedia: args.promotionalMedia,
         screenshots: args.screenshots === undefined ? undefined : JSON.stringify(args.screenshots),
         links: args.links === undefined ? undefined : JSON.stringify(args.links),
         accentColor: args.accentColor as string | undefined,
@@ -1760,11 +1778,23 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
 
   server.tool(
     'app_update',
-    "Update an app's editorial display info (tagline/features/accentColor/links/sortOrder/status/...). NOTE: description, screenshots, and icon are managed by app_sync (synced from the App Store) and are NOT editable here — editing them would be reverted on the next sync. After editing, run the build-trigger tool to render on /apps/:slug.",
+    "Edit the curated app catalog, including copy, icon and screenshots. Apple imports never overwrite these automatically. Keep existing slugs and Support/Privacy URLs unchanged unless explicitly requested. After editing, run the build-trigger tool to render on /apps/:slug.",
     {
       id: { type: 'string', required: true, description: "App ID (get it from app_list). Example: id: 'app_abc123'." },
       name: { type: 'string', description: 'App name.' },
       slug: { type: 'string', description: 'URL slug.' },
+      description: { type: 'string', description: 'Curated app description.' },
+      icon: { type: 'string', description: 'Curated icon URL.' },
+      promotionalMedia: promotionalMediaDescriptor,
+      screenshots: { type: 'array', items: 'string', description: 'Curated screenshot URLs in display order; replaces the array.' },
+      appStoreUrl: { type: 'string', description: 'Verified App Store listing URL.' },
+      platform: { type: 'string', description: 'Platform, e.g. iOS, macOS or Web.' },
+      price: { type: 'string', description: 'Display price; omit if not maintained.' },
+      category: { type: 'string', description: 'Display category.' },
+      version: { type: 'string', description: 'Display version.' },
+      minimumOsVersion: { type: 'string', description: 'Minimum supported OS version.' },
+      subtitle: { type: 'string', description: 'Curated subtitle.' },
+      whatsNew: { type: 'string', description: 'Curated release notes.' },
       tagline: { type: 'string', description: "Short tagline. 用户说『改一下标语』时用这个. Example: tagline: 'Your ideas, organized.'." },
       accentColor: { type: 'string', description: 'Accent color hex code, e.g. #5B8DEF.' },
       features: {
@@ -1790,6 +1820,18 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
       const app = await appService.updateApp(args.id as string, {
         name: args.name as string | undefined,
         slug: args.slug as string | undefined,
+        description: args.description as string | undefined,
+        icon: args.icon as string | undefined,
+        promotionalMedia: args.promotionalMedia,
+        screenshots: args.screenshots,
+        appStoreUrl: args.appStoreUrl as string | undefined,
+        platform: args.platform as string | undefined,
+        price: args.price as string | undefined,
+        category: args.category as string | undefined,
+        version: args.version as string | undefined,
+        minimumOsVersion: args.minimumOsVersion as string | undefined,
+        subtitle: args.subtitle as string | undefined,
+        whatsNew: args.whatsNew as string | undefined,
         tagline: args.tagline as string | undefined,
         accentColor: args.accentColor as string | undefined,
         features: args.features === undefined ? undefined : JSON.stringify(args.features),
@@ -1852,7 +1894,7 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
   // App sync tools
   server.tool(
     'app_sync',
-    "Sync app metadata from the App Store (version/category/screenshots/rating/icon) via iTunes Lookup + App Store Connect, then rebuild the site if anything changed. Give `id` to sync ONE app; OMIT `id` to sync EVERY app that has an App Store ID. Returns the fields that actually changed per app — an empty `fields` list means the fetch succeeded and nothing differed, which is a normal outcome, not a failure.",
+    "Fetch Apple metadata and PREPARE review proposals only. Never changes the curated catalog or rebuilds. Give id for one app; omit for all apps with App Store IDs. Read proposalId with app_import_list, show the before/after differences to the owner, then apply only explicitly approved fields using app_import_review.",
     {
       id: {
         type: 'string',
@@ -1863,13 +1905,6 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
     async (args: Record<string, unknown>) => {
       const id = args.id as string | undefined;
       try {
-        // `/apps/*` is static Astro output, so a DB-only sync is invisible on the
-        // live site. The repo rule is that the ADAPTER owns the build hook (the
-        // service stays side-effect free) — REST's POST /apps/:id/sync already
-        // does this; these MCP tools did not, which is why "I synced but the page
-        // still shows the old version" was the #1 reported failure.
-        // Rebuild only when a PUBLISHED app actually changed: an unchanged sync
-        // rebuilding the whole site would make the trigger meaningless.
         let changes: Awaited<ReturnType<typeof appSyncService.syncApp>>[];
         let failed: Awaited<ReturnType<typeof appSyncService.syncAllApps>>['failed'];
         if (id) {
@@ -1880,8 +1915,7 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
           changes = result.changes;
           failed = result.failed;
         }
-        const rebuilt = changes.some((c) => c.status === 'published' && c.fields.length > 0);
-        if (rebuilt) buildService.triggerBuild();
+        const rebuilt = false; // Fetching Apple data never publishes it.
         return {
           content: [
             {
@@ -1892,10 +1926,9 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
                 failed,
                 changed: changes.filter((c) => c.fields.length > 0),
                 unchanged: changes.filter((c) => c.fields.length === 0).map((c) => c.slug),
-                // An app on no storefront cannot be installed, so a PUBLISHED
-                // one is a page for something nobody can get. These always land
-                // in `unchanged` (no storefront answered, so nothing to write),
-                // where the slug-only shape would hide them.
+                // Historical response name retained for clients. This means no result
+                // on the queried CN/US storefronts, not global unavailability.
+                // Never unpublish automatically from this observation.
                 notOnAnyStorefront: changes
                   .filter((c) => c.storefront === null)
                   .map((c) => ({ slug: c.slug, status: c.status })),
@@ -1910,9 +1943,41 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
       }
     },
     {
-      title: 'Sync app metadata from App Store',
+      title: 'Prepare reviewed Apple import',
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
     }
+  );
+
+  server.tool(
+    'app_import_list',
+    'Read stored Apple import proposals and their before/after diffs. Pass proposalId to read one (including reviewed proposals), or appId to filter pending proposals. Show differences to the owner before applying. reviewToken binds the review to the unchanged catalog record.',
+    { proposalId: { type: 'string', description: 'Exact proposal ID returned by app_sync; omit to list pending proposals.' }, appId: { type: 'string', description: 'Optional app ID to filter pending proposals.' } },
+    async (args: Record<string, unknown>) => {
+      const result = args.proposalId ? appImportService.getAppImport(args.proposalId as string) : appImportService.listAppImports(args.appId as string | undefined);
+      if (args.proposalId && !result) return { content: [{ type: 'text' as const, text: 'Import proposal not found' }], isError: true };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
+    },
+    { title: 'Review Apple import differences', annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false } }
+  );
+  server.tool(
+    'app_import_review',
+    'Apply ONLY fields the owner explicitly approved after reviewing app_import_list, or reject a proposal. Requires the proposal reviewToken; stale/expired/already-reviewed proposals fail. fields must be selected changed field names, never arbitrary values. Omitted fields stay curated. Applying to a published app triggers a rebuild. Never changes slugs, publication, support/privacy URLs or App Store Connect.',
+    {
+      proposalId: { type: 'string', required: true, description: 'Exact proposal ID whose differences the owner reviewed.' },
+      reviewToken: { type: 'string', required: true, description: 'Exact reviewToken returned by app_import_list for the reviewed proposal.' },
+      action: { type: 'string', enum: ['apply', 'reject'], required: true, description: 'Apply explicitly approved fields, or reject without changing the catalog.' },
+      fields: { type: 'array', items: 'string', enum: appImportService.IMPORT_FIELDS, description: 'Explicitly approved changed fields; required for apply.' },
+    },
+    async (args: Record<string, unknown>) => {
+      try {
+        const result = appImportService.reviewAppImport(args.proposalId as string, args.reviewToken as string, (args.fields ?? []) as string[], args.action as 'apply' | 'reject');
+        if (result.action === 'apply' && result.status === 'published') void buildService.triggerBuild();
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
+      } catch (error) {
+        return { content: [{ type: 'text' as const, text: error instanceof Error ? error.message : 'Import review failed' }], isError: true };
+      }
+    },
+    { title: 'Apply or reject reviewed Apple import', annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false } }
   );
 
   // Page tools (companion pages: privacy/terms/help/...)

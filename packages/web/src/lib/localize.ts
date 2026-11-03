@@ -93,13 +93,18 @@ export async function localizeApp(app: App, lang: string): Promise<LocalizedApp>
   // app's default locale), so there is no English subtitle to overlay and it
   // stays as the row has it.
   const store = enStoreCopy(app.meta);
+  // Manually authored Web/non-store copy stays independent of Apple imports.
+  let editorial: Record<string, unknown> = {};
+  try { editorial = JSON.parse(app.meta || '{}')?.editorialI18n?.en || {}; } catch { /* source fallback */ }
+  const text = (key: string) => typeof editorial[key] === 'string' ? editorial[key] as string : undefined;
 
   return {
     ...app,
-    tagline: enTagline ?? app.tagline,
+    tagline: text('tagline') ?? enTagline ?? app.tagline,
+    subtitle: text('subtitle') ?? app.subtitle,
     features,
     name: store?.name ?? app.name,
-    description: store?.description ?? app.description,
+    description: text('description') ?? store?.description ?? app.description,
     price: store?.price ?? app.price,
     whatsNew: store?.whatsNew ?? app.whatsNew,
   };

@@ -1,0 +1,8 @@
+{
+  "lucent-阅读光线检测与用眼休息": { "support": "https://norvyn.com/lucent-support", "privacy": "https://norvyn.com/lucent-privacy" },
+  "具眼-美术馆看展-画面形式分析": { "support": "https://norvyn.com/slowlook-support", "privacy": "https://norvyn.com/slowlook-privacy" },
+  "配料表解密-拍照识别食品添加剂": { "support": "https://norvyn.com/cleanlabel-support", "privacy": "https://norvyn.com/cleanlabel-privacy" },
+  "delphi-认识你自己": { "support": "https://norvyn.com/delphi-support", "privacy": "https://norvyn.com/delphi-privacy" },
+  "model-proxy": { "source": "https://github.com/n0rvyn/model-proxy", "support": "https://norvyn.com/modelproxy-support", "privacy": "https://norvyn.com/modelproxy-privacy" },
+  "activity-bridge": { "support": "https://norvyn.com/glink-support", "privacy": "https://norvyn.com/glink-privacy" }
+}

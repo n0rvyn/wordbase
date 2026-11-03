@@ -1,31 +1,8 @@
 ---
-// Shared home-page body. Single source of markup + scoped styles for both the
-// zh shell (pages/index.astro) and the en shell (pages/en/index.astro). The
-// shells fetch+localize via lib/home.loadHomeData and spread the result here;
-// this component is pure presentation. Locale only affects internal link hrefs
-// (en prefixes /en) and which on-page anchor a hero CTA targets — content
-// shape (category meta, podcast section) is decided by the data the shell
-// passes (postCat/podcast null on en), not by branching here.
 import T from '../T.astro';
-import {
-  stripMarkdown,
-  estimateReadTime,
-  type Post,
-  type App,
-  type Episode,
-  type Podcast,
-} from '../../lib/api';
-import {
-  formatMonoDate,
-  decodeEntities,
-  selectFeaturedApp,
-  restApps,
-  selectFeaturedEpisode,
-  formatDuration,
-} from '../../lib/home';
-import { displayName, heroShot, parseJsonArray, storeHref } from '../../lib/app';
+import { type Post, type App, type Episode, type Podcast } from '../../lib/api';
+import { formatMonoDate, decodeEntities } from '../../lib/home';
 import { enHref, type Locale } from '../../lib/locale';
-import '../../styles/plate.css';
 
 interface Props {
   locale: Locale;
@@ -35,386 +12,54 @@ interface Props {
   podcast: Podcast | null;
   episodes: Episode[];
 }
+const { locale, posts, apps, podcast, postCat } = Astro.props;
+const lhref = (path: string) => locale === 'en' ? enHref(path) : path;
 
-const { locale, posts, postCat, apps, podcast, episodes } = Astro.props;
-const en = locale === 'en';
-// Localize an internal path for the active locale. /podcast has no en twin, so
-// callers pass it raw (never through lhref).
-const lhref = (p: string) => (en ? enHref(p) : p);
-
-const featuredApp = selectFeaturedApp(apps);
-const listApps = restApps(apps, featuredApp);
-const showApps = apps.length > 0;
-// The featured card hangs the app's real art, same as /apps and /apps/[slug].
-// It used to draw a fake iPhone (notch, a hard-coded 9:41 status bar) around
-// the app ICON — a device that isn't the app's, showing something that isn't a
-// screen. heroShot picks a shot from the app's own platform band; null means
-// the app has no art, and the card falls back to a plain placard.
-const featuredShot = featuredApp
-  ? heroShot(parseJsonArray<string>(featuredApp.screenshots), featuredApp.platform)
-  : null;
-
-const featuredEp = podcast ? selectFeaturedEpisode(episodes) : null;
-const listEps = featuredEp ? episodes.filter((e) => e.id !== featuredEp.id).slice(0, 5) : [];
-const showPodcast = !!(podcast && featuredEp);
-
-// Hero CTAs scroll to the on-page section when it is rendered, else link to the
-// standalone page. zh renders both → #apps / #podcast; en omits podcast → the
-// podcast CTA links out to /podcast (the Chinese show page).
-const appsCtaHref = showApps ? '#apps' : lhref('/apps');
-const podcastCtaHref = showPodcast ? '#podcast' : '/podcast';
+const artApps = apps.filter(app => app.icon).slice(0, 3);
 ---
 
-{/* HERO */}
-<header class="hero wrap">
-  <div class="row2">
-    <div class="spine">
-      <span class="no">00</span>
-      <span class="lab">norvyn</span>
-      <span class="note"><T k="home.spine.note" /></span>
-    </div>
-    <div class="hero-main">
-      <div class="eyebrow"><T k="home.hero.eyebrow" /></div>
-      <h1><T k="home.hero.h1" /></h1>
-      <p class="lede"><T k="home.hero.lede" /></p>
-      <div class="hero-cta">
-        <a class="btn btn-1" href={appsCtaHref}><T k="home.hero.ctaApps" /><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-        <a class="btn btn-2" href={podcastCtaHref}><T k="home.hero.ctaPodcast" /></a>
-      </div>
-    </div>
+<header class="universe-hero wrap">
+  <div class="universe-eyebrow"><span>Independent developer, writer &amp; podcaster</span><span>NORVYN.COM</span></div>
+  <h1>A curious mind.<br />A few <em>good things.</em></h1>
+  <div class="universe-intro">
+    <p><T zh="做一点有用的东西，写一点真实的想法。<br />这是我的作品，也是我与世界相处的方式。" en="Making useful things. Putting honest thoughts into words.<br />A few things I make, and the way I meet the world." /></p>
+    <a href="#spaces"><T zh="三个入口，同一个我" en="Three spaces. One curious mind." /><span aria-hidden="true">↓</span></a>
   </div>
 </header>
 
-{/* APPS */}
-{showApps && (
-  <section class="sec wrap" id="apps">
-    <div class="row2">
-      <div class="spine">
-        <span class="no">01</span>
-        <span class="lab">Apps</span>
-        <span class="note"><T k="home.apps.note" /></span>
-      </div>
-      <div class="apps">
-        {featuredApp && (
-          <a class="feature" href={lhref(`/apps/${featuredApp.slug}`)}>
-            <div class="feature-art">
-              {featuredShot
-                ? <img
-                    class="plate"
-                    src={featuredShot.url}
-                    alt={displayName(featuredApp.name)}
-                    width={featuredShot.width ?? undefined}
-                    height={featuredShot.height ?? undefined}
-                    style={featuredShot.width && featuredShot.height
-                      ? `aspect-ratio:${featuredShot.width}/${featuredShot.height}`
-                      : undefined}
-                  />
-                : <div class="plate-blank">
-                    {featuredApp.icon
-                      ? <img src={featuredApp.icon} alt={displayName(featuredApp.name)} width="96" height="96" style="border-radius:22px;" />
-                      : <div class="app-ic" style="width:96px;height:96px;font-size:36px;">{displayName(featuredApp.name).charAt(0)}</div>
-                    }
-                  </div>
-              }
-            </div>
-            <div class="feature-body">
-              <div class="ftag"><T k="home.apps.featuredTag" /></div>
-              <h3>{displayName(featuredApp.name)}</h3>
-              {featuredApp.tagline && <p>{featuredApp.tagline}</p>}
-              <div class="fmeta">
-                {featuredApp.category && (
-                  <div>
-                    <span class="k"><T k="home.meta.category" /></span>
-                    <span class="v">{featuredApp.category}</span>
-                  </div>
-                )}
-                {featuredApp.publishedAt && (
-                  <div>
-                    <span class="k"><T k="home.meta.since" /></span>
-                    <span class="v">{new Date(featuredApp.publishedAt * 1000).getUTCFullYear()}</span>
-                  </div>
-                )}
-                {storeHref(featuredApp) && (
-                  <div>
-                    <span class="k"><T k="home.meta.store" /></span>
-                    <span class="v"><T k="home.meta.appStore" /> ↗</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </a>
-        )}
-        <div class="list">
-          {listApps.map((a: App) => (
-            <a class="item app" href={lhref(`/apps/${a.slug}`)}>
-              <div class="app-ic">
-                {a.icon
-                  ? <img src={a.icon} alt={displayName(a.name)} width="50" height="50" style="border-radius:13px;width:100%;height:100%;object-fit:cover;" />
-                  : displayName(a.name).charAt(0)
-                }
-              </div>
-              <div>
-                <div class="item-title">{displayName(a.name)}</div>
-                {a.tagline && <div class="item-sub">{a.tagline}</div>}
-              </div>
-              <div class="app-r">
-                {(a.category || a.publishedAt) && (
-                  <span class="item-meta">
-                    {[a.category, a.publishedAt ? String(new Date(a.publishedAt * 1000).getUTCFullYear()) : null].filter(Boolean).join(' · ')}
-                  </span>
-                )}
-                {storeHref(a) && (
-                  <span class="store"><T k="home.meta.appStore" /> <svg class="arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg></span>
-                )}
-              </div>
-            </a>
-          ))}
-        </div>
-        <a class="viewall" href={lhref('/apps')}><T k="home.apps.viewall" /> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-      </div>
+<section class="universe-portals wrap" id="spaces" aria-label={locale === 'en' ? 'Explore my work' : '探索我的作品'}>
+  <a class="portal portal-words" href={lhref('/writing')}>
+    <div class="portal-top"><span>01 / WORDS</span><span>blog ↗</span></div>
+    <div class="portal-art paper-art" aria-hidden="true"><span>Aa.</span><b>NOTES ON THE WAY</b><i></i><i></i><i></i></div>
+    <div class="portal-label"><h2><T zh="想法，留下来。" en="Thoughts, kept." /></h2><p><T zh="写作 / 观察 / 开发日志" en="Essays / observations / dev notes" /></p><span aria-hidden="true">↗</span></div>
+  </a>
+  <a class="portal portal-sound" href="/podcast">
+    <div class="portal-top"><span>02 / SOUND</span><span>podcast ↗</span></div>
+    <div class="portal-art record-art" aria-hidden="true"><div class="record-center">拾<br />余光</div></div>
+    <div class="portal-label"><h2><T zh="听见，另一面。" en="Another side, heard." /></h2><p>{podcast ? decodeEntities(podcast.title) : '拾余光'}<T zh=" · 在声音里慢下来" en=" · Take your time. Listen." /></p><span aria-hidden="true">↗</span></div>
+  </a>
+  <a class="portal portal-objects" href={lhref('/apps')}>
+    <div class="portal-top"><span>03 / OBJECTS</span><span>apps ↗</span></div>
+    <div class="portal-art object-art" aria-hidden="true">
+      {artApps.length ? artApps.map((app, index) => <img class={`object-icon object-${index}`} src={app.icon!} alt="" width="128" height="128" />) : <span class="object-letter">n<span>✳</span></span>}
     </div>
-  </section>
-)}
+    <div class="portal-label"><h2><T zh="小事，做好。" en="Small things, well made." /></h2><p><T zh="独立应用 / 日常工具" en="Independent apps / everyday tools" /></p><span aria-hidden="true">↗</span></div>
+  </a>
+</section>
 
-{/* WRITING (always rendered — 126 real posts) */}
-<section class="sec wrap" id="writing">
-  <div class="row2">
-    <div class="spine">
-      <span class="no">02</span>
-      <span class="lab">Writing</span>
-      <span class="note"><T k="home.writing.note" /></span>
-    </div>
-    <div>
-      <div class="list">
-        {posts.map((p: Post) => {
-          const cat = postCat?.get(p.id);
-          return (
-            <a class="item post" href={lhref(`/posts/${p.slug}`)}>
-              <div>
-                {p.publishedAt && <div class="pdate">{formatMonoDate(p.publishedAt)}</div>}
-                <div class="item-title">{p.title}</div>
-                <div class="item-sub">{p.excerpt || stripMarkdown(p.content, 120)}</div>
-              </div>
-              <div class="item-meta">
-                {`${estimateReadTime(p.content)} min${cat ? ' · ' + cat : ''}`}
-              </div>
-            </a>
-          );
-        })}
-      </div>
-      <a class="viewall" href={lhref('/writing')}><T k="home.writing.viewall" /> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-    </div>
+<div class="home-latest wrap"><section class="universe-recent" id="writing">
+  <div class="universe-section-head"><h2><T zh="最近留下的痕迹" en="Recent traces" /></h2><a href={lhref('/writing')}><T zh="全部文章" en="All writing" /> ↗</a></div>
+  <div class="trace-list">
+    {posts.slice(0, 3).map(post => <a class="trace" href={lhref(`/posts/${post.slug}`)}>
+      <time datetime={post.publishedAt ? new Date(post.publishedAt * 1000).toISOString() : undefined}>{post.publishedAt ? formatMonoDate(post.publishedAt) : '—'}</time>
+      <h3>{post.title}</h3><span class="trace-meta">{postCat?.get(post.id) || (locale === 'en' ? 'Essay' : '随笔')}</span><span class="trace-arrow" aria-hidden="true">↗</span>
+    </a>)}
   </div>
 </section>
 
-{/* PODCAST */}
-{showPodcast && podcast && featuredEp && (
-  <section class="sec wrap" id="podcast">
-    <div class="row2">
-      <div class="spine">
-        <span class="no">03</span>
-        <span class="lab">{decodeEntities(podcast.title)}</span>
-        {podcast.description && stripMarkdown(podcast.description, 40) && (
-          <span class="note">{stripMarkdown(podcast.description, 40)}</span>
-        )}
-      </div>
-      <div class="pods">
-        <div class="feat-ep">
-          <div class="ep-cover">
-            {(podcast.coverImage || featuredEp.coverImage)
-              ? <img src={podcast.coverImage || featuredEp.coverImage || ''} alt={podcast.title} width="104" height="104" style="border-radius:18px;width:100%;height:100%;object-fit:cover;" />
-              : <span>{decodeEntities(podcast.title).charAt(0)}</span>
-            }
-          </div>
-          <div class="eb">
-            <span class="en">
-              {featuredEp.episodeNumber != null ? `EP.${featuredEp.episodeNumber} · ` : ''}<T k="home.podcast.featuredPrefix" />
-            </span>
-            <h3>{featuredEp.title}</h3>
-            <audio controls preload="metadata" src={featuredEp.audioUrl}></audio>
-          </div>
-        </div>
-        <div class="list">
-          {listEps.map((e: Episode) => {
-            const metaParts = [
-              e.episodeNumber != null ? `EP.${e.episodeNumber}` : null,
-              formatDuration(e.duration) || null,
-            ].filter(Boolean).join(' · ');
-            return (
-              <a class="item ep" href="/podcast">
-                <div class="mini" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>
-                </div>
-                <div class="item-title">{e.title}</div>
-                {metaParts && <div class="item-meta">{metaParts}</div>}
-              </a>
-            );
-          })}
-        </div>
-        <a class="viewall" href="/podcast"><T k="home.podcast.viewall" /> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-      </div>
-    </div>
-  </section>
-)}
+<section class="universe-credo">
+  <p class="credo-title">Less noise.<br /><em>More meaning.</em></p>
+  <div><p><T zh="代码、文字和声音，可以是同一种表达。让每一件小事，都有自己的分量。" en="Code, words, and sound can be the same kind of expression. A little care gives small things their own weight." /></p><span><T zh="持续创作，慢慢生长" en="Keep making. Grow slowly." /></span></div>
+</section>
 
-<style>
-  /* ── Hero ─────────────────────────────────────────────────────────────────── */
-  .hero { padding: clamp(52px, 8vw, 104px) 0 clamp(40px, 5vw, 64px); }
-  .eyebrow {
-    font-family: var(--font-mono); font-size: 12.5px;
-    letter-spacing: .16em; text-transform: uppercase;
-    color: var(--ink-3); margin-bottom: 22px;
-  }
-  .hero h1 {
-    font-family: var(--font-display); font-weight: 500;
-    font-size: clamp(33px, 4.6vw, 60px); line-height: 1.08;
-    letter-spacing: -.03em; margin: 0 0 clamp(38px, 4vw, 46px); max-width: 18ch;
-    text-wrap: balance;
-  }
-  .hero h1 em { font-style: normal; color: var(--accent); }
-  .lede {
-    font-family: var(--font-read); font-size: clamp(16px, 1.6vw, 19px);
-    line-height: 1.75; color: var(--ink-2); max-width: 50ch; margin: 0 0 clamp(42px, 4.5vw, 52px);
-  }
-  .hero-cta { display: flex; flex-wrap: wrap; gap: 12px; }
-
-  /* ── Buttons ──────────────────────────────────────────────────────────────── */
-  .btn {
-    font-family: var(--font-ui); font-size: 15px; font-weight: 600;
-    cursor: pointer; padding: 12px 20px; border-radius: 99px;
-    border: 1px solid transparent;
-    transition: transform .18s var(--ease), background .2s, border-color .2s;
-    display: inline-flex; align-items: center; gap: 8px;
-  }
-  .btn:hover { transform: translateY(-1px); }
-  .btn-1 { background: var(--accent); color: var(--on-accent); }
-  .btn-2 { background: transparent; color: var(--ink); border-color: var(--line-2); }
-  .btn-2:hover { border-color: var(--ink-3); background: var(--surface-2); }
-
-  /* ── Sections ─────────────────────────────────────────────────────────────── */
-  .sec { padding: clamp(44px, 6vw, 84px) 0; border-top: 1px solid var(--line); }
-
-  /* ── Arrow ────────────────────────────────────────────────────────────────── */
-  .arrow { color: var(--ink-3); transition: transform .25s var(--ease), color .2s; }
-  .item:hover .arrow { transform: translate(3px, -3px); color: var(--accent); }
-
-  /* ── App list rows ────────────────────────────────────────────────────────── */
-  .app { grid-template-columns: 50px 1fr auto; gap: 20px; }
-  .app-ic {
-    width: 50px; height: 50px; border-radius: 13px;
-    background: var(--surface-2); border: 1px solid var(--line);
-    display: grid; place-items: center;
-    font-family: var(--font-display); font-weight: 600;
-    font-size: 19px; color: var(--ink-3);
-    transition: color .2s, border-color .2s;
-  }
-  .item:hover .app-ic { color: var(--accent); border-color: var(--line-2); }
-  .app .item-title { font-size: 19px; }
-  .app .item-sub { font-size: 14.5px; margin-top: 3px; }
-  .app-r { display: flex; flex-direction: column; align-items: flex-end; gap: 7px; text-align: right; }
-  .app-r .store {
-    font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em;
-    color: var(--ink-3); display: inline-flex; gap: 5px; align-items: center;
-    transition: color .2s; white-space: nowrap;
-  }
-  .item:hover .store { color: var(--accent); }
-
-  /* ── Featured app ─────────────────────────────────────────────────────────── */
-  .feature {
-    display: grid; grid-template-columns: 248px 1fr;
-    gap: clamp(28px, 4vw, 56px); align-items: center;
-    padding-bottom: 30px; margin-bottom: 14px;
-    border-bottom: 1px solid var(--line);
-  }
-  /* Art column. The plate itself is styled by styles/plate.css — shared with
-     /apps/[slug] so the two never drift. This only sizes the column. */
-  .feature-art { width: 230px; margin-inline: auto; }
-  .feature-body .ftag {
-    font-family: var(--font-mono); font-size: 11.5px;
-    letter-spacing: .12em; text-transform: uppercase;
-    color: var(--accent); margin-bottom: 14px;
-  }
-  .feature-body h3 {
-    font-family: var(--font-display); font-weight: 600;
-    font-size: clamp(26px, 3.2vw, 38px); letter-spacing: -.03em;
-    margin: 0 0 14px; line-height: 1.08;
-  }
-  .feature-body p {
-    color: var(--ink-2); font-family: var(--font-read);
-    font-size: 16px; line-height: 1.7; margin: 0 0 22px; max-width: 42ch;
-  }
-  .feature-body .fmeta { display: flex; gap: 22px; flex-wrap: wrap; }
-  .feature-body .fmeta div { display: flex; flex-direction: column; gap: 3px; }
-  .feature-body .fmeta .k {
-    font-family: var(--font-mono); font-size: 10.5px;
-    letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3);
-  }
-  .feature-body .fmeta .v { font-weight: 600; font-size: 15px; }
-
-  /* ── Writing rows ─────────────────────────────────────────────────────────── */
-  .post { grid-template-columns: 1fr auto; gap: 6px 28px; }
-  .post .item-title { font-size: clamp(19px, 2vw, 24px); margin-bottom: 6px; }
-  .pdate { font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); margin-bottom: 9px; }
-  .post .item-sub { font-size: 15px; }
-  .post .item-meta { align-self: start; padding-top: 2px; }
-
-  /* ── Featured episode ─────────────────────────────────────────────────────── */
-  .feat-ep {
-    display: grid; grid-template-columns: auto 1fr;
-    gap: 22px; align-items: center;
-    padding: 8px 0 28px; margin-bottom: 8px;
-    border-bottom: 1px solid var(--line);
-  }
-  .ep-cover {
-    width: 104px; height: 104px; border-radius: 18px; flex-shrink: 0;
-    background: radial-gradient(120% 120% at 20% 0%, color-mix(in srgb, var(--accent) 50%, #15151a), #0e0e14);
-    display: grid; place-items: center; box-shadow: var(--shadow);
-  }
-  .ep-cover span {
-    font-family: var(--font-display); font-weight: 700;
-    font-size: 30px; color: #fff; letter-spacing: -.03em;
-  }
-  .feat-ep .eb .en {
-    font-family: var(--font-mono); font-size: 11.5px;
-    letter-spacing: .1em; text-transform: uppercase; color: var(--accent);
-  }
-  .feat-ep .eb h3 {
-    font-family: var(--font-display); font-weight: 600;
-    font-size: clamp(20px, 2.3vw, 26px); letter-spacing: -.02em; margin: 8px 0 16px;
-  }
-  audio { width: 100%; max-width: 420px; margin-top: 8px; }
-
-  /* ── Episode list rows ────────────────────────────────────────────────────── */
-  .ep { grid-template-columns: auto 1fr auto; gap: 16px; }
-  .ep .mini {
-    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
-    border: 1px solid var(--line-2); background: transparent;
-    color: var(--ink-3); display: grid; place-items: center;
-    transition: all .2s;
-  }
-  .item:hover .mini { border-color: var(--accent); color: var(--accent); }
-  .ep .mini svg { width: 12px; height: 12px; }
-  .ep .item-title { font-size: 16px; }
-
-  /* ── View all link ────────────────────────────────────────────────────────── */
-  .viewall {
-    display: inline-flex; align-items: center; gap: 7px; margin-top: 24px;
-    font-family: var(--font-mono); font-size: 12px;
-    letter-spacing: .08em; text-transform: uppercase;
-    color: var(--accent); font-weight: 500;
-    transition: gap .2s var(--ease);
-  }
-  .viewall:hover { gap: 11px; }
-
-  /* ── Section-local responsive ─────────────────────────────────────────────── */
-  @media (max-width: 880px) {
-    .feature { grid-template-columns: 1fr; gap: 30px; }
-    .feat-ep { grid-template-columns: 1fr; }
-  }
-  @media (max-width: 560px) {
-    .app { grid-template-columns: 44px 1fr; }
-    .app-r { grid-column: 2; align-items: flex-start; text-align: left; flex-direction: row; gap: 14px; margin-top: 8px; }
-    .post { grid-template-columns: 1fr; }
-    .post .item-meta { margin-top: 8px; }
-  }
-</style>
+</div>

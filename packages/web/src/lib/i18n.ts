@@ -46,7 +46,6 @@ export const dict: Record<string, Entry> = {
   'foot.linkCategories': { zh: '分类',  en: 'Categories' },
   'foot.linkTags':       { zh: '标签',  en: 'Tags' },
   'foot.linkArchives':   { zh: '归档',  en: 'Archive' },
-  'foot.builtWith':   { zh: 'Built with Wordbase', en: 'Built with Wordbase' },
 
   // ── home (index) ───────────────────────────────────────────────────────────
   // 门面文案，英文已 review 定稿（native pass 2026-06-11）
@@ -138,7 +137,6 @@ export const dict: Record<string, Entry> = {
   'apps.showcase.h2':      { zh: '精选',        en: 'Featured' },
   'apps.allApps.h2':       { zh: '目录',        en: 'Index' },
   'apps.screens.h2':       { zh: '画面',        en: 'Screens' },
-  'apps.screens.noteGrid': { zh: '每张按原始比例陈列，不裁切。', en: 'Every shot at its own aspect, never cropped.' },
   'apps.device.phone':     { zh: 'iPhone',      en: 'iPhone' },
   'apps.device.tablet':    { zh: 'iPad',        en: 'iPad' },
   'apps.device.desktop':   { zh: 'Mac',         en: 'Mac' },
@@ -180,8 +178,8 @@ export const dict: Record<string, Entry> = {
   'about.eyebrow':    { zh: 'Independent developer · 自 2023', en: 'Independent developer · since 2023' },
   'about.h1':         { zh: '关于 norvyn', en: 'About norvyn' },
   'about.lede': {
-    zh: '我做小而克制的 iOS 应用，写关于设计与工程的随笔，也在筹备一档慢节奏的播客。这个站点，是这几件事共同的家。',
-    en: 'I make small, restrained iOS apps, write essays on design and engineering, and am putting together a slow-paced podcast. This site is the home for all of that.',
+    zh: '我做小而克制的 iOS 应用，写关于设计与工程的随笔，也录一档慢节奏的播客。这个站点，是这几件事共同的家。',
+    en: 'I make small, restrained iOS apps, write essays on design and engineering, and record a slow-paced podcast. This site is the home for all of that.',
   },
   'about.story.lab':  { zh: 'Story',  en: 'Story' },
   'about.story.note': { zh: '我是谁，在做什么。', en: 'Who I am, what I do.' },
@@ -191,61 +189,33 @@ export const dict: Record<string, Entry> = {
     en: 'In 2023 I started taking my own work seriously. No team, no funding — just a laptop and a handful of ideas.',
   },
   'about.story.p3':   {
-    zh: '目前上架了 <strong>Delphi</strong> — 一款基于牌阵的 iOS 应用，用于反思与思维整理。博客里已有 128+ 篇文章，记录设计与工程路上的思考。播客还在筹备中。',
-    en: '<strong>Delphi</strong> is the one app I’ve shipped so far — an iOS app for reflection and thinking, built around card spreads. The blog already holds 128+ essays on design and engineering. The podcast is still in the works.',
+    zh: '我的作品从记录灵感的 <strong>Delphi</strong> 到日常生活里的小工具。文字留在博客里，声音留在「拾余光」里。',
+    en: 'My work ranges from <strong>Delphi</strong>, a home for spoken ideas, to small tools for everyday life. The writing lives here; the conversations live in my podcast.',
   },
   'about.story.p4':   {
     zh: '我对「软件」的信念很简单：<strong>小一点，慢一点，诚实一点</strong>。喜欢只做一件事、但把它做到刚好的应用；喜欢加载很快、读起来安静的网页；喜欢在上线前，把一半花哨的功能删掉的那种克制。',
     en: 'My belief about software is simple: <strong>smaller, slower, more honest</strong>. I like apps that do one thing and do it just right; pages that load fast and read quietly; the discipline of cutting half the flashy features before launch.',
   },
   'about.story.p5':   {
-    zh: '这个站点本身也是一次实践 — 它正在重新设计中，你现在看到的是进行时。',
-    en: 'This site is itself a practice run — it’s mid-redesign, so what you’re looking at is work in progress.',
+    zh: '希望这些小东西，能在你的日常里派上一点用场。',
+    en: 'I hope a few of these small things find a useful place in your day.',
   },
   'about.now.lab':  { zh: 'Now',  en: 'Now' },
   'about.now.note': { zh: '最近在忙的事。', en: 'What I’m up to lately.' },
   'about.now.building': { zh: '在做',   en: 'Building' },
   'about.now.building.v': {
-    zh: '<b>Delphi</b> — 迭代牌阵交互与截图展示，持续打磨细节。',
-    en: '<b>Delphi</b> — iterating on the spread interactions and screenshot showcase, polishing the details.',
+    zh: '<b>Delphi</b> — 记录口述灵感，连接过去的想法。',
+    en: '<b>Delphi</b> — capturing spoken ideas and connecting them to earlier thoughts.',
   },
-  'about.now.rebuild': { zh: '在建',  en: 'Rebuilding' },
-  'about.now.rebuild.v': {
-    zh: '这个站点的前端重设计 (Phase 6/8)，正在进行中。',
-    en: 'The front-end redesign of this site (Phase 6/8), underway.',
-  },
-  'about.now.preparing': { zh: '在准备', en: 'Preparing' },
+  'about.now.preparing': { zh: '在录', en: 'Recording' },
   'about.now.preparing.v': {
-    zh: '播客还未上线，节目形式还在构思阶段。',
-    en: 'The podcast isn’t out yet — the format is still taking shape.',
+    zh: '在「拾余光」里聊技术、日常和那些值得停下来想想的事。',
+    en: 'Conversations about technology, everyday life, and things worth pausing to think about.',
   },
   'about.now.writing': { zh: '在写',  en: 'Writing' },
   'about.now.writing.v': {
     zh: '断断续续更新博客，128+ 篇文章，主题围绕设计、工程与独立创作。',
     en: 'Updating the blog in fits and starts — 128+ essays on design, engineering, and making things on your own.',
-  },
-  'about.colophon.lab':  { zh: 'Colophon', en: 'Colophon' },
-  'about.colophon.note': { zh: '这个站点怎么做的。', en: 'How this site is made.' },
-  'about.colophon.design.k': { zh: '设计', en: 'Design' },
-  'about.colophon.design.v': {
-    zh: '一套语义令牌驱动的系统，hairline 而非卡片，颜色只来自作品。',
-    en: 'A semantic-token system. Hairlines, not cards. All color comes from the work itself.',
-  },
-  'about.colophon.type.k': { zh: '字体', en: 'Type' },
-  'about.colophon.type.v': {
-    zh: 'Geist（界面/标题）、Noto Sans SC（中文）、Geist Mono（标签与代码）。',
-    en: 'Geist (UI / headlines), Noto Sans SC (Chinese), Geist Mono (labels and code).',
-  },
-  'about.colophon.theme.k': { zh: '主题', en: 'Theme' },
-  'about.colophon.theme.v': {
-    zh: '浅色 / 深色双主题，一个可切换的强调色，全站同步。',
-    en: 'Light and dark themes, plus a switchable accent color — synced across the site.',
-  },
-  'about.colophon.accent.k': { zh: '强调色', en: 'Accent' },
-  'about.colophon.build.k': { zh: '构建', en: 'Built with' },
-  'about.colophon.build.v': {
-    zh: 'Wordbase — 一个 AI 原生、支持 MCP 的内容系统。',
-    en: 'Wordbase — an AI-native, MCP-enabled content system.',
   },
   'about.contact.lab':  { zh: 'Say hi',  en: 'Say hi' },
   'about.contact.note': { zh: '随时来信。', en: 'Drop a line anytime.' },

@@ -117,3 +117,18 @@ describe('discoverApps', () => {
     expect(result2.existing).toHaveLength(2);
   });
 });
+
+describe('browser application catalog records', () => {
+  it('persists and publishes a Web app without an Apple identity', async () => {
+    const row = await createApp({ name: 'Nearly', slug: 'nearly', platform: 'Web', subtitle: 'Invite access', links: { website: 'https://nearly.run/' } });
+    await publishApp(row.id);
+    const stored = await getApp('nearly');
+    expect(stored?.platform).toBe('Web');
+    expect(stored?.subtitle).toBe('Invite access');
+    expect(stored?.appStoreId).toBeNull();
+    expect(stored?.appStoreUrl).toBeNull();
+    expect(JSON.parse(stored!.links!)).toEqual({ website: 'https://nearly.run/' });
+    const published = await listApps({ status: 'published' });
+    expect(published.data.map(app => app.slug)).toContain('nearly');
+  });
+});

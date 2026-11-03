@@ -7,6 +7,8 @@ import {
   resolveAccent,
   DEFAULT_THEME,
   DEFAULT_ACCENT,
+  DARK_DEFAULT_ACCENT,
+  themePreference,
   ACCENTS,
   isValidAccent,
   persistAccent,
@@ -61,7 +63,7 @@ describe('mergePrefs', () => {
 
 describe('ACCENTS', () => {
   it('has length 5', () => expect(ACCENTS).toHaveLength(5));
-  it('first entry is the default accent (Indigo #3457B6)', () =>
+  it('first entry is the default accent', () =>
     expect(ACCENTS[0].value).toBe(DEFAULT_ACCENT));
   it('contains the default accent somewhere in the list', () =>
     expect(ACCENTS.some(a => a.value === DEFAULT_ACCENT)).toBe(true));
@@ -141,5 +143,28 @@ describe('cross-reload persistence round-trip', () => {
     prefs = readPrefs(getItem());
     expect(resolveTheme(prefs)).toBe('light');
     expect(resolveAccent(prefs)).toBe('#7088FF');
+  });
+});
+
+
+describe('system appearance', () => {
+  it('follows OS changes only for system or absent preferences', () => {
+    expect(themePreference({})).toBe('system');
+    expect(resolveTheme({}, true)).toBe('dark');
+    expect(resolveTheme({ theme: 'system' }, false)).toBe('light');
+    expect(resolveTheme({ theme: 'system' }, true)).toBe('dark');
+    expect(resolveTheme({ theme: 'light' }, true)).toBe('light');
+    expect(resolveTheme({ theme: 'dark' }, false)).toBe('dark');
+  });
+  it('recovers malformed old choices and preserves explicit legacy preferences', () => {
+    expect(themePreference({ theme: 'garbage' })).toBe('system');
+    expect(resolveTheme({ theme: 'garbage' }, true)).toBe('dark');
+    expect(themePreference(readPrefs('{"theme":"light","lang":"en","accent":"#3457B6"}'))).toBe('light');
+    expect(mergePrefs({ lang: 'en', accent: '#3457B6' }, { theme: 'system' })).toEqual({lang: 'en', accent: '#3457B6', theme: 'system'});
+  });
+  it('uses the readable accent for the effective theme without replacing a custom color', () => {
+    expect(resolveAccent({}, 'dark')).toBe(DARK_DEFAULT_ACCENT);
+    expect(resolveAccent({}, 'light')).toBe(DEFAULT_ACCENT);
+    expect(resolveAccent({ accent: '#3457B6' }, 'dark')).toBe('#3457B6');
   });
 });

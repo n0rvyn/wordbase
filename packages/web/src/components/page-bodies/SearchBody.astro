@@ -1,0 +1,7 @@
+---
+import PublicSearch from '../PublicSearch.astro';
+import type { Locale } from '../../lib/locale';
+interface Props { locale: Locale }
+---
+<h1 class="sr-only">{Astro.props.locale === 'en' ? 'Search' : '搜索'}</h1>
+<PublicSearch standalone />

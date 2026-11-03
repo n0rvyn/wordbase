@@ -7,13 +7,20 @@
 //      hand-mirrors readPrefs + resolveTheme/resolveAccent. Keep that inline
 //      copy in sync with the functions here.
 //
-// Persisted under localStorage['norvyn-v2'] with keys `theme` and `accent` only.
+// Existing norvyn-v2 preferences remain compatible, including language and accent.
 
 export const THEME_LS_KEY = 'norvyn-v2';
 export const DEFAULT_THEME: Theme = 'light';
-export const DEFAULT_ACCENT = '#3457B6';
+export const DEFAULT_ACCENT = '#ff5b2d';
+export const DARK_DEFAULT_ACCENT = '#ff916d';
 
 export type Theme = 'light' | 'dark';
+export type ThemePreference = Theme | 'system';
+
+/** Keep existing explicit choices; new visitors follow their operating system. */
+export function themePreference(prefs: ThemePrefs): ThemePreference {
+  return prefs.theme === 'light' || prefs.theme === 'dark' ? prefs.theme : 'system';
+}
 
 export interface ThemePrefs {
   theme?: string;
@@ -43,13 +50,14 @@ export function nextTheme(current: string): Theme {
 }
 
 /** Resolve the active theme, falling back to the default. */
-export function resolveTheme(prefs: ThemePrefs): string {
-  return prefs.theme || DEFAULT_THEME;
+export function resolveTheme(prefs: ThemePrefs, prefersDark = false): Theme {
+  const preference = themePreference(prefs);
+  return preference === 'system' ? (prefersDark ? 'dark' : 'light') : preference;
 }
 
 /** Resolve the active accent, falling back to the default. */
-export function resolveAccent(prefs: ThemePrefs): string {
-  return prefs.accent || DEFAULT_ACCENT;
+export function resolveAccent(prefs: ThemePrefs, theme: Theme = 'light'): string {
+  return prefs.accent || (theme === 'dark' ? DARK_DEFAULT_ACCENT : DEFAULT_ACCENT);
 }
 
 export interface AccentOption {
@@ -57,9 +65,9 @@ export interface AccentOption {
   name: string;
 }
 
-/** All available accent colors. Indigo is first and is the default. */
+/** Legacy accent choices remain valid for returning visitors. */
 export const ACCENTS: AccentOption[] = [
-  { value: '#3457B6', name: 'Indigo' },
+  { value: DEFAULT_ACCENT, name: 'Terracotta' },
   { value: '#2C4EE0', name: 'Cobalt' },
   { value: '#0E7C66', name: 'Emerald' },
   { value: '#3F3F46', name: 'Graphite' },

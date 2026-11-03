@@ -9,8 +9,19 @@
 export const LOCALES = ['zh', 'en'] as const;
 export type Locale = typeof LOCALES[number];
 
+/** Astro's file build exposes /en.html and /apps.html while rendering.
+ * Canonicals and navigation use the established extensionless public routes.
+ * This changes link metadata only; the server still serves historical aliases.
+ */
+export function publicPathname(pathname: string): string {
+  if (pathname === '/index.html') return '/';
+  const path = pathname.replace(/\.html$/, '').replace(/\/$/, '');
+  return path || '/';
+}
+
 /** Build the en twin URL from a zh URL. `/` → `/en`; `/posts/foo` → `/en/posts/foo`. */
 export function enHref(zhPath: string): string {
+  zhPath = publicPathname(zhPath);
   if (zhPath === '/' || zhPath === '') return '/en';
   const normalized = zhPath.startsWith('/') ? zhPath : `/${zhPath}`;
   return `/en${normalized}`;
@@ -18,6 +29,7 @@ export function enHref(zhPath: string): string {
 
 /** Strip the /en prefix from a path. `/en` → `/`; `/en/posts/foo` → `/posts/foo`. */
 export function stripEn(path: string): string {
+  path = publicPathname(path);
   if (path === '/en' || path === '/en/') return '/';
   if (path.startsWith('/en/')) return path.slice(3);
   return path;
@@ -25,6 +37,7 @@ export function stripEn(path: string): string {
 
 /** True when the given path is under the /en subtree (or exactly /en). */
 export function isEnPath(path: string): boolean {
+  path = publicPathname(path);
   return path === '/en' || path === '/en/' || path.startsWith('/en/');
 }
 
@@ -38,6 +51,7 @@ export function hreflangAlternates(
   currentPath: string,
   site: URL | string | undefined
 ): { hreflang: 'zh-CN' | 'en' | 'x-default'; href: string }[] {
+  currentPath = publicPathname(currentPath);
   const siteHref = typeof site === 'string' ? site.replace(/\/$/, '') : site?.href.replace(/\/$/, '') ?? '';
   const other = isEnPath(currentPath) ? stripEn(currentPath) : enHref(currentPath);
   const zhUrl = `${siteHref}${currentPath}`;

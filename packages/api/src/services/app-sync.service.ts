@@ -1,6 +1,6 @@
 /**
  * App Sync Service
- * Merges metadata from iTunes Lookup + App Store Connect and writes back to the apps table.
+ * Fetches metadata from Apple and proposes a reviewed import. NEVER updates the curated app row.
  *
  * Merge precedence:
  *   rating/ratingCount: ALWAYS from iTunes
@@ -15,76 +15,37 @@
 import { eq, isNotNull } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { apps } from '../db/schema.js';
+import { prepareAppImport } from './app-import.service.js';
 import { lookupAppAnyStorefront, lookupEnCopy, type EnStoreCopy } from './appstore-lookup.service.js';
 import { isAscConfigured, fetchAppMetadata } from './asc.service.js';
 
-/**
- * Merge the English storefront's copy into an app's `meta` JSON under
- * `i18n.en`, leaving every other key alone.
- *
- * `meta` is an editorial free-form column that `app_update` can also write, so
- * this merges rather than replaces. A null `en` REMOVES the key: the app is no
- * longer listed on the English storefront, and keeping the last copy we saw
- * would have /en quoting a listing that no longer exists.
- *
- * Unparseable existing meta is treated as absent rather than thrown on — a bad
- * hand-edited row must not be able to break every sync that follows.
- */
-export function mergeEnCopyIntoMeta(currentMeta: string | null, en: EnStoreCopy | null): string | null {
-  let base: Record<string, unknown> = {};
-  if (currentMeta) {
-    try {
-      const parsed = JSON.parse(currentMeta);
-      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        base = parsed as Record<string, unknown>;
-      }
-    } catch {
-      // keep {}
-    }
-  }
+import { mergeEnCopyIntoMeta } from './app-import-merge.js';
+export { mergeEnCopyIntoMeta } from './app-import-merge.js';
 
-  const i18nRaw = base.i18n;
-  const i18n: Record<string, unknown> =
-    i18nRaw && typeof i18nRaw === 'object' && !Array.isArray(i18nRaw)
-      ? { ...(i18nRaw as Record<string, unknown>) }
-      : {};
-
-  if (en) i18n.en = en;
-  else delete i18n.en;
-
-  const next = { ...base };
-  if (Object.keys(i18n).length > 0) next.i18n = i18n;
-  else delete next.i18n;
-
-  // An empty object is stored as null so `meta` stays null on apps that never
-  // had one — otherwise every sync would report `meta` as a changed field.
-  return Object.keys(next).length > 0 ? JSON.stringify(next) : null;
-}
-
-/** What a single sync actually changed. `fields` empty = the fetch succeeded but no value differed. */
+/** Proposed changes only. `fields` empty means the fetched values matched. */
 export interface AppSyncChange {
   appId: string;
   slug: string;
   status: string;
   fields: string[];
   /**
-   * Which storefront answered the iTunes lookup, or null when NO storefront
-   * lists the app. A null here on a `published` row means the site is showing a
-   * page for something nobody can install — worth unpublishing.
+   * Which queried storefront answered (CN, then US), or null when neither did.
+   * This is not a global availability verdict and never changes publication.
    */
   storefront: string | null;
+  mode: 'review_required';
+  proposalId: string | null;
 }
 
 export interface SyncResult {
   synced: number;
   failed: Array<{ appId: string; error: string }>;
-  /** Per-app field-level changes. Empty `fields` = synced but nothing differed. */
+  /** Per-app suggestions. No public app values have been changed. */
   changes: AppSyncChange[];
 }
 
-// lastSyncedAt/updatedAt are written on every sync by construction, so they can
-// never signal "something actually changed" — comparing them would make every
-// sync look like a change and make the caller's rebuild decision meaningless.
+// Fetch timestamps are bookkeeping, never proposed display changes. Catalog
+// timestamps move only after an explicit reviewed apply.
 const BOOKKEEPING_FIELDS = new Set(['lastSyncedAt', 'updatedAt']);
 
 export async function syncApp(appId: string): Promise<AppSyncChange> {
@@ -130,7 +91,7 @@ export async function syncApp(appId: string): Promise<AppSyncChange> {
     : cur.screenshots;
 
   const set = {
-    // name/appStoreUrl: the store is the source of truth for both. Before this,
+    // Candidate name/appStoreUrl come from Apple; the curated row remains authoritative. Before this,
     // `name` was written once by discoverApps and never refreshed, so a rename
     // on the App Store never reached the site (Cashie, Activity Bridge, Delphi,
     // Model Proxy all drifted); `appStoreUrl` was never written at all, which
@@ -160,24 +121,24 @@ export async function syncApp(appId: string): Promise<AppSyncChange> {
     icon: itunes?.icon ?? cur.icon,
     description: itunes?.description ?? cur.description,
     // meta.i18n.en: the English storefront's copy, consumed by localizeApp.
-    // Only rewritten when a storefront actually answered — an app iTunes cannot
-    // find anywhere keeps its meta untouched, same as every other field here.
-    meta: found ? mergeEnCopyIntoMeta(cur.meta, enCopy) : cur.meta,
+    // A successful listing lookup may propose replacing/removing the English
+    // overlay. Nothing changes until that particular field is reviewed.
+    englishCopy: found ? enCopy : undefined,
     // sync timestamps
     lastSyncedAt: now,
     updatedAt: now,
   };
 
-  // Diff BEFORE writing. Callers need to know whether anything actually moved:
-  // a sync that changed nothing must not trigger a site rebuild, and `{ok:true}`
-  // alone cannot tell "fetched and updated" from "fetched and everything matched".
+  // Build a field-level review diff. No candidate value is written into apps.
   const fields = Object.entries(set)
-    .filter(([k, v]) => !BOOKKEEPING_FIELDS.has(k) && v !== (cur as Record<string, unknown>)[k])
+    .filter(([k, v]) => !BOOKKEEPING_FIELDS.has(k) && v !== undefined && (k === 'englishCopy'
+      ? mergeEnCopyIntoMeta(cur.meta, v as EnStoreCopy | null) !== cur.meta
+      : v !== (cur as Record<string, unknown>)[k]))
     .map(([k]) => k);
 
-  await db.update(apps).set(set).where(eq(apps.id, appId));
+  const proposal = prepareAppImport(cur, Object.fromEntries(fields.map((key) => [key, (set as Record<string, unknown>)[key]])), found?.storefront ?? null);
 
-  return { appId, slug: cur.slug, status: cur.status, fields, storefront: found?.storefront ?? null };
+  return { appId, slug: cur.slug, status: cur.status, fields, storefront: found?.storefront ?? null, mode: 'review_required', proposalId: proposal?.id ?? null };
 }
 
 export async function syncAllApps(): Promise<SyncResult> {
