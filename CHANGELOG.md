@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.7.0 (2026-11-03)
+## v1.7.1 (2026-11-03)
+
+### Bug Fixes
+
+- fix(deploy): wait for managed API readiness after restart (d89a69a)
 
 ### Features
 
