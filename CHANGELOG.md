@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.8.1 (2026-11-03)
+## v1.9.0 (2026-11-03)
+
+### Features
+
+- feat(web): introduce Julian.cafe share identity and corrected app catalog (a4673f1)
 
 ### Bug Fixes
 
