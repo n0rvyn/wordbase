@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.9.1 (2026-11-03)
+## v1.9.2 (2026-11-03)
+
+### Bug Fixes
+
+- fix(meta): consolidate homepage share message into its title (29035b4)
 
 ### Bug Fixes
 
