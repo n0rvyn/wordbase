@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'preact/hooks';
+import { postFilter } from '../../lib/admin-presentation';
 import { adminFetch } from '../../lib/admin-api';
 
 export default function PostList() {
   const [posts, setPosts] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState(() => typeof window === 'undefined' ? '' : postFilter(window.location.search));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { loadPosts(); }, [page, statusFilter]);

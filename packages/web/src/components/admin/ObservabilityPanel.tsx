@@ -1,7 +1,11 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'preact/hooks';
 import { adminObserved } from '../../lib/admin-api';
-import { DataNote, Missing, emptyReading, readingStatus, type Reading } from './DataNote';
+import { Missing, emptyReading, readingStatus, type Reading } from './DataNote';
+import PostObservabilityPanel, { type PostMeasurements } from './PostObservabilityPanel';
+import DataQualityPanel, { type DataQuality } from './DataQualityPanel';
 import WorldMap from './WorldMap';
+import { ReadingCaption, MeasurementDetails } from './MeasurementDetails';
+import { observationTab, observationKeys, type ObservationTab } from '../../lib/admin-presentation';
 
 type Period = 'daily' | 'weekly' | 'monthly';
 
@@ -29,6 +33,8 @@ interface RequestMetrics {
   errorRate: number;
   statusClass: Record<string, number>;
   endpoints: EndpointStat[];
+  latency?: {avgMs:number;p50Ms:number;p95Ms:number}|null;
+  clientErrors?:number;serverErrors?:number;
 }
 interface BuildState { status: string; startedAt: number | null; completedAt: number | null; error: string | null; duration: number | null; }
 interface SystemStatus {
@@ -87,14 +93,16 @@ const PERIOD_LABEL: Record<Period, string> = { daily: '30 UTC days · daily', we
 
 type SeriesKey = 'pageViews' | 'uniqueVisitors' | 'sessions';
 const SERIES: { key: SeriesKey; label: string; color: string }[] = [
-  { key: 'pageViews', label: 'Page views', color: '#4f46e5' },
+  { key: 'pageViews', label: 'Recorded views', color: '#4f46e5' },
   { key: 'uniqueVisitors', label: 'Estimated visitors', color: '#10b981' },
-  { key: 'sessions', label: 'Page visits (30-minute buckets)', color: '#f59e0b' },
+  { key: 'sessions', label: 'Page visits', color: '#f59e0b' },
 ];
 
 export default function ObservabilityPanel() {
   const [period, setPeriod] = useState<Period>('daily');
-  const [tab, setTab] = useState<'audience' | 'health' | 'seo'>('audience');
+  const [tab, setTab] = useState<ObservationTab>('audience');
+  const [postMetrics,setPostMetrics]=useState<PostMeasurements|null>(null);
+  const [quality, setQuality] = useState<DataQuality|null>(null);
   const [summary, setSummary] = useState<VisitorSummary | null>(null);
   const [trends, setTrends] = useState<TrendPoint[]>([]);
   const [topPages, setTopPages] = useState<TopPage[]>([]);
@@ -113,18 +121,26 @@ export default function ObservabilityPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const [ready,setReady]=useState(false);
   const [readings,setReadings]=useState<Record<string,Reading<unknown>>>({});
   const [now,setNow]=useState(Date.now());
   const generation=useRef(0);
   const available=(key:string)=>readings[key]?.data != null;
-  const note=(key:string)=><DataNote reading={readings[key] ?? emptyReading()} now={now}/>;
+  const note=(key:string)=><ReadingCaption reading={readings[key] ?? emptyReading()} now={now}/>;
+  useEffect(()=>{
+    const select=()=>setTab(observationTab(window.location.hash));
+    select();setReady(true);window.addEventListener('hashchange',select);
+    return()=>window.removeEventListener('hashchange',select);
+  },[]);
   useEffect(() => {
-    void loadData(period);
-    const interval=setInterval(()=>{setNow(Date.now());void loadData(period);},60_000);
-    return ()=>{clearInterval(interval);generation.current++;};
-  },[period]);
+    if(!ready) return;
+    void loadData(period,tab);
+    const interval=setInterval(()=>void loadData(period,tab),60_000);
+    const clock=setInterval(()=>setNow(Date.now()),5_000);
+    return ()=>{clearInterval(interval);clearInterval(clock);generation.current++;};
+  },[period,tab,ready]);
 
-  async function loadData(p: Period) {
+  async function loadData(p: Period,activeTab:ObservationTab=tab) {
     const request=++generation.current;
     setLoading(true); setError('');
     async function read<T>(key:string,path:string,set:(value:T)=>void) {
@@ -138,22 +154,25 @@ export default function ObservabilityPanel() {
       }
     }
     const days=PERIOD_DAYS[p];
-    await Promise.all([
-      read('visits',`/api/observability/visits?days=${days}`,setSummary),
-      read('trends',`/api/observability/trends?period=${p}`,setTrends),
-      read('top-pages',`/api/observability/top-pages?limit=10&days=${days}`,setTopPages),
-      read('referrers',`/api/observability/referrers?limit=10&days=${days}`,setReferrers),
-      read('shares',`/api/observability/shares?days=${days}`,setShareStats),
-      read('regions',`/api/observability/regions?days=${days}`,setRegions),
-      read('devices',`/api/observability/devices?days=${days}`,setDevices),
-      read('requests','/api/observability/requests?hours=24',setRequests),
-      read('system','/api/observability/system',setSystem),
-      read('podcast-summary',`/api/observability/podcast/summary?days=${days}`,setPodSummary),
-      read('podcast-trends',`/api/observability/podcast/trends?period=${p}`,setPodTrends),
-      read('podcast-episodes','/api/observability/podcast/episodes',setEpisodeTable),
-      read('podcast-clients','/api/observability/podcast/clients?limit=10',setPodClients),
-      read('seo-health','/api/observability/seo-health',setSeoHealth),
-    ]);
+    const jobs:Record<string,()=>Promise<void>>={
+      'post-metrics':()=>read('post-metrics',`/api/observability/posts?days=${days}&period=${p}`,setPostMetrics),
+      'data-quality':()=>read('data-quality',`/api/observability/data-quality?days=${days}`,setQuality),
+      'visits':()=>read('visits',`/api/observability/visits?days=${days}`,setSummary),
+      'trends':()=>read('trends',`/api/observability/trends?period=${p}`,setTrends),
+      'top-pages':()=>read('top-pages',`/api/observability/top-pages?limit=10&days=${days}`,setTopPages),
+      'referrers':()=>read('referrers',`/api/observability/referrers?limit=10&days=${days}`,setReferrers),
+      'shares':()=>read('shares',`/api/observability/shares?days=${days}`,setShareStats),
+      'regions':()=>read('regions',`/api/observability/regions?days=${days}`,setRegions),
+      'devices':()=>read('devices',`/api/observability/devices?days=${days}`,setDevices),
+      'requests':()=>read('requests','/api/observability/requests?hours=24',setRequests),
+      'system':()=>read('system','/api/observability/system',setSystem),
+      'podcast-summary':()=>read('podcast-summary',`/api/observability/podcast/summary?days=${days}`,setPodSummary),
+      'podcast-trends':()=>read('podcast-trends',`/api/observability/podcast/trends?period=${p}`,setPodTrends),
+      'podcast-episodes':()=>read('podcast-episodes','/api/observability/podcast/episodes',setEpisodeTable),
+      'podcast-clients':()=>read('podcast-clients','/api/observability/podcast/clients?limit=10',setPodClients),
+      'seo-health':()=>read('seo-health','/api/observability/seo-health',setSeoHealth),
+    };
+    await Promise.all(observationKeys[activeTab].map(key=>jobs[key]()));
     if(request===generation.current){setLoading(false);setNow(Date.now());}
   }
 
@@ -163,39 +182,44 @@ export default function ObservabilityPanel() {
     referrers: { accent: '#10b981', empty: 'No recorded referrers in this window.', rows: referrers.map((r) => ({ label: r.host, value: r.count })) },
   }[topDim];
 
+  const currentCoverage=quality?.days===PERIOD_DAYS[period]?quality:null;
+  const noDownloadIdentitySample=podSummary?.windowDownloads===0 && !!currentCoverage?.podcast.downloadRequests && currentCoverage.podcast.unidentifiableDownloads===currentCoverage.podcast.downloadRequests;
+  const sourceLabels:Record<string,string>={'post-metrics':'Article measurements & coverage','data-quality':'Collection coverage & event timestamps',visits:'Audience totals',trends:'Traffic trend','top-pages':'Top pages',referrers:'Traffic sources',shares:'Share clicks',regions:'Geography',devices:'Devices',requests:'API performance',system:'Publishing & runtime','podcast-summary':'Podcast totals','podcast-trends':'Podcast trend','podcast-episodes':'Episode rankings','podcast-clients':'Feed clients','seo-health':'Search essentials'};
   return (
-    <div>
+    <div class="observe-board">
       {/* Top-level header: title + sub-tabs + (audience-only) range dropdown */}
-      <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <div class="observe-header flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p class="text-sm text-ink-3 mt-0.5">Recorded audience activity · API/process health · local SEO checks. Refreshes every minute.</p>
+          <h2>{tab==='audience'?'Audience':tab==='health'?'Operations':tab==='quality'?'Data quality':tab==='posts'?'Article activity':'Search essentials'}</h2><p class="text-sm text-ink-2">{tab==='audience'?'Recorded traffic, sources, and podcast activity.':tab==='health'?'API performance and the latest publishing status.':tab==='quality'?'Understand what is collected, what is missing, and what the numbers can support.':tab==='posts'?'Which articles are being loaded, through which routes, and how complete is the evidence?':'Built site files and authored content coverage.'}</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <div class="inline-flex rounded-lg bg-surface-2 p-1 flex-wrap">
-            {(['audience', 'health', 'seo'] as const).map((t) => (
+          <div class="observe-tabs inline-flex rounded-lg bg-surface-2 p-1 flex-wrap">
+            {(['audience', 'posts', 'quality', 'health', 'seo'] as const).map((t) => (
               <button
-                onClick={() => setTab(t)}
+                onClick={() => {setTab(t);window.history.replaceState(null,'','#'+t);}}
                 class={`px-3.5 py-1.5 text-sm font-medium rounded-md transition-all ${
                   tab === t ? 'bg-surface text-ink shadow-sm' : 'text-ink-3 hover:text-ink'
                 }`}
               >
-                {t === 'audience' ? 'Audience' : t === 'health' ? 'Health' : 'SEO'}
+                {t === 'audience' ? 'Audience' : t === 'health' ? 'Operations' : t === 'quality' ? 'Data quality' : t==='posts' ? 'Articles' : 'SEO'}
               </button>
             ))}
           </div>
-          <button onClick={()=>void loadData(period)} disabled={loading} class="border rounded-lg px-3 py-1.5 text-sm disabled:opacity-50">{loading ? 'Refreshing…' : 'Refresh'}</button>
-          {tab === 'audience' && <RangeMenu period={period} onChange={setPeriod} />}
+          <button onClick={()=>void loadData(period,tab)} disabled={loading} class="border rounded-lg px-3 py-1.5 text-sm disabled:opacity-50">{loading ? 'Refreshing…' : 'Refresh'}</button>
+          {(tab === 'audience' || tab === 'quality' || tab==='posts') && <RangeMenu period={period} onChange={setPeriod} totalsOnly={tab==='quality'} />}
         </div>
       </div>
 
+      {observationKeys[tab].some(key=>readings[key]?.error) && <p class="board-alert" role="status">Some sources could not refresh. Missing or retained older readings are marked; open Data sources for details.</p>}
       {error && <p class="text-red-600 mb-4">{error}</p>}
-      {loading && !Object.keys(readings).length ? (
+      {(!ready || loading) && !observationKeys[tab].some(key=>readings[key]!==undefined) ? (
         <ChartSkeleton />
       ) : (
         <>
           {tab === 'audience' && (
             <>
               {/* Summary cards with mini sparklines */}
+              <div class="observe-quality-link"><p>These are recorded signals, not a census of visitors. Unique visitors cannot be summed across trend buckets.</p><button onClick={()=>{setTab('quality');window.history.replaceState(null,'','#quality');}}>Inspect collection coverage →</button></div>
               <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
                 {SERIES.map((s) => (
                   <SummaryCard
@@ -208,7 +232,7 @@ export default function ObservabilityPanel() {
               </div>
 
               {note('visits')}
-              <p class="text-xs text-ink-3 mb-4">Windows include the partial current UTC day. Visitors use browser IDs or IP-hash fallback and are not a people count; page visits are not whole-site sessions.</p>
+              <p class="text-sm text-ink-2 mb-5">Includes the partial current UTC day. Visitors are estimated; page visits use 30-minute visitor/path buckets. Exact definitions are in Data sources below.</p>
               {/* Trend chart */}
               <div class="bg-surface rounded-xl border border-line shadow-sm p-5 sm:p-6 mb-5">
                 <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
@@ -240,15 +264,17 @@ export default function ObservabilityPanel() {
               </div>
 
               {/* Geography row: map + country ranking */}
-              <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+              <details class="quality-limits"><summary>Country coverage · IP-derived, incomplete</summary><p>Country data depends on the forwarded IP and GeoIP lookup. A documented shared-proxy limitation can leave the country unknown. No recorded country does not mean no visitors. See Data quality for denominators and collection gaps.</p>
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5 mt-5">
                 <div>{available('regions') ? <WorldMap regions={regions} /> : <Missing name="Geography"/>}{note('regions')}</div>
                 <div>{available('regions') ? <BarList
                   title="Geolocated page views"
                   accent="#6366f1"
-                  empty="No geolocated visits yet."
+                  empty="No country data recorded in this window."
                   rows={regions.map((r) => ({ label: `${countryFlag(r.country)} ${r.country}`, value: r.count }))}
                 /> : <Missing name="Geolocated page views"/>}{note('regions')}</div>
               </div>
+              </details>
 
               {/* Engagement: shares by channel + shares by page */}
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
@@ -274,15 +300,15 @@ export default function ObservabilityPanel() {
 
               <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
                 <SummaryCard
-                  series={{ key: 'totalDownloads', label: 'Total downloads', color: '#8b5cf6' }}
+                  series={{ key: 'totalDownloads', label: 'Retained identifiable downloads', color: '#8b5cf6' }}
                   status={readingStatus(readings['podcast-summary'] ?? emptyReading(),now)}
                   value={podSummary?.totalDownloads}
                   trend={[]}
                 />
                 <SummaryCard
                   series={{ key: 'windowDownloads', label: `Downloads · ${PERIOD_LABEL[period].toLowerCase()}`, color: '#6366f1' }}
-                  status={readingStatus(readings['podcast-summary'] ?? emptyReading(),now)}
-                  value={podSummary?.windowDownloads}
+                  status={noDownloadIdentitySample?'No usable IP sample':readingStatus(readings['podcast-summary'] ?? emptyReading(),now)}
+                  value={noDownloadIdentitySample?undefined:podSummary?.windowDownloads}
                   trend={podTrends.map((t) => t.downloads)}
                 />
                 <SummaryCard
@@ -293,6 +319,7 @@ export default function ObservabilityPanel() {
                 />
               </div>
 
+              {currentCoverage && <div class="observe-quality-link"><p>Collection snapshot · {currentCoverage.days} UTC days: {currentCoverage.podcast.downloadRequests.toLocaleString()} raw download requests; {currentCoverage.podcast.unidentifiableDownloads.toLocaleString()} lack a usable IP/episode key. These cannot establish deduplicated downloads. Counts refresh independently.</p><button onClick={()=>{setTab('quality');window.history.replaceState(null,'','#quality');}}>Inspect coverage →</button></div>}
               {note('podcast-summary')}
               {note('podcast-trends')}
               <div class="mb-5">
@@ -305,12 +332,16 @@ export default function ObservabilityPanel() {
             </>
           )}
 
+          {tab==='posts' && <>{note('post-metrics')}<PostObservabilityPanel data={postMetrics}/></>}
+
+          {tab === 'quality' && <>{note('data-quality')}<DataQualityPanel data={quality}/></>}
+
           {tab === 'health' && (
             <>
               {/* ---- API requests (server-side, distinct from the visit beacons above) ---- */}
               <div class="mb-6">
                 <h3 class="text-lg font-semibold text-ink tracking-tight">API requests</h3>
-                <p class="text-sm text-ink-3 mt-0.5">Server-side request timing · last 24 hours · separate from the visit beacons above</p>
+                <p class="text-sm text-ink-3 mt-0.5">Server-side request timing · last 24 hours · separate from recorded audience traffic</p>
               </div>
               {note('requests')}<RequestSection data={requests} />
 
@@ -324,6 +355,7 @@ export default function ObservabilityPanel() {
           )}
 
           {tab === 'seo' && <>{note('seo-health')}<SeoHealthSection data={seoHealth} /></>}
+          <MeasurementDetails entries={observationKeys[tab].map(key=>({label:sourceLabels[key],reading:readings[key] ?? emptyReading()}))} now={now}/>
         </>
       )}
     </div>
@@ -332,7 +364,7 @@ export default function ObservabilityPanel() {
 
 /* ---------------- range dropdown (period selector) ---------------- */
 
-function RangeMenu({ period, onChange }: { period: Period; onChange: (p: Period) => void }) {
+function RangeMenu({ period, onChange, totalsOnly = false }: { period: Period; onChange: (p: Period) => void; totalsOnly?: boolean }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -349,7 +381,7 @@ function RangeMenu({ period, onChange }: { period: Period; onChange: (p: Period)
         onClick={() => setOpen((o) => !o)}
         class="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm font-medium text-ink-2 hover:text-ink hover:border-line-2 transition-colors"
       >
-        {PERIOD_LABEL[period]}
+        {totalsOnly ? `${PERIOD_DAYS[period]} UTC days` : PERIOD_LABEL[period]}
         <svg class={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7.5 10 12.5 15 7.5" /></svg>
       </button>
       {open && (
@@ -361,7 +393,7 @@ function RangeMenu({ period, onChange }: { period: Period; onChange: (p: Period)
                 period === p ? 'bg-surface-2 text-ink font-medium' : 'text-ink-2 hover:bg-surface-2 hover:text-ink'
               }`}
             >
-              {PERIOD_LABEL[p]}
+              {totalsOnly ? `${PERIOD_DAYS[p]} UTC days` : PERIOD_LABEL[p]}
               {period === p && <span class="text-accent">✓</span>}
             </button>
           ))}
@@ -557,9 +589,6 @@ function RequestSection({ data }: { data: RequestMetrics | null }) {
     );
   }
 
-  const avgAll = data.endpoints.length
-    ? data.endpoints.reduce((s, e) => s + e.avgMs * e.count, 0) / data.totalRequests
-    : 0;
   const statusEntries = Object.entries(data.statusClass).filter(([, v]) => v > 0);
   const statusTotal = statusEntries.reduce((s, [, v]) => s + v, 0) || 1;
 
@@ -571,17 +600,18 @@ function RequestSection({ data }: { data: RequestMetrics | null }) {
           <p class="text-3xl font-bold text-ink tabular-nums mt-2 leading-none">{data.totalRequests.toLocaleString()}</p>
         </div>
         <div class="bg-surface rounded-xl border border-line shadow-sm p-5">
-          <p class="text-sm font-medium text-ink-3">4xx + 5xx responses</p>
-          <p class={`text-3xl font-bold tabular-nums mt-2 leading-none ${data.errorRate > 0 ? 'text-rose-500' : 'text-ink'}`}>
-            {data.errorRate}%
-          </p>
+          <p class="text-sm font-medium text-ink-3">Server responses · 5xx</p>
+          <p class={`text-3xl font-bold tabular-nums mt-2 leading-none ${(data.statusClass['5xx'] ?? 0) > 0 ? 'text-rose-500' : 'text-ink'}`}>
+            {data.statusClass['5xx'] ?? 0}<small class="text-sm font-normal ml-2">/ {data.totalRequests.toLocaleString()} requests</small>
+          </p><p class="text-xs text-ink-2 mt-3">{data.statusClass['4xx'] ?? 0} client responses (4xx). Combined 4xx + 5xx: {data.errorRate}%.</p>
         </div>
         <div class="bg-surface rounded-xl border border-line shadow-sm p-5">
-          <p class="text-sm font-medium text-ink-3">Avg latency</p>
-          <p class="text-3xl font-bold text-ink tabular-nums mt-2 leading-none">{fmtMs(avgAll)}</p>
+          <p class="text-sm font-medium text-ink-3">p95 request latency</p>
+          <p class="text-3xl font-bold text-ink tabular-nums mt-2 leading-none">{data.latency ? fmtMs(data.latency.p95Ms) : '—'}</p><p class="text-xs text-ink-2 mt-3">{data.latency ? `Median ${fmtMs(data.latency.p50Ms)} · average ${fmtMs(data.latency.avgMs)}` : 'Whole-sample percentiles unavailable from this API version.'}</p>
         </div>
       </div>
 
+<p class="text-xs text-ink-2 mb-5">Latency is API-side time across {data.totalRequests.toLocaleString()} measured requests, not browser load time. p95 uses the nearest-rank sample; small samples are volatile. No latency SLO is configured.</p>
       {/* status distribution */}
       <div class="bg-surface rounded-xl border border-line shadow-sm p-5 mb-5">
         <h3 class="font-semibold text-ink mb-4">Status distribution</h3>
@@ -618,7 +648,7 @@ function RequestSection({ data }: { data: RequestMetrics | null }) {
                 <th class="px-3 py-2.5 font-medium text-right tabular-nums">Requests</th>
                 <th class="px-3 py-2.5 font-medium text-right tabular-nums">p50</th>
                 <th class="px-3 py-2.5 font-medium text-right tabular-nums">p95</th>
-                <th class="px-5 py-2.5 font-medium text-right tabular-nums">Errors</th>
+                <th class="px-5 py-2.5 font-medium text-right tabular-nums">4xx + 5xx</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-line">
@@ -632,7 +662,7 @@ function RequestSection({ data }: { data: RequestMetrics | null }) {
                   </td>
                   <td class="px-3 py-2.5 text-right tabular-nums text-ink-2">{e.count.toLocaleString()}</td>
                   <td class="px-3 py-2.5 text-right tabular-nums text-ink-2">{fmtMs(e.p50Ms)}</td>
-                  <td class={`px-3 py-2.5 text-right tabular-nums ${e.p95Ms > 500 ? 'text-amber-600 font-medium' : 'text-ink-2'}`}>{fmtMs(e.p95Ms)}</td>
+                  <td class={`px-3 py-2.5 text-right tabular-nums text-ink-2`}>{fmtMs(e.p95Ms)}</td>
                   <td class={`px-5 py-2.5 text-right tabular-nums ${e.errorRate > 0 ? 'text-rose-500 font-medium' : 'text-ink-4'}`}>{e.errorRate}%</td>
                 </tr>
               ))}
@@ -887,10 +917,12 @@ function BarList({ title, rows, empty, accent, tabs, activeTab, onTab }: {
 /* ---------------- episode download table (per-episode detail) ---------------- */
 
 function EpisodeTable({ rows }: { rows: EpisodeDownloadRow[] }) {
+  const [expanded,setExpanded]=useState(false);
+  const visible=expanded?rows:rows.slice(0,10);
   return (
     <div class="bg-surface rounded-xl border border-line shadow-sm overflow-hidden">
       <div class="px-5 py-4 border-b border-line">
-        <h3 class="font-semibold text-ink">Episodes</h3>
+        <h3 class="font-semibold text-ink">Episode downloads</h3><p class="text-sm text-ink-2 mt-1">Lifetime ranking · activity over the last 14 UTC days</p>
       </div>
       {rows.length === 0 ? (
         <p class="text-ink-3 text-sm px-5 py-8 text-center">No episodes yet.</p>
@@ -905,7 +937,7 @@ function EpisodeTable({ rows }: { rows: EpisodeDownloadRow[] }) {
               </tr>
             </thead>
             <tbody class="divide-y divide-line">
-              {rows.map((e) => (
+              {visible.map((e) => (
                 <tr class="hover:bg-surface-2">
                   <td class="px-5 py-2.5">
                     <span class="flex items-center gap-2 min-w-0">
@@ -928,6 +960,7 @@ function EpisodeTable({ rows }: { rows: EpisodeDownloadRow[] }) {
               ))}
             </tbody>
           </table>
+          {rows.length>10 && <div class="px-5 py-4 border-t border-line"><button onClick={()=>setExpanded(value=>!value)} aria-expanded={expanded} class="board-text-link">{expanded?'Show top 10':`Show all ${rows.length} episodes`} {expanded?'↑':'↓'}</button></div>}
         </div>
       )}
     </div>

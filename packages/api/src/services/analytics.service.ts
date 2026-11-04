@@ -1,7 +1,11 @@
+import { isBotSql, visitorKeySql, unknownAgentSql, normalizeAnalyticsIp, normalizeAnalyticsAgent } from '../lib/analytics-identity.js';
+export { isBotSql } from '../lib/analytics-identity.js';
+import { articleResolver } from '../lib/article-path.js';
+import { getSinglePostMetrics } from './post-observability.service.js';
 import { reportingWindow, PERIOD_DAYS, fillBuckets } from '../lib/reporting.js';
 import { eq, desc, sql, and, gte, lt } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { pageViews, posts, postTags, tags, shareEvents } from '../db/schema.js';
+import { pageViews, posts, postTags, tags, shareEvents, redirects, pages } from '../db/schema.js';
 import { hashIp } from '../lib/hash-ip.js';
 import { lookupCountry } from '../lib/geoip.js';
 import { cached } from '../lib/ttl-cache.js';
@@ -19,19 +23,6 @@ const OBS_CACHE_TTL_MS = 60_000;
 // getVisitTrends / getDeviceBreakdown. Audience pageViews and rankings consistently
 // exclude recognized bots; device breakdown deliberately includes a bot category.
 // Hoisted here so the earlier-defined aggregations can reference it.
-const isBotSql = sql`(${pageViews.userAgent} is not null and (
-  lower(${pageViews.userAgent}) like '%bot%'
-  or lower(${pageViews.userAgent}) like '%spider%'
-  or lower(${pageViews.userAgent}) like '%crawl%'
-  or lower(${pageViews.userAgent}) like '%facebookexternalhit%'
-  or lower(${pageViews.userAgent}) like '%curl/%'
-  or lower(${pageViews.userAgent}) like '%wget%'
-  or lower(${pageViews.userAgent}) like '%python-requests%'
-  or lower(${pageViews.userAgent}) like '%go-http-client%'
-  or lower(${pageViews.userAgent}) like '%node-fetch%'
-  or lower(${pageViews.userAgent}) like '%headlesschrome%'
-  or lower(${pageViews.userAgent}) like '%slurp%'))`;
-
 // Share-button channels we accept; anything else is rejected so the by-target
 // breakdown stays clean (path carries page/episode context, not target).
 export const SHARE_TARGETS = ['x', 'wechat', 'copy', 'native'] as const;
@@ -49,12 +40,13 @@ function getTodayStart(): number { return reportingWindow(1).from; }
 
 export async function recordPageView(input: RecordPageViewInput) {
   const now = Math.floor(Date.now() / 1000);
+  const ip = normalizeAnalyticsIp(input.ipAddress);
   const [record] = await db.insert(pageViews).values({
     path: input.path,
     referrer: input.referrer ?? null,
-    userAgent: input.userAgent ?? null,
-    ipHash: input.ipAddress ? hashIp(input.ipAddress) : null,
-    country: lookupCountry(input.ipAddress), // null if no GeoIP DB; raw IP never stored
+    userAgent: normalizeAnalyticsAgent(input.userAgent) ?? null,
+    ipHash: ip ? hashIp(ip) : null,
+    country: lookupCountry(ip), // null if no GeoIP DB; raw IP never stored
     visitorId: input.visitorId ?? null,
     createdAt: now,
   }).returning();
@@ -79,10 +71,11 @@ export interface RecordShareInput {
 export async function recordShare(input: RecordShareInput) {
   if (!SHARE_TARGETS.includes(input.target as ShareTarget)) return null;
   const now = Math.floor(Date.now() / 1000);
+  const ip=normalizeAnalyticsIp(input.ipAddress);
   const [record] = await db.insert(shareEvents).values({
     path: input.path,
     target: input.target,
-    ipHash: input.ipAddress ? hashIp(input.ipAddress) : null,
+    ipHash: ip ? hashIp(ip) : null,
     createdAt: now,
   }).returning();
   return record;
@@ -153,15 +146,9 @@ export async function getOverview() {
   return { totalPageViews: totalPV, todayPageViews: todayPV, activePostCount: activePosts };
 }
 
-export async function getPostPageViews(postId: string) {
-  // Get post slug to match path
-  const [post] = await db.select().from(posts).where(eq(posts.id, postId)).limit(1);
-  if (!post) return null;
-
-  const [result] = await db.select({ count: sql<number>`count(*)` }).from(pageViews)
-    .where(sql`${pageViews.path} LIKE ${'%/' + post.slug + '%'}`);
-
-  return { postId, slug: post.slug, pageViews: result.count };
+export async function getPostPageViews(postId: string, days?:number) {
+ const result=getSinglePostMetrics(postId,days);
+ return result ? {postId:result.id,slug:result.slug,pageViews:result.views} : null;
 }
 
 export async function getTopPosts(limit: number = 10) {
@@ -174,24 +161,16 @@ export async function getTopPosts(limit: number = 10) {
     path: pageViews.path,
     count: sql<number>`count(*)`,
   }).from(pageViews)
-    .where(sql`not (${isBotSql})`)
+    .where(and(sql`not (${isBotSql})`,lt(pageViews.createdAt,Math.floor(Date.now()/1000)+1)))
     .groupBy(pageViews.path)
     .orderBy(desc(sql`count(*)`));
 
   const allPosts = await db.select().from(posts).where(eq(posts.status, 'published'));
-  const postsBySlug = new Map(allPosts.map(p => [p.slug, p]));
+  const resolveArticle = articleResolver(allPosts, await db.select().from(redirects), (await db.select({slug:pages.slug}).from(pages).where(eq(pages.status,'published'))).flatMap(p=>[`/${p.slug}`,`/en/${p.slug}`]));
 
   const byPost = new Map<string, { postId: string; title: string; slug: string; views: number }>();
   for (const row of results) {
-    // Decode percent-encoded (CJK) slugs, drop a trailing .html and any ?query,
-    // then take the last segment as the slug. Anchor on the `posts` parent
-    // segment (zh /posts/<slug>, en /en/posts/<slug>) so a non-post page like
-    // /tags/<x> is never mis-resolved to a post that happens to be slugged <x>.
-    const clean = decodePath(row.path).split('?')[0].replace(/\.html$/i, '');
-    const segments = clean.split('/').filter(Boolean);
-    const slug = segments[segments.length - 1];
-    const isPostRoute = segments[segments.length - 2] === 'posts';
-    const post = (slug && isPostRoute) ? postsBySlug.get(slug) : undefined;
+    const post=resolveArticle(row.path)?.post;
     if (!post) continue;
     const entry = byPost.get(post.id) ?? { postId: post.id, title: post.title, slug: post.slug, views: 0 };
     entry.views += row.count;
@@ -247,7 +226,7 @@ export async function getTopPages(limit: number = 10, days?: number) {
     .orderBy(desc(sql`count(*)`));
 
   const allPosts = await db.select().from(posts).where(eq(posts.status, 'published'));
-  const postsBySlug = new Map(allPosts.map(p => [p.slug, p]));
+  const resolveArticle = articleResolver(allPosts, await db.select().from(redirects), (await db.select({slug:pages.slug}).from(pages).where(eq(pages.status,'published'))).flatMap(p=>[`/${p.slug}`,`/en/${p.slug}`]));
 
   // Posts: aggregate variant paths by post id (sum views, keep the dominant
   // variant as the display path). Non-post paths: one row each, as before.
@@ -256,13 +235,7 @@ export async function getTopPages(limit: number = 10, days?: number) {
 
   for (const row of results) {
     const path = decodePath(row.path);
-    const slugSrc = path.split('?')[0].replace(/\.html$/i, '');
-    const segments = slugSrc.split('/').filter(Boolean);
-    const slug = segments[segments.length - 1];
-    // Anchor on the `posts` parent segment so /tags/<x>, /categories/<x>, etc.
-    // are never folded into a post slugged <x> (they stay their own rows).
-    const isPostRoute = segments[segments.length - 2] === 'posts';
-    const post = (slug && isPostRoute) ? postsBySlug.get(slug) : undefined;
+    const post=resolveArticle(row.path)?.post;
     if (post) {
       const entry = byPost.get(post.id) ?? { path, label: post.title, views: 0, top: 0 };
       entry.views += row.count;
@@ -301,7 +274,7 @@ const SESSION_WINDOW_SECONDS = 1800; // 30 min — a refresh/re-read inside this
 // which composes it. (UV used to count distinct ip_hash directly, but behind the prod
 // proxy every ip_hash is 127.0.0.1's hash → UV collapsed to 1; see
 // docs/06-plans/2026-06-06-real-client-ip-proxy-protocol-deferred.md.)
-const visitorKeySql = sql<string>`coalesce(${pageViews.visitorId}, ${pageViews.ipHash})`;
+// Identity fragment is shared with post and collection metrics.
 
 // (isBotSql is hoisted near the top of this module so the PV aggregations can use it.)
 
@@ -382,7 +355,7 @@ export async function getDeviceBreakdown(days: number = 365) {
   return cached(`deviceBreakdown:${days}`, OBS_CACHE_TTL_MS, async () => {
   const { from: since } = reportingWindow(days);
   const deviceType = sql<string>`case
-    when ${pageViews.userAgent} is null then 'unknown'
+    when ${unknownAgentSql} then 'unknown'
     when ${isBotSql} then 'bot'
     when ${pageViews.userAgent} like '%Mobi%'
       or ${pageViews.userAgent} like '%Android%'

@@ -1,3 +1,5 @@
+import { getPostObservability } from '../services/post-observability.service.js';
+import { getDataQuality } from '../services/data-quality.service.js';
 import { observation } from '../services/observation.service.js';
 import { Hono } from 'hono';
 import { authMiddleware, requireScope } from '../middleware/index.js';
@@ -16,7 +18,8 @@ observabilityRouter.use('*', requireScope('observability:read'));
 observabilityRouter.use('*', async (c,next) => {
   await next();
   if(c.res.status !== 200) return;
-  const section=c.req.path.split('/api/observability/')[1]?.replace('podcast/','podcast-') ?? '';
+  const rawSection=c.req.path.split('/api/observability/')[1]?.replace('podcast/','podcast-') ?? '';
+  const section=rawSection==='posts'?'post-metrics':rawSection;
   const q=c.req.query();
   c.header('X-Wordbase-Observation',JSON.stringify(observation(section,{
     ...(q.days ? {days:Math.max(1,Math.min(365,Math.floor(Number(q.days)||30)))} : {}),
@@ -25,6 +28,11 @@ observabilityRouter.use('*', async (c,next) => {
     period:['daily','weekly','monthly'].includes(q.period) ? q.period : 'daily'
   })));
 });
+
+observabilityRouter.get('/posts', (c) => c.json(getPostObservability(Math.max(1,Math.min(365,Math.floor(Number(c.req.query('days')))||30)), ['daily','weekly','monthly'].includes(c.req.query('period')||'') ? c.req.query('period')! : 'daily')));
+
+// GET /data-quality — aggregate coverage and collection timestamps; no identifiers.
+observabilityRouter.get('/data-quality', (c) => c.json(getDataQuality(Math.max(1,Math.min(365,Math.floor(Number(c.req.query('days')))||30)))));
 
 // GET /visits?days=30 — bot-filtered recorded PV, estimated visitors, page visits
 observabilityRouter.get('/visits', async (c) => {

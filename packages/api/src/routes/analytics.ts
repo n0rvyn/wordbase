@@ -66,7 +66,7 @@ analyticsRouter.get('/overview', authMiddleware, requireScope('analytics:read'),
 
 // GET /posts/:id - Per-post stats (auth required)
 analyticsRouter.get('/posts/:id', authMiddleware, requireScope('analytics:read'), async (c) => {
-  const result = await analyticsService.getPostPageViews(c.req.param('id'));
+  const result = await analyticsService.getPostPageViews(c.req.param('id'), c.req.query('days') ? Math.max(1,Math.min(365,Math.floor(Number(c.req.query('days')))||30)) : undefined);
   if (!result) return c.json({ error: { code: 'NOT_FOUND', message: 'Post not found' } }, 404);
   return c.json(result);
 });

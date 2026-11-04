@@ -25,7 +25,7 @@ export default function WorldMap({ regions }: { regions: Region[] }) {
   if (total === 0) {
     return (
       <div class="bg-surface rounded-xl border border-line shadow-sm p-8 text-center">
-        <p class="text-sm text-ink-3">No geolocated visits yet. Country data is recorded only when a GeoIP database is configured on the server.</p>
+        <p class="text-sm text-ink-3">No country data recorded in this window. GeoIP and trustworthy client-IP attribution are required; this does not mean there were no visitors.</p>
       </div>
     );
   }

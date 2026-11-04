@@ -1,5 +1,5 @@
 import { getCommentCounts } from './comment.service.js';
-import { gte, sql, eq, desc } from 'drizzle-orm';
+import { and, gte, lt, sql, eq, desc } from 'drizzle-orm';
 import { statSync } from 'fs';
 import { db, dbPragmas, DB_FILE } from '../db/index.js';
 import { requestMetrics, posts, comments, pageViews, media, apps, podcasts, podcastEpisodes } from '../db/schema.js';
@@ -31,13 +31,14 @@ export interface EndpointStat {
 // thousand rows at most; the created_at index keeps the scan cheap.
 export async function getRequestMetrics(hours: number = 24) {
   return cached(`requestMetrics:${hours}`, OBS_CACHE_TTL_MS, async () => {
-  const since = Math.floor(Date.now() / 1000) - hours * 3600;
+  const now = Math.floor(Date.now() / 1000);
+  const since = now - hours * 3600;
   const rows = await db.select({
     method: requestMetrics.method,
     route: requestMetrics.route,
     status: requestMetrics.status,
     durationMs: requestMetrics.durationMs,
-  }).from(requestMetrics).where(gte(requestMetrics.createdAt, since));
+  }).from(requestMetrics).where(and(gte(requestMetrics.createdAt, since),lt(requestMetrics.createdAt,now+1)));
 
   const groups = new Map<string, { method: string; route: string; durations: number[]; errors: number }>();
   const statusClass: Record<string, number> = { '2xx': 0, '3xx': 0, '4xx': 0, '5xx': 0 };
@@ -75,6 +76,13 @@ export async function getRequestMetrics(hours: number = 24) {
     totalRequests: total,
     errorRate: total ? Number(((errors / total) * 100).toFixed(2)) : 0,
     statusClass,
+    clientErrors: statusClass['4xx'],
+    serverErrors: statusClass['5xx'],
+    latency: total ? (() => {
+      const durations=rows.map(r=>r.durationMs).sort((a,b)=>a-b);
+      return {avgMs:Number((durations.reduce((a,b)=>a+b,0)/total).toFixed(1)),p50Ms:percentile(durations,50),p95Ms:percentile(durations,95)};
+    })() : null,
+    window: {from:since,to:now+1},
     endpoints,
   };
   });

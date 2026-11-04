@@ -56,7 +56,7 @@ describe('GET /api/podcasts/episodes/:idOrSlug/download', () => {
   it('302-redirects to the absolutized audio URL and records a download event', async () => {
     const { ep } = await makePublishedEpisode();
 
-    const res = await app.request(`/api/podcasts/episodes/${ep.slug as string}/download`);
+    const res = await app.request(`/api/podcasts/episodes/${ep.slug as string}/download`, {headers:{'x-forwarded-for':'81.2.69.142'}});
     expect(res.status).toBe(302);
     const loc = res.headers.get('location') ?? '';
     expect(loc).toContain('/uploads/dl.mp3');
@@ -96,7 +96,7 @@ describe('GET /api/podcasts/:slug/feed.xml', () => {
 describe('Observability podcast endpoints (the admin-panel data source)', () => {
   it('a recorded download surfaces in summary, top-episodes and the episode table', async () => {
     const { ep } = await makePublishedEpisode();
-    await app.request(`/api/podcasts/episodes/${ep.slug as string}/download`);
+    await app.request(`/api/podcasts/episodes/${ep.slug as string}/download`, {headers:{'x-forwarded-for':'81.2.69.142'}});
 
     const summaryRes = await app.request('/api/observability/podcast/summary?days=30', { headers: authHeaders() });
     expect(summaryRes.status).toBe(200);
@@ -116,6 +116,16 @@ describe('Observability podcast endpoints (the admin-panel data source)', () => 
 
     const clientsRes = await app.request('/api/observability/podcast/clients', { headers: authHeaders() });
     expect(clientsRes.status).toBe(200);
+  });
+
+  it('keeps requests without a usable IP as raw events, excluded from deduplicated totals', async () => {
+    const { ep } = await makePublishedEpisode();
+    await app.request(`/api/podcasts/episodes/${ep.slug as string}/download`);
+    const summary = await (await app.request('/api/observability/podcast/summary?days=30', {headers:authHeaders()})).json() as AnyObj;
+    expect(summary.totalDownloads).toBe(0);
+    const quality = await (await app.request('/api/observability/data-quality?days=30', {headers:authHeaders()})).json() as {podcast:{downloadRequests:number;unidentifiableDownloads:number}};
+    expect(quality.podcast.downloadRequests).toBe(1);
+    expect(quality.podcast.unidentifiableDownloads).toBe(1);
   });
 
   it('requires auth (401 without a key)', async () => {

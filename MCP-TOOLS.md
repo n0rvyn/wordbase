@@ -875,15 +875,15 @@ _Annotations:_ `readOnlyHint: false` · `destructiveHint: false` · `openWorldHi
 
 ### `observability_query` — Query observability data
 
-Query observability data: visitor analytics (visits/trends/top-pages/referrers/shares/regions/devices), content stats, request metrics, system status, SEO health, and podcast consumption analytics (podcast-summary/trends/top-episodes/episodes/clients). `section` selects which one to return.
+Query observability data: visitor analytics (visits/trends/top-pages/referrers/shares/regions/devices), content stats, request metrics, system status, SEO health, collection coverage (data-quality), per-article measurements (post-metrics), and podcast consumption analytics (podcast-summary/trends/top-episodes/episodes/clients). `section` selects which one to return.
 
 _Annotations:_ `readOnlyHint: true` · `destructiveHint: false` · `openWorldHint: false`
 
 | Parameter | Type | Description |
 | --- | --- | --- |
 | `section` | string | Which section to query. 用户问『上周哪些国家来的人多』用 regions;『流量趋势』用 trends;『播客下载』用 podcast-summary. Example: section: 'regions'. |
-| `period` | string | Trend buckets: daily covers 30 UTC days, weekly 84 days, monthly 365 days, including today. |
-| `days` | number | UTC days including today: visits, top-pages, referrers, shares, regions, devices, podcast-summary. Omit for lifetime top-pages/referrers; otherwise default 30. Ignored by other sections. |
+| `period` | string | Trend sections cover 30/84/365 UTC days for daily/weekly/monthly, including today. For post-metrics this controls bucket size within the requested days window. |
+| `days` | number | UTC days including today: visits, top-pages, referrers, shares, regions, devices, data-quality, post-metrics, podcast-summary. Omit for lifetime top-pages/referrers; otherwise default 30. Ignored by other sections. |
 | `limit` | number | Max rows to return, for sections that support it (default varies by section; ignored otherwise). |
 
 ## i18n (3)

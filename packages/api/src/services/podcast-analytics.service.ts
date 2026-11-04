@@ -1,3 +1,4 @@
+import { usableIpHashSql, normalizeAnalyticsIp, normalizeAnalyticsAgent } from '../lib/analytics-identity.js';
 import { reportingWindow, PERIOD_DAYS, fillBuckets } from '../lib/reporting.js';
 import { sql, gte, eq, desc, and, lt } from 'drizzle-orm';
 import { db } from '../db/index.js';
@@ -26,8 +27,8 @@ const SUBSCRIBER_WINDOW_DAYS = 7; // distinct feed-poll endpoints over the last 
 // keys in COUNT(DISTINCT), so an unidentifiable hit is not a countable download/endpoint.
 // The window divisor is inlined as an integer literal and the quotient cast to INTEGER
 // to force floor division (a bound numeric param makes SQLite do REAL division → no dedup).
-const downloadKeySql = sql<string>`${podcastEvents.ipHash} || '|' || ${podcastEvents.episodeId} || '|' || cast(${podcastEvents.createdAt} / ${sql.raw(String(DOWNLOAD_WINDOW_SECONDS))} as integer)`;
-const feedKeySql = sql<string>`${podcastEvents.ipHash} || '|' || cast(${podcastEvents.createdAt} / ${sql.raw(String(FEED_WINDOW_SECONDS))} as integer)`;
+const downloadKeySql = sql<string>`${usableIpHashSql(podcastEvents.ipHash)} || '|' || ${podcastEvents.episodeId} || '|' || cast(${podcastEvents.createdAt} / ${sql.raw(String(DOWNLOAD_WINDOW_SECONDS))} as integer)`;
+const feedKeySql = sql<string>`${usableIpHashSql(podcastEvents.ipHash)} || '|' || cast(${podcastEvents.createdAt} / ${sql.raw(String(FEED_WINDOW_SECONDS))} as integer)`;
 
 export interface RecordPodcastEventInput {
   eventType: 'download' | 'feed_poll';
@@ -40,12 +41,13 @@ export interface RecordPodcastEventInput {
 
 export async function recordPodcastEvent(input: RecordPodcastEventInput) {
   const now = Math.floor(Date.now() / 1000);
+  const ip=normalizeAnalyticsIp(input.ipAddress);
   const [record] = await db.insert(podcastEvents).values({
     eventType: input.eventType,
     podcastId: input.podcastId,
     episodeId: input.episodeId ?? null,
-    ipHash: input.ipAddress ? hashIp(input.ipAddress) : null,
-    userAgent: input.userAgent ?? null,
+    ipHash: ip ? hashIp(ip) : null,
+    userAgent: normalizeAnalyticsAgent(input.userAgent) ?? null,
     referrer: input.referrer ?? null,
     createdAt: now,
   }).returning();

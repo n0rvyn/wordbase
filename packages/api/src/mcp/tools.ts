@@ -21,6 +21,8 @@ import * as searchService from '../services/search.service.js';
 import * as siteService from '../services/site.service.js';
 import * as settingsService from '../services/settings.service.js';
 import * as observabilityService from '../services/observability.service.js';
+import { getPostObservability } from '../services/post-observability.service.js';
+import { getDataQuality } from '../services/data-quality.service.js';
 import * as seoHealthService from '../services/seo-health.service.js';
 import { safeFetch } from '../lib/safe-fetch.js';
 import { hasScope } from '../middleware/auth.js';
@@ -2388,27 +2390,27 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
   );
 
   // Observability tools (Task 12, DP-002 = A). `section` mirrors one GET under
-  // /api/observability/* — 16 of its 17 endpoints; top-posts is intentionally
+  // /api/observability/* — 18 of its 19 endpoints; top-posts is intentionally
   // excluded (same data is already served by analytics_query's top_posts
   // section, both via analyticsService.getTopPosts, so including it here would
   // just be a second path to the same numbers).
   server.tool(
     'observability_query',
-    "Query observability data: visitor analytics (visits/trends/top-pages/referrers/shares/regions/devices), content stats, request metrics, system status, SEO health, and podcast consumption analytics (podcast-summary/trends/top-episodes/episodes/clients). `section` selects which one to return.",
+    "Query observability data: visitor analytics (visits/trends/top-pages/referrers/shares/regions/devices), content stats, request metrics, system status, SEO health, collection coverage (data-quality), per-article measurements (post-metrics), and podcast consumption analytics (podcast-summary/trends/top-episodes/episodes/clients). `section` selects which one to return.",
     {
       section: {
         type: 'string',
         required: true,
         enum: [
           'visits', 'trends', 'top-pages', 'referrers', 'shares', 'regions', 'devices',
-          'content', 'requests', 'system', 'seo-health',
+          'content', 'requests', 'system', 'seo-health', 'data-quality', 'post-metrics',
           'podcast-summary', 'podcast-trends', 'podcast-top-episodes', 'podcast-episodes', 'podcast-clients',
         ],
         description:
           "Which section to query. 用户问『上周哪些国家来的人多』用 regions;『流量趋势』用 trends;『播客下载』用 podcast-summary. Example: section: 'regions'.",
       },
-      period: { type: 'string', enum: ['daily','weekly','monthly'], description: 'Trend buckets: daily covers 30 UTC days, weekly 84 days, monthly 365 days, including today.' },
-      days: { type: 'number', min: 1, max: 365, description: 'UTC days including today: visits, top-pages, referrers, shares, regions, devices, podcast-summary. Omit for lifetime top-pages/referrers; otherwise default 30. Ignored by other sections.' },
+      period: { type: 'string', enum: ['daily','weekly','monthly'], description: 'Trend sections cover 30/84/365 UTC days for daily/weekly/monthly, including today. For post-metrics this controls bucket size within the requested days window.' },
+      days: { type: 'number', min: 1, max: 365, description: 'UTC days including today: visits, top-pages, referrers, shares, regions, devices, data-quality, post-metrics, podcast-summary. Omit for lifetime top-pages/referrers; otherwise default 30. Ignored by other sections.' },
       limit: { type: 'number', min: 1, max: 50, description: 'Max rows to return, for sections that support it (default varies by section; ignored otherwise).' },
     },
     async (args: Record<string, unknown>) => {
@@ -2418,6 +2420,12 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
       const period = (args.period as string | undefined) ?? 'daily';
       let result: unknown;
       switch (section) {
+        case 'post-metrics':
+          result = getPostObservability(days??30,period);
+          break;
+        case 'data-quality':
+          result = getDataQuality(days);
+          break;
         case 'visits':
           result = await analyticsService.getVisitorSummary(days);
           break;
