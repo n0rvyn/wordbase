@@ -23,6 +23,7 @@ SEO_FILES = {
  'packages/web/src/pages/en/404.astro', 'packages/web/src/pages/en/apps/[slug].astro',
  'packages/web/src/pages/en/posts/[slug].astro', 'packages/web/src/pages/posts/[slug].astro',
  'deploy/setup.sh', 'deploy/seo-release.py', 'scripts/test-seo-release.py',
+ 'package.json', 'packages/api/package.json', 'CHANGELOG.md', 'MCP-TOOLS.md',
 }
 
 
@@ -122,6 +123,12 @@ def main(root, base, target):
  subprocess.run(['git','-C',str(root),'merge-base','--is-ancestor',base,target],check=True)
  changed=set(git(root,'diff','--name-only',base,target).splitlines())
  if not changed or not changed<=SEO_FILES: raise ValueError('Release includes files outside SEO/procedure scope')
+ # The repository's release bot bumps these manifests; no dependency/script
+ # changes are permitted in this frontend-only path.
+ for manifest in ('package.json','packages/api/package.json'):
+  before=json.loads(git(root,'show',base+':'+manifest));after=json.loads(git(root,'show',target+':'+manifest))
+  before.pop('version',None);after.pop('version',None)
+  if before!=after: raise ValueError('Non-version manifest change: '+manifest)
  subprocess.run(['python3',str(root/'deploy/release_guard.py'),'inventory',str(root)],check=True,stdout=subprocess.DEVNULL)
  if shutil.disk_usage(root).free<600*1024*1024: raise ValueError('Less than 600 MiB free; no release changes made')
  live=root/'packages/web/dist'

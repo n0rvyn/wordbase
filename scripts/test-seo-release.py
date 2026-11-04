@@ -40,6 +40,7 @@ class Release(unittest.TestCase):
    if args==('rev-parse','origin/main'):return 'target'
    if args[:2]==('diff','--name-only'):return 'packages/web/src/lib/blog-feed.ts'
    if args[0]=='status':return ''
+   if args[0]=='show':return '{"version":"1.11.1","scripts":{}}'
    raise AssertionError(args)
   def run(args,**kwargs):
    calls.append(args)
