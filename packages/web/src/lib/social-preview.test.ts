@@ -4,7 +4,7 @@ describe('social preview metadata', () => {
   it('provides versioned wide and square first-party artwork with known dimensions', () => {
     const result = socialImage(undefined, 'https://norvyn.com');
     expect(result).toMatchObject({ url:'https://norvyn.com/social/julian-cafe-v2.png?v=2',width:1200,height:630,type:'image/png',square:'https://norvyn.com/social/julian-cafe-square-v2.png' });
-    expect(HOME_SOCIAL.zh.title).toBe('Julian.cafe · 最近做的东西，和想说的话');
+    expect(HOME_SOCIAL.zh.title).toBe('Julian.cafe');
     expect(HOME_SOCIAL.zh.description).not.toContain('独立开发者');
   });
   it('versions generated per-page cards while preserving authored cover images', () => {
@@ -19,7 +19,7 @@ it('preserves authored summaries and uses the page subject for an empty legacy e
   expect(socialDescription('   ', 'norvyn', 'norvyn', 'Site description')).toBe('Site description');
 });
 
-it('keeps the introduction in the homepage title while preserving page subjects and descriptions', () => {
+it('keeps the homepage brand and separate introduction while preserving page subjects', () => {
   expect(pageTitle(HOME_SOCIAL.zh.title,'norvyn')).toBe(HOME_SOCIAL.zh.title);
   expect(pageTitle(HOME_SOCIAL.en.title,'norvyn')).toBe(HOME_SOCIAL.en.title);
   expect(pageTitle('Cashie','norvyn')).toBe('Cashie — Julian.cafe');

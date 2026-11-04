@@ -6,8 +6,8 @@ export const SITE_SOCIAL_IMAGE = '/social/julian-cafe-v2.png';
 export const SITE_SOCIAL_SQUARE = '/social/julian-cafe-square-v2.png';
 export const SITE_SOCIAL_ALT = 'Julian.cafe: an orange coffee cup with cream steam on deep green';
 export const HOME_SOCIAL = {
-  zh: { title: 'Julian.cafe · 最近做的东西，和想说的话', description: '我最近在折腾的东西，都放在这里。随便看看。' },
-  en: { title: 'Julian.cafe · Things I’m making and thinking about', description: 'What I’ve been making and figuring out lately. Have a look around.' },
+  zh: { title: 'Julian.cafe', description: '我最近在折腾的东西，都放在这里。随便看看。' },
+  en: { title: 'Julian.cafe', description: 'What I’ve been making and figuring out lately. Have a look around.' },
 };
 export function socialImage(input: string | undefined, origin: URL | string) {
   const generated = !input || /^\/og\/.*\.png$/.test(input);

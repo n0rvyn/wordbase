@@ -113,7 +113,7 @@ const ogLocaleAlt = en ? 'zh_CN' : 'en_US';
     <meta property="og:site_name" content={SOCIAL_SITE_NAME} />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:title" content={fullTitle} />
-    <meta property="og:description" content={previewDescription} />
+    {previewDescription && <meta property="og:description" content={previewDescription} />}
     <meta property="og:image" content={ogImageUrl} />
     {ogImageUrl.startsWith('https:') && <meta property="og:image:secure_url" content={ogImageUrl} />}
     {social.type && <meta property="og:image:type" content={social.type} />}
@@ -145,7 +145,7 @@ const ogLocaleAlt = en ? 'zh_CN' : 'en_US';
     <meta name="twitter:site" content={TWITTER_HANDLE} />
     <meta name="twitter:creator" content={TWITTER_HANDLE} />
     <meta name="twitter:title" content={fullTitle} />
-    <meta name="twitter:description" content={previewDescription} />
+    {previewDescription && <meta name="twitter:description" content={previewDescription} />}
     <meta name="twitter:image" content={ogImageUrl} />
     <meta name="twitter:image:alt" content={imageAlt} />
     {[buildWebSiteLd(ldOrigin, { ...id, name: SOCIAL_SITE_NAME }), buildOrganizationLd(ldOrigin, id), ...jsonLd].map((obj) => (
