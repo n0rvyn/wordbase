@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.9.2 (2026-11-03)
+## v1.9.3 (2026-11-04)
+
+### Bug Fixes
+
+- fix(meta): restore separate homepage share title and subtitle (ada64ff)
 
 ### Bug Fixes
 
