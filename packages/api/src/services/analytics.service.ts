@@ -1,4 +1,5 @@
-import { eq, desc, sql, and, gte } from 'drizzle-orm';
+import { reportingWindow, PERIOD_DAYS, fillBuckets } from '../lib/reporting.js';
+import { eq, desc, sql, and, gte, lt } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { pageViews, posts, postTags, tags, shareEvents } from '../db/schema.js';
 import { hashIp } from '../lib/hash-ip.js';
@@ -15,8 +16,8 @@ const OBS_CACHE_TTL_MS = 60_000;
 // null→'unknown', not 'bot', branch). Consumed by the PV aggregations (getTopPosts /
 // getTotalPageViews / getTodayPageViews / getTrends / getRegions / getTopPages, which
 // exclude bots so the headline numbers mean real readers) AND by getVisitorSummary /
-// getVisitTrends / getDeviceBreakdown. NOTE: getVisitorSummary/getVisitTrends keep
-// RAW pageViews (bots counted) intentionally — only their UV/sessions use this.
+// getVisitTrends / getDeviceBreakdown. Audience pageViews and rankings consistently
+// exclude recognized bots; device breakdown deliberately includes a bot category.
 // Hoisted here so the earlier-defined aggregations can reference it.
 const isBotSql = sql`(${pageViews.userAgent} is not null and (
   lower(${pageViews.userAgent}) like '%bot%'
@@ -44,10 +45,7 @@ export interface RecordPageViewInput {
   visitorId?: string | null;
 }
 
-function getTodayStart(): number {
-  const now = new Date();
-  return Math.floor(new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() / 1000);
-}
+function getTodayStart(): number { return reportingWindow(1).from; }
 
 export async function recordPageView(input: RecordPageViewInput) {
   const now = Math.floor(Date.now() / 1000);
@@ -93,8 +91,8 @@ export async function recordShare(input: RecordShareInput) {
 // Read-time aggregation: shares grouped by channel and by page, within `days`.
 export async function getShareStats(days: number = 30) {
   return cached(`shareStats:${days}`, OBS_CACHE_TTL_MS, async () => {
-  const since = Math.floor(Date.now() / 1000) - days * 86400;
-  const where = gte(shareEvents.createdAt, since);
+  const { from: since } = reportingWindow(days);
+  const where = and(gte(shareEvents.createdAt, since),lt(shareEvents.createdAt,reportingWindow(days).to));
 
   const byTarget = await db.select({
     target: shareEvents.target,
@@ -121,12 +119,12 @@ export async function getShareStats(days: number = 30) {
 // excluded — they can't be placed on the map.
 export async function getRegions(days: number = 30) {
   return cached(`regions:${days}`, OBS_CACHE_TTL_MS, async () => {
-  const since = Math.floor(Date.now() / 1000) - days * 86400;
+  const { from: since } = reportingWindow(days);
   const rows = await db.select({
     country: pageViews.country,
     count: sql<number>`count(*)`,
   }).from(pageViews)
-    .where(and(gte(pageViews.createdAt, since), sql`${pageViews.country} is not null`, sql`not (${isBotSql})`))
+    .where(and(gte(pageViews.createdAt, since), lt(pageViews.createdAt,reportingWindow(days).to), sql`${pageViews.country} is not null`, sql`not (${isBotSql})`))
     .groupBy(pageViews.country)
     .orderBy(desc(sql`count(*)`));
 
@@ -137,7 +135,7 @@ export async function getRegions(days: number = 30) {
 export async function getTodayPageViews() {
   const todayStart = getTodayStart();
   const [result] = await db.select({ count: sql<number>`count(*)` }).from(pageViews)
-    .where(and(gte(pageViews.createdAt, todayStart), sql`not (${isBotSql})`));
+    .where(and(gte(pageViews.createdAt, todayStart), lt(pageViews.createdAt,reportingWindow(1).to), sql`not (${isBotSql})`));
   return result.count;
 }
 
@@ -233,13 +231,14 @@ function decodePath(p: string): string {
 // everything else shows its raw path. Admin/api paths are excluded defensively
 // (admin uses AdminLayout, which sends no pageview beacon, so they shouldn't be
 // in page_views anyway).
-export async function getTopPages(limit: number = 10) {
-  return cached(`topPages:${limit}`, OBS_CACHE_TTL_MS, async () => {
+export async function getTopPages(limit: number = 10, days?: number) {
+  return cached(`topPages:${limit}:${days ?? "all"}`, OBS_CACHE_TTL_MS, async () => {
   const results = await db.select({
     path: pageViews.path,
     count: sql<number>`count(*)`,
   }).from(pageViews)
     .where(and(
+      ...(days === undefined ? [] : [gte(pageViews.createdAt, reportingWindow(days).from),lt(pageViews.createdAt,reportingWindow(days).to)]),
       sql`${pageViews.path} NOT LIKE '/admin/%'`,
       sql`${pageViews.path} NOT LIKE '/api/%'`,
       sql`not (${isBotSql})`,
@@ -282,40 +281,11 @@ export async function getTopPages(limit: number = 10) {
 }
 
 export async function getTrends(period: string = 'daily') {
-  let groupFormat: string;
-  let groupCount: number;
-
-  switch (period) {
-    case 'weekly':
-      groupFormat = '%Y-W%W';
-      groupCount = 12;
-      break;
-    case 'monthly':
-      groupFormat = '%Y-%m';
-      groupCount = 12;
-      break;
-    default: // daily
-      groupFormat = '%Y-%m-%d';
-      groupCount = 30;
-  }
-
-  const results = await db.select({
-    period: sql<string>`strftime('${sql.raw(groupFormat)}', datetime(${pageViews.createdAt}, 'unixepoch'))`,
-    count: sql<number>`count(*)`,
-  }).from(pageViews)
-    .where(sql`not (${isBotSql})`)
-    .groupBy(sql`strftime('${sql.raw(groupFormat)}', datetime(${pageViews.createdAt}, 'unixepoch'))`)
-    .orderBy(desc(sql`strftime('${sql.raw(groupFormat)}', datetime(${pageViews.createdAt}, 'unixepoch'))`))
-    .limit(groupCount);
-
-  return results.reverse(); // Chronological order
+  return (await getVisitTrends(period)).map(({period,pageViews}) => ({period,count:pageViews}));
 }
 
-// --- Observability panel: visit analytics (read-side dedup) ---
-//
-// Deduplication is computed at READ time, never at write — page_views keeps the
-// raw row stream untouched, so we can report raw PV, unique visitors, and
-// deduplicated "sessions" all from the same data without ever discarding a hit.
+// Source rows remain untouched. Public measurements consistently filter recognized
+// bots; the legacy sessions field reports page-specific visit buckets, not journeys.
 //
 // The "elegant algorithm" is a deterministic time-bucketed visit fingerprint:
 //   sessionKey = ip_hash | path | floor(created_at / SESSION_WINDOW)
@@ -347,16 +317,16 @@ const sessionKeySql = sql<string>`${visitorKeySql} || '|' || ${pageViews.path} |
 
 export async function getVisitorSummary(days: number = 30) {
   return cached(`visitorSummary:${days}`, OBS_CACHE_TTL_MS, async () => {
-  const since = Math.floor(Date.now() / 1000) - days * 86400;
+  const { from: since } = reportingWindow(days);
   const [row] = await db.select({
-    pageViews: sql<number>`count(*)`,
+    pageViews: sql<number>`sum(case when not ${isBotSql} then 1 else 0 end)`,
     uniqueVisitors: sql<number>`count(distinct case when not ${isBotSql} then ${visitorKeySql} end)`,
     sessions: sql<number>`count(distinct case when not ${isBotSql} then (${sessionKeySql}) end)`,
-  }).from(pageViews).where(gte(pageViews.createdAt, since));
+  }).from(pageViews).where(and(gte(pageViews.createdAt, since),lt(pageViews.createdAt,reportingWindow(days).to)));
 
   return {
     days,
-    pageViews: row.pageViews,
+    pageViews: row.pageViews ?? 0,
     uniqueVisitors: row.uniqueVisitors,
     sessions: row.sessions,
   };
@@ -365,48 +335,28 @@ export async function getVisitorSummary(days: number = 30) {
 
 export async function getVisitTrends(period: string = 'daily') {
   return cached(`visitTrends:${period}`, OBS_CACHE_TTL_MS, async () => {
-  let groupFormat: string;
-  let groupCount: number;
-
-  switch (period) {
-    case 'weekly':
-      groupFormat = '%Y-W%W';
-      groupCount = 12;
-      break;
-    case 'monthly':
-      groupFormat = '%Y-%m';
-      groupCount = 12;
-      break;
-    default: // daily
-      groupFormat = '%Y-%m-%d';
-      groupCount = 30;
-  }
-
-  const bucket = sql<string>`strftime('${sql.raw(groupFormat)}', datetime(${pageViews.createdAt}, 'unixepoch'))`;
-
-  const results = await db.select({
-    period: bucket,
-    pageViews: sql<number>`count(*)`,
-    uniqueVisitors: sql<number>`count(distinct case when not ${isBotSql} then ${visitorKeySql} end)`,
-    sessions: sql<number>`count(distinct case when not ${isBotSql} then (${sessionKeySql}) end)`,
-  }).from(pageViews)
-    .groupBy(bucket)
-    .orderBy(desc(bucket))
-    .limit(groupCount);
-
-  return results.reverse(); // chronological order
+    const days=PERIOD_DAYS[period] ?? 30;
+    const range=reportingWindow(days);
+    const format=period === 'weekly' ? '%Y-W%W' : period === 'monthly' ? '%Y-%m' : '%Y-%m-%d';
+    const bucket=sql<string>`strftime('${sql.raw(format)}', datetime(${pageViews.createdAt}, 'unixepoch'))`;
+    const rows=await db.select({period:bucket,
+      pageViews:sql<number>`sum(case when not ${isBotSql} then 1 else 0 end)`,
+      uniqueVisitors:sql<number>`count(distinct case when not ${isBotSql} then ${visitorKeySql} end)`,
+      sessions:sql<number>`count(distinct case when not ${isBotSql} then (${sessionKeySql}) end)`
+    }).from(pageViews).where(and(gte(pageViews.createdAt,range.from),lt(pageViews.createdAt,range.to))).groupBy(bucket).orderBy(bucket);
+    return fillBuckets(rows,period,days,{pageViews:0,uniqueVisitors:0,sessions:0});
   });
 }
 
-export async function getReferrers(limit: number = 10) {
-  return cached(`referrers:${limit}`, OBS_CACHE_TTL_MS, async () => {
+export async function getReferrers(limit: number = 10, days?: number) {
+  return cached(`referrers:${limit}:${days ?? "all"}`, OBS_CACHE_TTL_MS, async () => {
   // Group by raw referrer, then collapse to host in JS (clean display without
   // brittle SQL host-parsing). Empty/null referrers are direct traffic.
   const rows = await db.select({
     referrer: pageViews.referrer,
     count: sql<number>`count(*)`,
   }).from(pageViews)
-    .where(and(sql`${pageViews.referrer} is not null`, sql`${pageViews.referrer} != ''`))
+    .where(and(sql`${pageViews.referrer} is not null`, sql`${pageViews.referrer} != ''`, sql`not (${isBotSql})`, ...(days === undefined ? [] : [gte(pageViews.createdAt, reportingWindow(days).from),lt(pageViews.createdAt,reportingWindow(days).to)])))
     .groupBy(pageViews.referrer)
     .orderBy(desc(sql`count(*)`));
 
@@ -430,7 +380,7 @@ export async function getReferrers(limit: number = 10) {
 
 export async function getDeviceBreakdown(days: number = 365) {
   return cached(`deviceBreakdown:${days}`, OBS_CACHE_TTL_MS, async () => {
-  const since = Math.floor(Date.now() / 1000) - days * 86400;
+  const { from: since } = reportingWindow(days);
   const deviceType = sql<string>`case
     when ${pageViews.userAgent} is null then 'unknown'
     when ${isBotSql} then 'bot'
@@ -444,7 +394,7 @@ export async function getDeviceBreakdown(days: number = 365) {
     type: deviceType,
     count: sql<number>`count(*)`,
   }).from(pageViews)
-    .where(gte(pageViews.createdAt, since))
+    .where(and(gte(pageViews.createdAt,since),lt(pageViews.createdAt,reportingWindow(days).to)))
     .groupBy(deviceType)
     .orderBy(desc(sql`count(*)`));
 

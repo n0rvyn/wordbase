@@ -1,3 +1,4 @@
+import { observation } from '../services/observation.service.js';
 import { Hono } from 'hono';
 import { authMiddleware, validateBearerToken, requireScope, hasScope } from '../middleware/index.js';
 import * as commentService from '../services/comment.service.js';
@@ -96,4 +97,10 @@ commentsRouter.delete('/comments/:id', authMiddleware, requireScope('comments:wr
   const deleted = await commentService.deleteComment(c.req.param('id'));
   if (!deleted) return c.json({ error: { code: 'NOT_FOUND', message: 'Comment not found' } }, 404);
   return c.json({ success: true });
+});
+
+commentsRouter.get('/comments/counts',authMiddleware,requireScope('comments:read'),c=>{
+  const counts=commentService.getCommentCounts();
+  c.header('X-Wordbase-Observation',JSON.stringify(observation('comment-counts')));
+  return c.json(counts);
 });

@@ -94,7 +94,7 @@ describe('getVisitorSummary / getVisitTrends identity', () => {
     expect(s.uniqueVisitors).toBe(2);
   });
 
-  it('excludes bots from unique visitors but still counts them in page views', async () => {
+  it('excludes bots from both unique visitors and page views', async () => {
     await recordPageView({
       path: '/',
       ipAddress: '9.9.9.9',
@@ -104,7 +104,7 @@ describe('getVisitorSummary / getVisitTrends identity', () => {
     await recordPageView({ path: '/', ipAddress: '8.8.8.8', userAgent: 'Mozilla/5.0', visitorId: 'H1' });
     const s = await getVisitorSummary(30);
     expect(s.uniqueVisitors).toBe(1); // bot excluded
-    expect(s.pageViews).toBe(2); // PV still counts the bot
+    expect(s.pageViews).toBe(1); // recognized bot excluded
   });
 
   it('applies the same identity/bot semantics in the daily trend', async () => {
@@ -118,6 +118,6 @@ describe('getVisitorSummary / getVisitTrends identity', () => {
     const trends = await getVisitTrends('daily');
     const latest = trends[trends.length - 1];
     expect(latest.uniqueVisitors).toBe(1); // bot excluded
-    expect(latest.pageViews).toBe(2); // bot counted in PV
+    expect(latest.pageViews).toBe(1); // recognized bot excluded
   });
 });

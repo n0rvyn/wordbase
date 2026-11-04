@@ -1,3 +1,4 @@
+import { getCommentCounts } from './comment.service.js';
 import { gte, sql, eq, desc } from 'drizzle-orm';
 import { statSync } from 'fs';
 import { db, dbPragmas, DB_FILE } from '../db/index.js';
@@ -81,8 +82,8 @@ export async function getRequestMetrics(hours: number = 24) {
 
 /* ---------------- system health + ops status (Stage C, read-only) ---------------- */
 
-function fileSize(path: string): number {
-  try { return statSync(path).size; } catch { return 0; }
+function fileSize(path: string): number | null {
+  try { return statSync(path).size; } catch { return null; }
 }
 
 function count(table: any): number {
@@ -138,7 +139,7 @@ export function getSystemStatus() {
     lastPublishedAt: lastEp?.publishedAt ?? null,
   };
 
-  const pendingComments = countWhere(comments, eq(comments.status, 'pending'));
+  const pendingComments = getCommentCounts().pending;
 
   return {
     runtime: {

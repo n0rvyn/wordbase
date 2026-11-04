@@ -11,7 +11,7 @@ function authHeaders(): Record<string, string> {
   return { 'Authorization': `Bearer ${key}` };
 }
 
-export async function adminFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+async function adminResponse(path: string, options: RequestInit = {}): Promise<Response> {
   const headers = { ...authHeaders(), ...options.headers as Record<string, string> };
   const res = await fetch(`${API_URL}${path}`, { ...options, headers });
 
@@ -26,7 +26,31 @@ export async function adminFetch<T>(path: string, options: RequestInit = {}): Pr
     throw new Error(err.error?.message || `API error: ${res.status}`);
   }
 
-  return res.json();
+  return res;
+}
+
+export async function adminFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+  return (await adminResponse(path,options)).json();
+}
+export interface Observation {
+  observedAt: number; expiresAt: number; source: string; range: string; timezone: string; definition: string;
+}
+export async function adminObserved<T>(path: string): Promise<{data:T; observation:Observation | null}> {
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),15_000);
+  try {
+    const response=await adminResponse(path,{signal:controller.signal});
+    const raw=response.headers.get('X-Wordbase-Observation');
+    let observation:Observation | null=null;
+    try {
+      const value=raw ? JSON.parse(raw) : null;
+      if(value && Number.isFinite(value.observedAt) && Number.isFinite(value.expiresAt) && value.expiresAt >= value.observedAt && ['source','range','timezone','definition'].every(key=>typeof value[key] === 'string')) observation=value;
+    } catch { /* metadata unavailable, never fabricate it */ }
+    return {data:await response.json(),observation};
+  } catch(error) {
+    if(controller.signal.aborted) throw new Error('Request timed out after 15 seconds');
+    throw error;
+  } finally {clearTimeout(timeout);}
 }
 
 export async function adminUpload(path: string, formData: FormData): Promise<any> {

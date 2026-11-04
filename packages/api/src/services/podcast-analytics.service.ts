@@ -1,4 +1,5 @@
-import { sql, gte, eq, desc, and } from 'drizzle-orm';
+import { reportingWindow, PERIOD_DAYS, fillBuckets } from '../lib/reporting.js';
+import { sql, gte, eq, desc, and, lt } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { podcastEvents, podcastEpisodes } from '../db/schema.js';
 import { hashIp } from '../lib/hash-ip.js';
@@ -14,7 +15,7 @@ const OBS_CACHE_TTL_MS = 60_000;
 //   download  → deduped per (ip_hash, episode_id, 30-min window): a client's burst
 //               of range/resume requests within one window folds into one download.
 //   feed_poll → deduped per (ip_hash, podcast_id, 1-day window): distinct daily
-//               endpoints over a recent window estimate active subscribers.
+//               IP/day buckets measure feed endpoint-days, not unique subscribers.
 
 const DOWNLOAD_WINDOW_SECONDS = 1800; // 30 min
 const FEED_WINDOW_SECONDS = 86400; // 1 day
@@ -63,8 +64,8 @@ export async function recordPodcastEvent(input: RecordPodcastEventInput) {
 export async function getPodcastSummary(days: number = 30) {
   return cached(`podcastSummary:${days}`, OBS_CACHE_TTL_MS, async () => {
   const now = Math.floor(Date.now() / 1000);
-  const windowSince = now - days * 86400;
-  const subSince = now - SUBSCRIBER_WINDOW_DAYS * 86400;
+  const windowSince = reportingWindow(days).from;
+  const subSince = reportingWindow(SUBSCRIBER_WINDOW_DAYS).from;
 
   const [totals] = await db.select({
     totalDownloads: sql<number>`count(distinct (${downloadKeySql}))`,
@@ -72,11 +73,11 @@ export async function getPodcastSummary(days: number = 30) {
 
   const [windowed] = await db.select({
     windowDownloads: sql<number>`count(distinct (${downloadKeySql}))`,
-  }).from(podcastEvents).where(and(eq(podcastEvents.eventType, 'download'), gte(podcastEvents.createdAt, windowSince)));
+  }).from(podcastEvents).where(and(eq(podcastEvents.eventType, 'download'), gte(podcastEvents.createdAt, windowSince),lt(podcastEvents.createdAt,reportingWindow(days).to)));
 
   const [subs] = await db.select({
     subscriberEstimate: sql<number>`count(distinct (${feedKeySql}))`,
-  }).from(podcastEvents).where(and(eq(podcastEvents.eventType, 'feed_poll'), gte(podcastEvents.createdAt, subSince)));
+  }).from(podcastEvents).where(and(eq(podcastEvents.eventType, 'feed_poll'), gte(podcastEvents.createdAt, subSince),lt(podcastEvents.createdAt,reportingWindow(7).to)));
 
   return {
     days,
@@ -90,35 +91,14 @@ export async function getPodcastSummary(days: number = 30) {
 
 export async function getPodcastTrends(period: string = 'daily') {
   return cached(`podcastTrends:${period}`, OBS_CACHE_TTL_MS, async () => {
-  let groupFormat: string;
-  let groupCount: number;
-
-  switch (period) {
-    case 'weekly':
-      groupFormat = '%Y-W%W';
-      groupCount = 12;
-      break;
-    case 'monthly':
-      groupFormat = '%Y-%m';
-      groupCount = 12;
-      break;
-    default: // daily
-      groupFormat = '%Y-%m-%d';
-      groupCount = 30;
-  }
-
-  const bucket = sql<string>`strftime('${sql.raw(groupFormat)}', datetime(${podcastEvents.createdAt}, 'unixepoch'))`;
-
-  const results = await db.select({
-    period: bucket,
-    downloads: sql<number>`count(distinct (${downloadKeySql}))`,
-    feedPolls: sql<number>`count(distinct (${feedKeySql}))`,
-  }).from(podcastEvents)
-    .groupBy(bucket)
-    .orderBy(desc(bucket))
-    .limit(groupCount);
-
-  return results.reverse(); // chronological order
+    const days=PERIOD_DAYS[period] ?? 30; const range=reportingWindow(days);
+    const format=period === 'weekly' ? '%Y-W%W' : period === 'monthly' ? '%Y-%m' : '%Y-%m-%d';
+    const bucket=sql<string>`strftime('${sql.raw(format)}', datetime(${podcastEvents.createdAt}, 'unixepoch'))`;
+    const rows=await db.select({period:bucket,
+      downloads:sql<number>`count(distinct case when ${podcastEvents.eventType} = 'download' then (${downloadKeySql}) end)`,
+      feedPolls:sql<number>`count(distinct case when ${podcastEvents.eventType} = 'feed_poll' then (${feedKeySql}) end)`
+    }).from(podcastEvents).where(and(gte(podcastEvents.createdAt,range.from),lt(podcastEvents.createdAt,range.to))).groupBy(bucket).orderBy(bucket);
+    return fillBuckets(rows,period,days,{downloads:0,feedPolls:0});
   });
 }
 

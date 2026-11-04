@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'preact/hooks';
-import { adminFetch } from '../../lib/admin-api';
+import { adminObserved } from '../../lib/admin-api';
+import { DataNote, Missing, emptyReading, readingStatus, type Reading } from './DataNote';
 import WorldMap from './WorldMap';
 
 type Period = 'daily' | 'weekly' | 'monthly';
@@ -32,7 +33,7 @@ interface RequestMetrics {
 interface BuildState { status: string; startedAt: number | null; completedAt: number | null; error: string | null; duration: number | null; }
 interface SystemStatus {
   runtime: { uptimeSeconds: number; nodeVersion: string; memory: { rss: number; heapUsed: number; heapTotal: number } };
-  database: { sizeBytes: number; walBytes: number; pageCount: number; pageSize: number; journalMode: string; tableRows: Record<string, number> };
+  database: { sizeBytes: number | null; walBytes: number | null; pageCount: number; pageSize: number; journalMode: string; tableRows: Record<string, number> };
   ops: {
     build: BuildState;
     apps: { total: number; published: number; draft: number; lastSyncedAt: number | null; recent: { name: string; status: string; lastSyncedAt: number | null }[] };
@@ -82,13 +83,13 @@ function countryFlag(cc: string): string {
   return String.fromCodePoint(...[...cc.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
 }
 const PERIOD_DAYS: Record<Period, number> = { daily: 30, weekly: 84, monthly: 365 };
-const PERIOD_LABEL: Record<Period, string> = { daily: 'Last 30 days', weekly: 'Last 12 weeks', monthly: 'Last 12 months' };
+const PERIOD_LABEL: Record<Period, string> = { daily: '30 UTC days · daily', weekly: '84 UTC days · weekly', monthly: '365 UTC days · monthly' };
 
 type SeriesKey = 'pageViews' | 'uniqueVisitors' | 'sessions';
 const SERIES: { key: SeriesKey; label: string; color: string }[] = [
   { key: 'pageViews', label: 'Page views', color: '#4f46e5' },
-  { key: 'uniqueVisitors', label: 'Unique visitors', color: '#10b981' },
-  { key: 'sessions', label: 'Sessions', color: '#f59e0b' },
+  { key: 'uniqueVisitors', label: 'Estimated visitors', color: '#10b981' },
+  { key: 'sessions', label: 'Page visits (30-minute buckets)', color: '#f59e0b' },
 ];
 
 export default function ObservabilityPanel() {
@@ -112,42 +113,54 @@ export default function ObservabilityPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => { loadData(period); }, [period]);
+  const [readings,setReadings]=useState<Record<string,Reading<unknown>>>({});
+  const [now,setNow]=useState(Date.now());
+  const generation=useRef(0);
+  const available=(key:string)=>readings[key]?.data != null;
+  const note=(key:string)=><DataNote reading={readings[key] ?? emptyReading()} now={now}/>;
+  useEffect(() => {
+    void loadData(period);
+    const interval=setInterval(()=>{setNow(Date.now());void loadData(period);},60_000);
+    return ()=>{clearInterval(interval);generation.current++;};
+  },[period]);
 
   async function loadData(p: Period) {
-    setLoading(true);
-    setError('');
-    try {
-      const [sum, tr, tp, ref, shr, reg, dev, req, sys, pSum, pTr, pEps, pCli, seo] = await Promise.all([
-        adminFetch<VisitorSummary>(`/api/observability/visits?days=${PERIOD_DAYS[p]}`),
-        adminFetch<TrendPoint[]>(`/api/observability/trends?period=${p}`),
-        adminFetch<TopPage[]>('/api/observability/top-pages?limit=10'),
-        adminFetch<Referrer[]>('/api/observability/referrers?limit=10'),
-        adminFetch<ShareStats>(`/api/observability/shares?days=${PERIOD_DAYS[p]}`),
-        adminFetch<Region[]>(`/api/observability/regions?days=${PERIOD_DAYS[p]}`),
-        adminFetch<DeviceRow[]>(`/api/observability/devices?days=${PERIOD_DAYS[p]}`),
-        adminFetch<RequestMetrics>('/api/observability/requests?hours=24'),
-        adminFetch<SystemStatus>('/api/observability/system'),
-        adminFetch<PodcastSummary>(`/api/observability/podcast/summary?days=${PERIOD_DAYS[p]}`),
-        adminFetch<PodcastTrendPoint[]>(`/api/observability/podcast/trends?period=${p}`),
-        adminFetch<EpisodeDownloadRow[]>('/api/observability/podcast/episodes'),
-        adminFetch<DeviceRow[]>('/api/observability/podcast/clients?limit=10'),
-        adminFetch<SeoHealth>('/api/observability/seo-health'),
-      ]);
-      setSummary(sum); setTrends(tr); setTopPages(tp); setReferrers(ref); setShareStats(shr); setRegions(reg); setDevices(dev); setRequests(req); setSystem(sys);
-      setPodSummary(pSum); setPodTrends(pTr); setEpisodeTable(pEps); setPodClients(pCli);
-      setSeoHealth(seo);
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
+    const request=++generation.current;
+    setLoading(true); setError('');
+    async function read<T>(key:string,path:string,set:(value:T)=>void) {
+      try {
+        const result=await adminObserved<T>(path);
+        if(request!==generation.current) return;
+        set(result.data);setReadings(previous=>({...previous,[key]:{...result,error:null,fetchedAt:Date.now()}}));
+      } catch(error) {
+        if(request!==generation.current) return;
+        setReadings(previous=>({...previous,[key]:{...(previous[key] ?? emptyReading()),error:error instanceof Error ? error.message : 'Request failed'}}));
+      }
     }
+    const days=PERIOD_DAYS[p];
+    await Promise.all([
+      read('visits',`/api/observability/visits?days=${days}`,setSummary),
+      read('trends',`/api/observability/trends?period=${p}`,setTrends),
+      read('top-pages',`/api/observability/top-pages?limit=10&days=${days}`,setTopPages),
+      read('referrers',`/api/observability/referrers?limit=10&days=${days}`,setReferrers),
+      read('shares',`/api/observability/shares?days=${days}`,setShareStats),
+      read('regions',`/api/observability/regions?days=${days}`,setRegions),
+      read('devices',`/api/observability/devices?days=${days}`,setDevices),
+      read('requests','/api/observability/requests?hours=24',setRequests),
+      read('system','/api/observability/system',setSystem),
+      read('podcast-summary',`/api/observability/podcast/summary?days=${days}`,setPodSummary),
+      read('podcast-trends',`/api/observability/podcast/trends?period=${p}`,setPodTrends),
+      read('podcast-episodes','/api/observability/podcast/episodes',setEpisodeTable),
+      read('podcast-clients','/api/observability/podcast/clients?limit=10',setPodClients),
+      read('seo-health','/api/observability/seo-health',setSeoHealth),
+    ]);
+    if(request===generation.current){setLoading(false);setNow(Date.now());}
   }
 
   // Merged "Top" card — one ranked list, switchable across incoming-traffic dims.
   const topConfig = {
     pages: { accent: '#4f46e5', empty: 'No page views yet.', rows: topPages.map((p) => ({ label: p.label || p.path, value: p.views })) },
-    referrers: { accent: '#10b981', empty: 'No referrers recorded — traffic is direct.', rows: referrers.map((r) => ({ label: r.host, value: r.count })) },
+    referrers: { accent: '#10b981', empty: 'No recorded referrers in this window.', rows: referrers.map((r) => ({ label: r.host, value: r.count })) },
   }[topDim];
 
   return (
@@ -155,8 +168,7 @@ export default function ObservabilityPanel() {
       {/* Top-level header: title + sub-tabs + (audience-only) range dropdown */}
       <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
-          <h2 class="text-xl font-semibold text-ink tracking-tight">Observability</h2>
-          <p class="text-sm text-ink-3 mt-0.5">Audience · System health · SEO</p>
+          <p class="text-sm text-ink-3 mt-0.5">Recorded audience activity · API/process health · local SEO checks. Refreshes every minute.</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <div class="inline-flex rounded-lg bg-surface-2 p-1 flex-wrap">
@@ -171,12 +183,13 @@ export default function ObservabilityPanel() {
               </button>
             ))}
           </div>
+          <button onClick={()=>void loadData(period)} disabled={loading} class="border rounded-lg px-3 py-1.5 text-sm disabled:opacity-50">{loading ? 'Refreshing…' : 'Refresh'}</button>
           {tab === 'audience' && <RangeMenu period={period} onChange={setPeriod} />}
         </div>
       </div>
 
       {error && <p class="text-red-600 mb-4">{error}</p>}
-      {loading && !summary ? (
+      {loading && !Object.keys(readings).length ? (
         <ChartSkeleton />
       ) : (
         <>
@@ -187,12 +200,15 @@ export default function ObservabilityPanel() {
                 {SERIES.map((s) => (
                   <SummaryCard
                     series={s}
-                    value={summary ? summary[s.key] : 0}
+                    status={readingStatus(readings.visits ?? emptyReading(),now)}
+                    value={summary?.[s.key]}
                     trend={trends.map((t) => t[s.key])}
                   />
                 ))}
               </div>
 
+              {note('visits')}
+              <p class="text-xs text-ink-3 mb-4">Windows include the partial current UTC day. Visitors use browser IDs or IP-hash fallback and are not a people count; page visits are not whole-site sessions.</p>
               {/* Trend chart */}
               <div class="bg-surface rounded-xl border border-line shadow-sm p-5 sm:p-6 mb-5">
                 <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
@@ -206,12 +222,12 @@ export default function ObservabilityPanel() {
                     ))}
                   </div>
                 </div>
-                <TrendChart data={trends} period={period} />
+                {available('trends') ? <TrendChart data={trends} period={period} /> : <Missing name="Traffic trend"/>}{note('trends')}
               </div>
 
               {/* Top (pages/referrers) + devices */}
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
-                <BarList
+                <div>{available(topDim === 'pages' ? 'top-pages' : 'referrers') ? <BarList
                   title="Top"
                   accent={topConfig.accent}
                   empty={topConfig.empty}
@@ -219,66 +235,73 @@ export default function ObservabilityPanel() {
                   tabs={TOP_DIMS.map((d) => ({ key: d.key, label: d.label }))}
                   activeTab={topDim}
                   onTab={(k) => setTopDim(k as TopDim)}
-                />
-                <DeviceBreakdown rows={devices} />
+                /> : <Missing name="Top traffic sources"/>}{note(topDim === 'pages' ? 'top-pages' : 'referrers')}</div>
+                <div>{available('devices') ? <DeviceBreakdown rows={devices} /> : <Missing name="Device breakdown"/>}{note('devices')}</div>
               </div>
 
               {/* Geography row: map + country ranking */}
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
-                <WorldMap regions={regions} />
-                <BarList
-                  title="Top countries"
+                <div>{available('regions') ? <WorldMap regions={regions} /> : <Missing name="Geography"/>}{note('regions')}</div>
+                <div>{available('regions') ? <BarList
+                  title="Geolocated page views"
                   accent="#6366f1"
                   empty="No geolocated visits yet."
                   rows={regions.map((r) => ({ label: `${countryFlag(r.country)} ${r.country}`, value: r.count }))}
-                />
+                /> : <Missing name="Geolocated page views"/>}{note('regions')}</div>
               </div>
 
               {/* Engagement: shares by channel + shares by page */}
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
-                <DeviceBreakdown
-                  title="Shares by channel"
+                <div>{available('shares') ? <DeviceBreakdown
+                  title="Share clicks by channel"
+                  empty="No share clicks recorded in this window."
                   meta={SHARE_META}
                   rows={(shareStats?.byTarget ?? []).map((s) => ({ type: s.target, count: s.count }))}
-                />
-                <BarList
-                  title="Shares by page"
+                /> : <Missing name="Share clicks by channel"/>}{note('shares')}</div>
+                <div>{available('shares') ? <BarList
+                  title="Share clicks by page"
                   accent="#f59e0b"
-                  empty="No shares recorded yet."
+                  empty="No share clicks recorded in this window."
                   rows={(shareStats?.byPage ?? []).map((s) => ({ label: s.path, value: s.count }))}
-                />
+                /> : <Missing name="Share clicks by page"/>}{note('shares')}</div>
               </div>
 
               {/* ---- Podcast (downloads + RSS feed polls, distinct from page-view beacons) ---- */}
               <div class="mt-10 mb-6">
                 <h3 class="text-lg font-semibold text-ink tracking-tight">Podcast</h3>
-                <p class="text-sm text-ink-3 mt-0.5">Deduped episode downloads &amp; active-subscriber estimate · {PERIOD_LABEL[period]}</p>
+                <p class="text-sm text-ink-3 mt-0.5">Deduped download requests &amp; feed activity · {PERIOD_LABEL[period]}</p>
               </div>
 
               <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
                 <SummaryCard
                   series={{ key: 'totalDownloads', label: 'Total downloads', color: '#8b5cf6' }}
-                  value={podSummary ? podSummary.totalDownloads : 0}
+                  status={readingStatus(readings['podcast-summary'] ?? emptyReading(),now)}
+                  value={podSummary?.totalDownloads}
                   trend={[]}
                 />
                 <SummaryCard
                   series={{ key: 'windowDownloads', label: `Downloads · ${PERIOD_LABEL[period].toLowerCase()}`, color: '#6366f1' }}
-                  value={podSummary ? podSummary.windowDownloads : 0}
+                  status={readingStatus(readings['podcast-summary'] ?? emptyReading(),now)}
+                  value={podSummary?.windowDownloads}
                   trend={podTrends.map((t) => t.downloads)}
                 />
                 <SummaryCard
-                  series={{ key: 'subscriberEstimate', label: `Subscribers (est., ${podSummary?.subscriberWindowDays ?? 7}d)`, color: '#ec4899' }}
-                  value={podSummary ? podSummary.subscriberEstimate : 0}
-                  trend={podTrends.map((t) => t.feedPolls)}
+                  series={{ key: 'subscriberEstimate', label: `Feed endpoint-days (${podSummary?.subscriberWindowDays ?? 7} UTC days)`, color: '#ec4899' }}
+                  status={readingStatus(readings['podcast-summary'] ?? emptyReading(),now)}
+                  value={podSummary?.subscriberEstimate}
+                  trend={[]}
                 />
               </div>
 
+              {note('podcast-summary')}
+              {note('podcast-trends')}
               <div class="mb-5">
-                <DeviceBreakdown title="Client distribution" meta={CLIENT_META} rows={podClients} />
+                {available('podcast-clients') ? <DeviceBreakdown title="Feed client activity · retained history" empty="No feed polls recorded in retained history." meta={CLIENT_META} rows={podClients} /> : <Missing name="Feed client activity"/>}
+                {note('podcast-clients')}
               </div>
 
               {/* Episodes sorted by downloads — doubles as the top-episodes ranking */}
-              <EpisodeTable rows={[...episodeTable].sort((a, b) => b.downloads - a.downloads)} />
+              {available('podcast-episodes') ? <EpisodeTable rows={[...episodeTable].sort((a, b) => b.downloads - a.downloads)} /> : <Missing name="Episode downloads"/>}{note('podcast-episodes')}
             </>
           )}
 
@@ -289,18 +312,18 @@ export default function ObservabilityPanel() {
                 <h3 class="text-lg font-semibold text-ink tracking-tight">API requests</h3>
                 <p class="text-sm text-ink-3 mt-0.5">Server-side request timing · last 24 hours · separate from the visit beacons above</p>
               </div>
-              <RequestSection data={requests} />
+              {note('requests')}<RequestSection data={requests} />
 
               {/* ---- System & operations ---- */}
               <div class="mt-10 mb-6">
                 <h3 class="text-lg font-semibold text-ink tracking-tight">System &amp; operations</h3>
                 <p class="text-sm text-ink-3 mt-0.5">Process, database, and content-pipeline status · read-only</p>
               </div>
-              <SystemSection data={system} />
+              {note('system')}<SystemSection data={system} />
             </>
           )}
 
-          {tab === 'seo' && <SeoHealthSection data={seoHealth} />}
+          {tab === 'seo' && <>{note('seo-health')}<SeoHealthSection data={seoHealth} /></>}
         </>
       )}
     </div>
@@ -351,7 +374,7 @@ function RangeMenu({ period, onChange }: { period: Period; onChange: (p: Period)
 /* ---------------- system & operations ---------------- */
 
 const BUILD_META: Record<string, { label: string; dot: string; text: string }> = {
-  idle: { label: 'Idle', dot: '#94a3b8', text: 'text-ink-2' },
+  idle: { label: 'No valid build record', dot: '#94a3b8', text: 'text-ink-2' },
   requested: { label: 'Requested', dot: '#3b82f6', text: 'text-accent' },
   building: { label: 'Building', dot: '#f59e0b', text: 'text-amber-600' },
   success: { label: 'Success', dot: '#10b981', text: 'text-emerald-600' },
@@ -359,7 +382,7 @@ const BUILD_META: Record<string, { label: string; dot: string; text: string }> =
 };
 
 function SystemSection({ data }: { data: SystemStatus | null }) {
-  if (!data) return <div class="bg-surface rounded-xl border border-line shadow-sm p-8 text-center text-sm text-ink-3">No system data.</div>;
+  if (!data) return <div class="bg-surface rounded-xl border border-line shadow-sm p-8 text-center text-sm text-ink-3">System data unavailable.</div>;
   const { runtime, database, ops } = data;
   const build = BUILD_META[ops.build.status] ?? BUILD_META.idle;
 
@@ -375,7 +398,7 @@ function SystemSection({ data }: { data: SystemStatus | null }) {
 
       {/* Database */}
       <Panel title="Database">
-        <Row label="Size" value={`${fmtBytes(database.sizeBytes)}${database.walBytes ? ` (+${fmtBytes(database.walBytes)} WAL)` : ''}`} />
+        <Row label="Size" value={`${fmtBytes(database.sizeBytes)} · WAL ${fmtBytes(database.walBytes)}`} />
         <Row label="Journal mode" value={database.journalMode.toUpperCase()} />
         <Row label="Pages" value={`${database.pageCount.toLocaleString()} × ${fmtBytes(database.pageSize)}`} />
         <div class="pt-2 mt-1 border-t border-line">
@@ -388,7 +411,7 @@ function SystemSection({ data }: { data: SystemStatus | null }) {
       </Panel>
 
       {/* Build / deploy */}
-      <Panel title="Build & deploy">
+      <Panel title="Static build">
         <div class="flex items-center justify-between py-1.5">
           <span class="text-sm text-ink-3">Status</span>
           <span class={`flex items-center gap-2 text-sm font-medium ${build.text}`}>
@@ -403,7 +426,7 @@ function SystemSection({ data }: { data: SystemStatus | null }) {
 
       {/* Content pipeline */}
       <Panel title="Content pipeline">
-        <Row label="Apps" value={`${ops.apps.published} published / ${ops.apps.total} total`} />
+        <Row label="App records" value={`${ops.apps.published} published / ${ops.apps.total} total`} />
         <Row label="App last sync" value={ops.apps.lastSyncedAt ? timeAgo(ops.apps.lastSyncedAt) : '—'} />
         <Row label="Podcast" value={`${ops.podcast.episodesPublished}/${ops.podcast.episodes} episodes · ${ops.podcast.showsPublished} shows`} />
         <Row label="Last episode" value={ops.podcast.lastPublishedAt ? timeAgo(ops.podcast.lastPublishedAt) : '—'} />
@@ -421,7 +444,7 @@ function SystemSection({ data }: { data: SystemStatus | null }) {
 }
 
 function SeoHealthSection({ data }: { data: SeoHealth | null }) {
-  if (!data) return null;
+  if (!data) return <Missing name="SEO snapshot"/>;
   const { artifacts, coverage, issues } = data;
   const mark = (ok: boolean) => (ok ? '✓' : '✗');
   return (
@@ -483,7 +506,8 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-function fmtBytes(b: number): string {
+function fmtBytes(b: number | null): string {
+  if (b === null) return 'unavailable';
   if (b >= 1 << 30) return `${(b / (1 << 30)).toFixed(2)} GB`;
   if (b >= 1 << 20) return `${(b / (1 << 20)).toFixed(1)} MB`;
   if (b >= 1 << 10) return `${(b / (1 << 10)).toFixed(0)} KB`;
@@ -524,10 +548,11 @@ const METHOD_COLOR: Record<string, string> = {
 };
 
 function RequestSection({ data }: { data: RequestMetrics | null }) {
-  if (!data || data.totalRequests === 0) {
+  if (!data) return <Missing name="API request metrics"/>;
+  if (data.totalRequests === 0) {
     return (
       <div class="bg-surface rounded-xl border border-line shadow-sm p-8 text-center">
-        <p class="text-sm text-ink-3">No API requests recorded in the last 24 hours.</p>
+        <p class="text-sm text-ink-3">0 API requests recorded in the last 24 hours. Latency and error percentage have no samples.</p>
       </div>
     );
   }
@@ -546,7 +571,7 @@ function RequestSection({ data }: { data: RequestMetrics | null }) {
           <p class="text-3xl font-bold text-ink tabular-nums mt-2 leading-none">{data.totalRequests.toLocaleString()}</p>
         </div>
         <div class="bg-surface rounded-xl border border-line shadow-sm p-5">
-          <p class="text-sm font-medium text-ink-3">Error rate</p>
+          <p class="text-sm font-medium text-ink-3">4xx + 5xx responses</p>
           <p class={`text-3xl font-bold tabular-nums mt-2 leading-none ${data.errorRate > 0 ? 'text-rose-500' : 'text-ink'}`}>
             {data.errorRate}%
           </p>
@@ -627,8 +652,7 @@ function fmtMs(ms: number): string {
 
 /* ---------------- summary card ---------------- */
 
-function SummaryCard({ series, value, trend }: { series: { key: string; label: string; color: string }; value: number; trend: number[] }) {
-  const delta = periodDelta(trend);
+function SummaryCard({ series, value, trend, status }: { series: { key: string; label: string; color: string }; value: number | undefined; trend: number[]; status?:string|null }) {
   return (
     <div class="bg-surface rounded-xl border border-line shadow-sm p-5">
       <div class="flex items-center justify-between">
@@ -636,29 +660,17 @@ function SummaryCard({ series, value, trend }: { series: { key: string; label: s
           <span class="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: series.color }} />
           <p class="text-sm font-medium text-ink-3">{series.label}</p>
         </div>
-        {delta !== null && (
-          <span class={`text-xs font-semibold tabular-nums ${delta >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
-            {delta >= 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(0)}%
-          </span>
-        )}
+
       </div>
       <div class="flex items-end justify-between mt-2 gap-3">
-        <p class="text-3xl font-bold text-ink tabular-nums leading-none">{value.toLocaleString()}</p>
+        <p class="text-3xl font-bold text-ink tabular-nums leading-none">{value === undefined ? '—' : value.toLocaleString()}</p>
         <Sparkline values={trend} color={series.color} />
       </div>
+      {status && <p class="text-xs text-ink-2 mt-2">{status}</p>}
     </div>
   );
 }
 
-// Period-over-period: sum of the recent half vs the previous half.
-function periodDelta(series: number[]): number | null {
-  if (series.length < 4) return null;
-  const half = Math.floor(series.length / 2);
-  const prev = series.slice(0, half).reduce((a, b) => a + b, 0);
-  const recent = series.slice(series.length - half).reduce((a, b) => a + b, 0);
-  if (prev === 0) return recent > 0 ? 100 : 0;
-  return ((recent - prev) / prev) * 100;
-}
 
 function Sparkline({ values, color }: { values: number[]; color: string }) {
   if (values.length < 2) return null;
@@ -721,7 +733,7 @@ function TrendChart({ data, period }: { data: TrendPoint[]; period: Period }) {
   const xAt = (i: number) => PAD.left + (n === 1 ? innerW / 2 : (i / (n - 1)) * innerW);
   const yAt = (v: number) => PAD.top + innerH - (v / max) * innerH;
 
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => Math.round(max * f));
+  const ticks = [...new Set([0, 0.25, 0.5, 0.75, 1].map((f) => Math.round(max * f)))];
   const labelStep = Math.ceil(n / Math.max(1, Math.floor(innerW / 64)));
 
   function onMove(e: MouseEvent) {
@@ -945,7 +957,7 @@ const CLIENT_META: Record<string, { label: string; color: string }> = {
   unknown: { label: 'Unknown', color: '#cbd5e1' },
 };
 
-function DeviceBreakdown({ rows, title = 'Device breakdown', meta: metaMap = DEVICE_META }: { rows: DeviceRow[]; title?: string; meta?: Record<string, { label: string; color: string }> }) {
+function DeviceBreakdown({ rows, title = 'Device breakdown', empty = 'No user-agent data recorded in this window.', meta: metaMap = DEVICE_META }: { rows: DeviceRow[]; title?: string; empty?:string; meta?: Record<string, { label: string; color: string }> }) {
   const total = rows.reduce((s, r) => s + r.count, 0);
   return (
     <div class="bg-surface rounded-xl border border-line shadow-sm">
@@ -954,7 +966,7 @@ function DeviceBreakdown({ rows, title = 'Device breakdown', meta: metaMap = DEV
       </div>
       <div class="p-5">
         {total === 0 ? (
-          <p class="text-ink-3 text-sm">No user-agent data yet.</p>
+          <p class="text-ink-3 text-sm">{empty}</p>
         ) : (
           <>
             <div class="flex h-2.5 rounded-full overflow-hidden mb-4 gap-0.5">

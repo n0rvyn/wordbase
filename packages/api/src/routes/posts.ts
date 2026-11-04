@@ -1,3 +1,4 @@
+import { observation } from '../services/observation.service.js';
 import { Hono } from 'hono';
 import { authMiddleware, requireScope } from '../middleware/index.js';
 import * as postService from '../services/post.service.js';
@@ -17,6 +18,7 @@ postsRouter.get('/', async (c) => {
     limit: limit ? parseInt(limit) : undefined,
     search,
   });
+  c.header('X-Wordbase-Observation',JSON.stringify(observation('posts')));
   return c.json(result);
 });
 

@@ -42,11 +42,11 @@ describe('bot filtering on PV aggregations (MCP-facing + admin widgets)', () => 
   });
 });
 
-describe('regression guard: getVisitorSummary keeps RAW page views (intentional design)', () => {
-  it('still counts bots in pageViews while excluding them from uniqueVisitors', async () => {
+describe('regression guard: getVisitorSummary uses the same filtered page views as the dashboard', () => {
+  it('excludes recognized bots from both pageViews and uniqueVisitors', async () => {
     await seedMixed();
     const s = await getVisitorSummary(30);
-    expect(s.pageViews).toBe(4);       // raw PV — bots NOT filtered here (by design)
+    expect(s.pageViews).toBe(1);       // consistent bot filtering
     expect(s.uniqueVisitors).toBe(1);  // only the human
   });
 });

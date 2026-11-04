@@ -37,6 +37,7 @@ app.use(
       return undefined; // not allowed
     },
     allowHeaders: ['Content-Type', 'Authorization'],
+    exposeHeaders: ['X-Wordbase-Observation'],
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   })
 );

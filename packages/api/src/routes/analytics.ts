@@ -1,3 +1,4 @@
+import { observation } from '../services/observation.service.js';
 import { Hono } from 'hono';
 import { authMiddleware, requireScope } from '../middleware/index.js';
 import * as analyticsService from '../services/analytics.service.js';
@@ -59,6 +60,7 @@ analyticsRouter.post('/share', async (c) => {
 // GET /overview - Analytics overview (auth required)
 analyticsRouter.get('/overview', authMiddleware, requireScope('analytics:read'), async (c) => {
   const overview = await analyticsService.getOverview();
+  c.header('X-Wordbase-Observation',JSON.stringify(observation('overview')));
   return c.json(overview);
 });
 

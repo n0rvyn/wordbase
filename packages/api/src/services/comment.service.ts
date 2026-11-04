@@ -92,3 +92,9 @@ export async function deleteComment(id: string) {
   const [deleted] = await db.delete(comments).where(eq(comments.id, id)).returning();
   return deleted || null;
 }
+
+/** Same global pending definition for dashboard, system status and MCP. */
+export function getCommentCounts() {
+  const rows=db.select({status:comments.status,count:sql<number>`count(*)`}).from(comments).groupBy(comments.status).all();
+  return { pending:rows.find(row=>row.status==='pending')?.count ?? 0, total:rows.reduce((sum,row)=>sum+row.count,0) };
+}

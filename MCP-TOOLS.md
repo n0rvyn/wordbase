@@ -357,7 +357,7 @@ _Annotations:_ `readOnlyHint: false` · `destructiveHint: true` · `idempotentHi
 
 ### `analytics_query` — Query blog analytics
 
-Query blog analytics. `sections` selects which parts to return (default: all): overview (total PV, today PV, active posts), top_posts (ranked by page views), trends (traffic over time, bucketed by period), content_stats (publish frequency + tag distribution).
+Query blog analytics. `sections` selects which parts to return (default: all): overview (bot-filtered recorded PV, today UTC PV, active posts), top_posts (ranked by page views), trends (traffic over time, bucketed by period), content_stats (publish frequency + tag distribution).
 
 _Annotations:_ `readOnlyHint: true` · `destructiveHint: false` · `openWorldHint: false`
 
@@ -490,7 +490,7 @@ _Annotations:_ `readOnlyHint: true` · `destructiveHint: false` · `openWorldHin
 
 ### `podcast_analytics` — Podcast analytics
 
-Podcast consumption analytics: deduped downloads (total + windowed), active-subscriber estimate, top episodes, and feed-poll client distribution
+Podcast consumption analytics: deduped downloads (total + windowed), active-feed endpoint-day activity (not unique subscribers), top episodes, and feed-poll client distribution
 
 _Annotations:_ `readOnlyHint: true` · `destructiveHint: false` · `openWorldHint: false`
 
@@ -882,7 +882,8 @@ _Annotations:_ `readOnlyHint: true` · `destructiveHint: false` · `openWorldHin
 | Parameter | Type | Description |
 | --- | --- | --- |
 | `section` | string | Which section to query. 用户问『上周哪些国家来的人多』用 regions;『流量趋势』用 trends;『播客下载』用 podcast-summary. Example: section: 'regions'. |
-| `days` | number | Window in days, for sections that support it (default varies by section; ignored otherwise). |
+| `period` | string | Trend buckets: daily covers 30 UTC days, weekly 84 days, monthly 365 days, including today. |
+| `days` | number | UTC days including today: visits, top-pages, referrers, shares, regions, devices, podcast-summary. Omit for lifetime top-pages/referrers; otherwise default 30. Ignored by other sections. |
 | `limit` | number | Max rows to return, for sections that support it (default varies by section; ignored otherwise). |
 
 ## i18n (3)

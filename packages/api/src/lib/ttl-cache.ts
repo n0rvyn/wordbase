@@ -8,7 +8,7 @@
 // DISTINCT keys (one per widget), so coalescing would save nothing; the optimized
 // path is repeat opens / period toggles, which hit warm entries. If a future caller
 // hammers one key concurrently, add an in-flight Promise map then.
-type Entry = { value: unknown; expires: number };
+type Entry = { value: unknown; expires: number; observedAt: number };
 
 const store = new Map<string, Entry>();
 let enabled = !(process.env.VITEST || process.env.NODE_ENV === 'test');
@@ -27,7 +27,7 @@ export async function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>
   const hit = store.get(key);
   if (hit && hit.expires > now) return hit.value as T;
   const value = await fn();
-  store.set(key, { value, expires: now + ttlMs });
+  store.set(key, { value, expires: now + ttlMs, observedAt: now });
   return value;
 }
 
@@ -40,6 +40,8 @@ export function cachedSync<T>(key: string, ttlMs: number, fn: () => T): T {
   const hit = store.get(key);
   if (hit && hit.expires > now) return hit.value as T;
   const value = fn();
-  store.set(key, { value, expires: now + ttlMs });
+  store.set(key, { value, expires: now + ttlMs, observedAt: now });
   return value;
 }
+
+export function cacheObservation(key: string) { return enabled ? store.get(key) : undefined; }

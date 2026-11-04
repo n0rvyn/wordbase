@@ -1,3 +1,4 @@
+import { observation } from '../services/observation.service.js';
 import * as postService from '../services/post.service.js';
 import * as tagService from '../services/tag.service.js';
 import * as categoryService from '../services/category.service.js';
@@ -1032,7 +1033,7 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
   // blog_content_stats tools into one, selectable via `sections`).
   server.tool(
     'analytics_query',
-    'Query blog analytics. `sections` selects which parts to return (default: all): overview (total PV, today PV, active posts), top_posts (ranked by page views), trends (traffic over time, bucketed by period), content_stats (publish frequency + tag distribution).',
+    'Query blog analytics. `sections` selects which parts to return (default: all): overview (bot-filtered recorded PV, today UTC PV, active posts), top_posts (ranked by page views), trends (traffic over time, bucketed by period), content_stats (publish frequency + tag distribution).',
     {
       sections: {
         type: 'array',
@@ -1090,7 +1091,7 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
       if (topPosts !== undefined) result.topPosts = topPosts;
       if (trends !== undefined) result.trends = trends;
       if (contentStats !== undefined) result.contentStats = contentStats;
-      return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(result) }, { type: 'text' as const, text: JSON.stringify({ observations: Object.fromEntries(sections.map(section => [section,observation(section === 'overview' ? 'overview' : section === 'trends' ? 'trends' : section === 'top_posts' ? 'top-posts' : 'content',{period,limit})])) }) }] };
     },
     {
       title: 'Query blog analytics',
@@ -1329,7 +1330,7 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
 
   server.tool(
     'podcast_analytics',
-    'Podcast consumption analytics: deduped downloads (total + windowed), active-subscriber estimate, top episodes, and feed-poll client distribution',
+    'Podcast consumption analytics: deduped downloads (total + windowed), active-feed endpoint-day activity (not unique subscribers), top episodes, and feed-poll client distribution',
     {
       days: { type: 'number', min: 1, max: 365, description: 'Window in days for windowed downloads (default: 30)' },
       limit: { type: 'number', description: 'Max top episodes / clients to return (default: 10)' },
@@ -2406,26 +2407,28 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
         description:
           "Which section to query. 用户问『上周哪些国家来的人多』用 regions;『流量趋势』用 trends;『播客下载』用 podcast-summary. Example: section: 'regions'.",
       },
-      days: { type: 'number', min: 1, max: 365, description: 'Window in days, for sections that support it (default varies by section; ignored otherwise).' },
+      period: { type: 'string', enum: ['daily','weekly','monthly'], description: 'Trend buckets: daily covers 30 UTC days, weekly 84 days, monthly 365 days, including today.' },
+      days: { type: 'number', min: 1, max: 365, description: 'UTC days including today: visits, top-pages, referrers, shares, regions, devices, podcast-summary. Omit for lifetime top-pages/referrers; otherwise default 30. Ignored by other sections.' },
       limit: { type: 'number', min: 1, max: 50, description: 'Max rows to return, for sections that support it (default varies by section; ignored otherwise).' },
     },
     async (args: Record<string, unknown>) => {
       const section = args.section as string;
       const days = args.days as number | undefined;
       const limit = args.limit as number | undefined;
+      const period = (args.period as string | undefined) ?? 'daily';
       let result: unknown;
       switch (section) {
         case 'visits':
           result = await analyticsService.getVisitorSummary(days);
           break;
         case 'trends':
-          result = await analyticsService.getVisitTrends('daily');
+          result = await analyticsService.getVisitTrends(period);
           break;
         case 'top-pages':
-          result = await analyticsService.getTopPages(limit);
+          result = await analyticsService.getTopPages(limit,days);
           break;
         case 'referrers':
-          result = await analyticsService.getReferrers(limit);
+          result = await analyticsService.getReferrers(limit,days);
           break;
         case 'shares':
           result = await analyticsService.getShareStats(days);
@@ -2454,7 +2457,7 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
           result = await podcastAnalytics.getPodcastSummary(days);
           break;
         case 'podcast-trends':
-          result = await podcastAnalytics.getPodcastTrends('daily');
+          result = await podcastAnalytics.getPodcastTrends(period);
           break;
         case 'podcast-top-episodes':
           result = await podcastAnalytics.getTopEpisodes(limit);
@@ -2468,7 +2471,7 @@ export function registerTools(realServer: any, permissions: string[] = ['*']) {
         default:
           return { content: [{ type: 'text' as const, text: `Unknown section: ${section}` }], isError: true };
       }
-      return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(result) }, { type: 'text' as const, text: JSON.stringify({ observation: observation(section,{days,limit,period}) }) }] };
     },
     {
       title: 'Query observability data',
