@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.10.0 (2026-11-04)
+## v1.10.1 (2026-11-04)
+
+### Bug Fixes
+
+- fix(admin): make dashboard measurements consistent and observable (053292a)
 
 ### Features
 
