@@ -46,7 +46,7 @@ const firstCat = postFirstCat[post.id] || '';
 const origin = Astro.site!.href.replace(/\/$/, '');
 const id = await getSiteIdentity();
 const jsonLd = [
-  buildBlogPostingLd(post, origin, id.author, id, { description, section: firstCat || undefined }),
+  buildBlogPostingLd(post, origin, id.author, id, { description, section: firstCat || undefined, locale: 'zh', image: post.coverImage || `/og/${post.slug}.png` }),
   buildBreadcrumbLd([
     { name: 'Writing', url: `${origin}/writing` },
     { name: post.title, url: `${origin}/posts/${post.slug}` },

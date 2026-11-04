@@ -33,7 +33,7 @@ const metaDescription =
 
 const origin = Astro.site!.href.replace(/\/$/, '');
 const jsonLd = [
-  buildSoftwareApplicationLd(localized, origin),
+  buildSoftwareApplicationLd(localized, origin, { locale: 'en' }),
   buildBreadcrumbLd([
     { name: 'Apps', url: `${origin}/en/apps` },
     { name: localized.name, url: `${origin}/en/apps/${localized.slug}` },

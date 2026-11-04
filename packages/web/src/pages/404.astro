@@ -4,6 +4,6 @@ import NotFoundBody from '../components/page-bodies/NotFoundBody.astro';
 import { t } from '../lib/i18n.js';
 ---
 
-<BaseLayout title="404" titleEn={t('title.404').en} hasEnTwin>
+<BaseLayout noindex title="404" titleEn={t('title.404').en} hasEnTwin>
   <NotFoundBody locale="zh" />
 </BaseLayout>

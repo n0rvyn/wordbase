@@ -61,6 +61,27 @@ describe('buildBlogRssXml', () => {
     expect(xml).toContain(`<link>${ORIGIN}/posts/post-b</link>`);
   });
 
+  it('preserves published item identity across a canonical-domain move and reversal', () => {
+    const posts = [makePost(), makePost({ id: 'p2', slug: '中文文章' })];
+    const oldFeed = buildBlogRssXml(posts, ORIGIN, ID);
+    const movedFeed = buildBlogRssXml(posts, 'https://julian.cafe', ID);
+    const ids = (xml: string) => [...xml.matchAll(/<guid[^>]*>(.*?)<\/guid>/g)].map(m => m[1]);
+    expect(ids(movedFeed)).toEqual(ids(oldFeed));
+    expect(ids(movedFeed)).toEqual([
+      `${ORIGIN}/posts/hello-world`, `${ORIGIN}/posts/中文文章`,
+    ]);
+    expect(movedFeed).toContain('<link>https://julian.cafe/posts/hello-world</link>');
+    expect(movedFeed).toContain('<link>https://julian.cafe/</link>');
+    expect(movedFeed).toContain('href="https://julian.cafe/rss.xml" rel="self"');
+    expect(buildBlogRssXml(posts, ORIGIN, ID)).toBe(oldFeed);
+  });
+
+  it('keeps the stable identity namespace for future posts and XML-escapes it', () => {
+    const xml = buildBlogRssXml([makePost({slug:'new-post&a'})], 'https://julian.cafe', ID);
+    expect(xml).toContain(`<guid isPermaLink="true">${ORIGIN}/posts/new-post&amp;a</guid>`);
+    expect(xml).toContain('<link>https://julian.cafe/posts/new-post&amp;a</link>');
+  });
+
   it('pubDate is RFC-822 (toUTCString format)', () => {
     const xml = buildBlogRssXml([makePost()], ORIGIN, ID);
     // toUTCString format e.g. "Tue, 14 Nov 2023 22:13:20 GMT"

@@ -1,5 +1,6 @@
 import type { Post, App, Podcast, Episode, SiteIdentity } from './api.js';
 import { storeHref } from './app.js';
+import { enHref } from './locale';
 
 const iso = (ts: number | null | undefined): string | undefined =>
   ts ? new Date(ts * 1000).toISOString() : undefined;
@@ -19,9 +20,10 @@ export function buildBlogPostingLd(
   origin: string,
   author: string,
   id: SiteIdentity,
-  opts: { description?: string; section?: string } = {},
+  opts: { description?: string; section?: string; locale?: 'zh' | 'en'; image?: string } = {},
 ) {
-  const url = `${origin}/posts/${post.slug}`;
+  const path = `/posts/${post.slug}`;
+  const url = new URL(opts.locale === 'en' ? enHref(path) : path, origin).href;
   return {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
@@ -34,12 +36,13 @@ export function buildBlogPostingLd(
     url,
     ...(opts.description ? { description: opts.description } : {}),
     ...(opts.section ? { articleSection: opts.section } : {}),
-    ...(post.coverImage ? { image: post.coverImage } : {}),
+    ...((opts.image || post.coverImage) ? { image: new URL(opts.image || post.coverImage!, origin).href } : {}),
   };
 }
 
-export function buildSoftwareApplicationLd(app: App, origin: string) {
-  const url = `${origin}/apps/${app.slug}`;
+export function buildSoftwareApplicationLd(app: App, origin: string, opts: { locale?: 'zh' | 'en' } = {}) {
+  const path = `/apps/${app.slug}`;
+  const url = new URL(opts.locale === 'en' ? enHref(path) : path, origin).href;
   // Same neutral store URL the page links to, and the same "is it actually
   // listed" gate — a downloadUrl pointing at an unreleased app's 404 page is
   // worse than no downloadUrl, and a country-locked one misdescribes a record
@@ -145,7 +148,7 @@ export function buildWebSiteLd(origin: string, id: SiteIdentity) {
     '@type': 'WebSite',
     name: id.name,
     url: origin,
-    // Enables Google's sitelinks search box pointing at the on-site /search page.
+    // Describes the real on-site search action; no special search appearance is promised.
     potentialAction: {
       '@type': 'SearchAction',
       target: {

@@ -1,5 +1,10 @@
 import { stripMarkdown, type Post, type SiteIdentity } from './api.js';
 
+// Published feed IDs are subscriber identity, not the current canonical URL.
+// Keep this namespace after a domain move; changing it can re-import old items.
+// Historical /posts URLs must continue resolving through the planned redirects.
+const BLOG_ITEM_ID_ORIGIN = 'https://norvyn.com';
+
 // Mirrors packages/api/src/services/feed.service.ts:xmlEscape — duplicated here
 // to keep web lib self-contained (no cross-package imports). RSS consumers
 // REQUIRE that &, <, >, ", ' be escaped in raw text nodes; CDATA sections
@@ -45,6 +50,7 @@ export function buildBlogRssXml(posts: Post[], origin: string, id: SiteIdentity)
   const items = sorted
     .map((post) => {
       const url = `${origin}/posts/${post.slug}`;
+      const guid = `${BLOG_ITEM_ID_ORIGIN}/posts/${post.slug}`;
       const pub = pubDateFor(post);
       const descriptionText = post.excerpt ?? stripMarkdown(post.content, 200);
       const pubDate = pub ? pub.toUTCString() : '';
@@ -52,7 +58,7 @@ export function buildBlogRssXml(posts: Post[], origin: string, id: SiteIdentity)
         `    <item>`,
         `      <title>${xmlEscape(post.title)}</title>`,
         `      <link>${xmlEscape(url)}</link>`,
-        `      <guid isPermaLink="true">${xmlEscape(url)}</guid>`,
+        `      <guid isPermaLink="true">${xmlEscape(guid)}</guid>`,
         `      <pubDate>${pubDate}</pubDate>`,
         `      <description>${cdataWrap(descriptionText)}</description>`,
         `    </item>`,

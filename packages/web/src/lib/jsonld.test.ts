@@ -161,6 +161,21 @@ describe('buildBlogPostingLd', () => {
     expect('articleSection' in ld).toBe(false);
   });
 
+  it('uses the English page URL without relabelling fallback source text', () => {
+    const post = makePost({ title: '中文原文' });
+    const ld = buildBlogPostingLd(post, SITE, ID.author, ID, { locale: 'en', image: '/og/en/hello-world.png' });
+    expect(ld.url).toBe(`${SITE}/en/posts/hello-world`);
+    expect(ld.mainEntityOfPage['@id']).toBe(ld.url);
+    expect(ld.headline).toBe('中文原文');
+    expect(ld.image).toBe(`${SITE}/og/en/hello-world.png`);
+    expect('inLanguage' in ld).toBe(false);
+  });
+  it('resolves article media against the supplied origin without switching domains', () => {
+    const ld = buildBlogPostingLd(makePost({coverImage:'/uploads/cover.png'}), SITE, ID.author, ID);
+    expect(ld.image).toBe(`${SITE}/uploads/cover.png`);
+    const future = buildBlogPostingLd(makePost(), 'https://julian.cafe', ID.author, ID, {locale:'en'});
+    expect(future.url).toBe('https://julian.cafe/en/posts/hello-world');
+  });
   it('omits image when coverImage is null', () => {
     const ld = buildBlogPostingLd(makePost({ coverImage: null }), SITE, ID.author, ID);
     expect('image' in ld).toBe(false);
@@ -178,6 +193,10 @@ describe('buildBlogPostingLd', () => {
 });
 
 describe('buildSoftwareApplicationLd', () => {
+  it('keeps English app entity URLs aligned with their English page canonical', () => {
+    const ld = buildSoftwareApplicationLd(makeApp(), SITE, {locale:'en'});
+    expect(ld.url).toBe(`${SITE}/en/apps/super-note`);
+  });
   it('emits SoftwareApplication with name and category', () => {
     const ld = buildSoftwareApplicationLd(makeApp(), SITE);
     expect(ld['@type']).toBe('SoftwareApplication');
