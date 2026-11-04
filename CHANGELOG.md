@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.11.0 (2026-11-04)
+## v1.11.1 (2026-11-04)
+
+### Bug Fixes
+
+- fix(seo): align localized metadata and preserve feed identity (c2061a5)
 
 ### Features
 
