@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.10.1 (2026-11-04)
+## v1.11.0 (2026-11-04)
+
+### Features
+
+- feat(admin): redesign dashboard and expose article measurement coverage (abb2b57)
 
 ### Bug Fixes
 
