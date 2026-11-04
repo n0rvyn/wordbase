@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.9.3 (2026-11-04)
+## v1.10.0 (2026-11-04)
+
+### Features
+
+- feat(admin): edit site identity and public copy from settings (d963c0e)
 
 ### Bug Fixes
 
