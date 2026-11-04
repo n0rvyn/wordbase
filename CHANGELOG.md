@@ -1,6 +1,11 @@
 # Changelog
 
-## v1.11.1 (2026-11-04)
+## v1.11.2 (2026-11-04)
+
+### Bug Fixes
+
+- fix(deploy): allow version-only SEO release metadata (96b189c)
+- fix(deploy): release SEO output without server checkpoints (a704172)
 
 ### Bug Fixes
 
