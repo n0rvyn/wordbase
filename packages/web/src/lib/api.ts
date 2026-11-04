@@ -351,6 +351,7 @@ export function estimateReadTime(content: string): number {
 // ---- Site identity (build-time, shared by BaseLayout + builders) ----
 
 export interface SiteIdentity {
+  copy?: Record<string, string>;
   name: string;
   description: string;
   author: string;

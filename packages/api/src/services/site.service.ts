@@ -1,3 +1,4 @@
+import { SITE_COPY_FIELDS } from './site-copy.js';
 import { getSettings } from './settings.service.js';
 
 export interface SiteIdentity {
@@ -6,6 +7,7 @@ export interface SiteIdentity {
   author: string;
   email: string;
   github: string;
+  copy?: Record<string, string>;
 }
 
 // DEFAULTS is the single source of truth for site identity. The description
@@ -37,7 +39,7 @@ const pick = (v: string | undefined, def: string): string => {
 // packages/api/src/mcp/tools.ts) both key off this map so the two stay
 // symmetric — a key that isn't in here is neither read nor writable as site
 // identity.
-export const SITE_IDENTITY_SETTINGS_KEYS: Record<keyof SiteIdentity, string> = {
+export const SITE_IDENTITY_SETTINGS_KEYS: Record<Exclude<keyof SiteIdentity, 'copy'>, string> = {
   name: 'site.title',
   description: 'site.description',
   author: 'site.author',
@@ -47,7 +49,9 @@ export const SITE_IDENTITY_SETTINGS_KEYS: Record<keyof SiteIdentity, string> = {
 
 export async function getSiteIdentity(): Promise<SiteIdentity> {
   const s = await getSettings();
+  const copy = Object.fromEntries(Object.entries(SITE_COPY_FIELDS).map(([key, field]) => [key, s[`site.copy.${key}`]?.trim() || field.default]));
   return {
+    copy,
     name: pick(s[SITE_IDENTITY_SETTINGS_KEYS.name], DEFAULTS.name),
     description: pick(s[SITE_IDENTITY_SETTINGS_KEYS.description], DEFAULTS.description),
     author: pick(s[SITE_IDENTITY_SETTINGS_KEYS.author], DEFAULTS.author),

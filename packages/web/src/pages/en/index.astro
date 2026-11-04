@@ -3,11 +3,13 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import HomeBody from '../../components/page-bodies/HomeBody.astro';
 import { loadHomeData } from '../../lib/home';
 
-import { HOME_SOCIAL } from '../../lib/social-preview';
+import { getSiteIdentity } from '../../lib/api';
+import { resolveSiteCopy } from '../../lib/site-copy';
+const copy = resolveSiteCopy((await getSiteIdentity()).copy);
 
 const data = await loadHomeData('en');
 ---
 
-<BaseLayout title={HOME_SOCIAL.en.title} locale="en" description={HOME_SOCIAL.en.description}>
+<BaseLayout title={copy.shareTitleEn} locale="en" description={copy.shareDescriptionEn}>
   <HomeBody locale="en" {...data} />
 </BaseLayout>

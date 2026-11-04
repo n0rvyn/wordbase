@@ -1,5 +1,7 @@
 ---
 import T from '../T.astro';
+import { getSiteIdentity } from '../../lib/api';
+import { resolveSiteCopy } from '../../lib/site-copy';
 import { type Post, type App, type Episode, type Podcast } from '../../lib/api';
 import { formatMonoDate, decodeEntities } from '../../lib/home';
 import { enHref, type Locale } from '../../lib/locale';
@@ -15,14 +17,15 @@ interface Props {
 const { locale, posts, apps, podcast, postCat } = Astro.props;
 const lhref = (path: string) => locale === 'en' ? enHref(path) : path;
 
+const copy = resolveSiteCopy((await getSiteIdentity()).copy);
 const artApps = apps.filter(app => app.icon).slice(0, 3);
 ---
 
 <header class="universe-hero wrap">
-  <div class="universe-eyebrow"><span>Independent developer, writer &amp; podcaster</span><span>NORVYN.COM</span></div>
-  <h1>A curious mind.<br />A few <em>good things.</em></h1>
+  <div class="universe-eyebrow"><span>{copy.eyebrow}</span><span>NORVYN.COM</span></div>
+  <h1>{copy.headline}<br />{copy.headlineLead} <em>{copy.headlineAccent}</em></h1>
   <div class="universe-intro">
-    <p><T zh="做一点有用的东西，写一点真实的想法。<br />这是我的作品，也是我与世界相处的方式。" en="Making useful things. Putting honest thoughts into words.<br />A few things I make, and the way I meet the world." /></p>
+    <p style="white-space: pre-line"><span class="i18n"><span data-l="zh">{copy.introZh}</span><span data-l="en">{copy.introEn}</span></span></p>
     <a href="#spaces"><T zh="三个入口，同一个我" en="Three spaces. One curious mind." /><span aria-hidden="true">↓</span></a>
   </div>
 </header>

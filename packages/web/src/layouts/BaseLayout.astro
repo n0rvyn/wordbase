@@ -7,6 +7,7 @@ import { getSiteIdentity } from '../lib/api';
 import { hreflangAlternates, stripEn, publicPathname } from '../lib/locale';
 import T from '../components/T.astro';
 import { socialImage, socialDescription, SITE_SOCIAL_ALT, SOCIAL_SITE_NAME, pageTitle } from '../lib/social-preview';
+import { resolveSiteCopy } from '../lib/site-copy';
 import PublicSearch from '../components/PublicSearch.astro';
 
 interface Props {
@@ -44,6 +45,7 @@ interface Props {
 
 const { title, titleEn, description: descriptionProp, shareDescription: shareDescriptionProp, ogImage, ogImageAlt, ogType = 'website', article, jsonLd = [], feeds = [], locale = 'zh', hasEnTwin = false, noindex = false } = Astro.props;
 const id = await getSiteIdentity();
+const copy = resolveSiteCopy(id.copy);
 // X/Twitter handle for card attribution.
 const TWITTER_HANDLE = '@NorvynZhang';
 // Fallback to the site's real description (settings-driven) when a page passes
@@ -51,8 +53,9 @@ const TWITTER_HANDLE = '@NorvynZhang';
 const description = socialDescription(descriptionProp, title, id.name, id.description);
 const previewDescription = shareDescriptionProp ?? description;
 const siteTitle = id.name;
-const fullTitle = pageTitle(title, siteTitle);
-const fullTitleEn = titleEn ? pageTitle(titleEn, siteTitle) : '';
+const isHome = ['/', '/en'].includes(publicPathname(Astro.url.pathname));
+const fullTitle = isHome ? title : pageTitle(title, siteTitle);
+const fullTitleEn = titleEn ? (isHome ? titleEn : pageTitle(titleEn, siteTitle)) : '';
 const apiUrl = (import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4100').replace(/\/$/, '');
 const currentPath = publicPathname(Astro.url.pathname);
 const social = socialImage(ogImage, Astro.site!);
@@ -257,7 +260,7 @@ const ogLocaleAlt = en ? 'zh_CN' : 'en_US';
       <div class="wrap study-footer-inner">
         <div class="study-footer-identity">
           <a class="brand" href={en ? '/en' : '/'}><span>{siteTitle}</span><span class="footer-dot" aria-hidden="true">·</span></a>
-          <p><T zh="让好奇心，有处可去。" en="A place for curiosity." /></p>
+          <p><span class="i18n"><span data-l="zh">{copy.footerZh}</span><span data-l="en">{copy.footerEn}</span></span></p>
         </div>
         <div class="study-footer-directory">
         <nav class="study-footer-group" aria-label={en ? 'Explore' : '浏览'}>
@@ -284,7 +287,7 @@ const ogLocaleAlt = en ? 'zh_CN' : 'en_US';
           <a href="/sitemap.xml"><T zh="站点地图" en="Sitemap" /></a>
         </nav>
         </div>
-        <div class="study-footer-bottom"><small class="study-copyright">© {new Date().getFullYear()} {siteTitle}</small><small>Made of small things, thoughtfully.</small></div>
+        <div class="study-footer-bottom"><small class="study-copyright">© {new Date().getFullYear()} {siteTitle}</small><small>{copy.footerNote}</small></div>
       </div>
     </footer>
 
