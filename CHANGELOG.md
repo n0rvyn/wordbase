@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.11.3 (2026-11-05)
+## v1.11.4 (2026-11-05)
+
+### Bug Fixes
+
+- fix(web): simplify catalog links and stack phone previews (2d2c094)
 
 ### Bug Fixes
 
