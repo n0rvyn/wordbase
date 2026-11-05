@@ -188,7 +188,8 @@ def main(root, base, target, mode='seo'):
   origin=json.loads(origin_file.read_text())['canonical'] if origin_file.is_file() else 'https://norvyn.com'
   env={**os.environ,'API_URL':'http://127.0.0.1:4100','PUBLIC_SITE_URL':origin,'ASTRO_TELEMETRY_DISABLED':'1'}
   subprocess.run(['pnpm','--filter','web','build','--outDir',str(candidate)],cwd=root,env=env,check=True)
-  result=validate(candidate,previous,FRONTEND_BODY_PAGES if mode=='frontend' else frozenset(),expected_origin=origin,approved_wordmark=(mode=='frontend'))
+  migrating_wordmark=mode=='frontend' and 'cafe-wordmark' not in git(root,'show',base+':packages/web/src/layouts/BaseLayout.astro')
+  result=validate(candidate,previous,FRONTEND_BODY_PAGES if mode=='frontend' else frozenset(),expected_origin=origin,approved_wordmark=migrating_wordmark)
   subprocess.run(['chown','-R','caddy:caddy',str(candidate)],check=True)
   # Apply the existing public-content label to generated output; no SELinux policy change.
   subprocess.run(['chcon','-R','--reference='+str(live/'index.html'),str(candidate)],check=True)

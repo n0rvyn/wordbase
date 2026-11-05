@@ -83,6 +83,9 @@ class Release(unittest.TestCase):
    p=root/'index.html';p.write_text(p.read_text().replace('<body>','<body>'+mark))
   previous=seo.snapshot(self.live)
   seo.validate(self.candidate,previous,approved_wordmark=True)
+  # Later CSS-only releases compare the already-published stamp unchanged.
+  published=seo.snapshot(self.candidate)
+  seo.validate(self.candidate,published)
   with self.assertRaisesRegex(ValueError,'Public body'):seo.validate(self.candidate,previous)
   p=self.candidate/'index.html';raw=p.read_text()
   for changed in (raw.replace('Keep published content','Changed content'),raw.replace('href="/"','href="/wrong"',1),raw.replace('Cafe</span>','Other</span>')):

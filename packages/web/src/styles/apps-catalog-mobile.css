@@ -73,6 +73,20 @@
   :root[data-public] section.studio-catalog .studio-card h2 { font-size: 22px; }
 }
 
+/* Approved desktop portrait cards: media controls join the information column.
+   Keep their DOM context so playback, expansion and version switching still work. */
+@media(min-width:601px) {
+ :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="portrait"][data-has-promos] {min-height:366px;grid-template-rows:auto auto 44px 52px;row-gap:0;align-content:center;}
+ :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="portrait"][data-has-promos] :is(.studio-copy,.studio-summary,.studio-media,.promo-gallery[data-context="catalog"],.promo-gallery[data-context="catalog"] > .promo-stage,.promo-gallery[data-context="catalog"] > .promo-stage > .promo-panel:not([hidden])) {display:contents;}
+ :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="portrait"][data-has-promos] .studio-identity {display:block;grid-column:1;grid-row:1;}
+ :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="portrait"][data-has-promos] .studio-description {grid-column:1;grid-row:2;margin:16px 0 8px;}
+ :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="portrait"][data-has-promos] .studio-card-links {grid-column:1;grid-row:3;}
+ :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="portrait"][data-has-promos] .studio-actions {padding-top:0;}
+ :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="portrait"][data-has-promos] .promo-screen {grid-column:2;grid-row:1/5;align-self:center;}
+ :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="portrait"][data-has-promos] .promo-actions {grid-column:1;grid-row:4;justify-content:flex-start;margin:8px 0 0;}
+ :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="portrait"][data-has-promos] .promo-actions button:first-child {padding-left:0;}
+}
+
 /* Approved catalog links: one quiet row, with media before destinations on phone. */
 :root[data-public] section.studio-catalog .studio-card-links { display:block; width:100%; }
 :root[data-public] section.studio-catalog .studio-actions { display:flex; flex-wrap:wrap; align-items:center; gap:0 20px; }
