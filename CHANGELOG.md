@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.11.4 (2026-11-05)
+## v1.11.5 (2026-11-05)
+
+### Bug Fixes
+
+- fix(web): align header control order and theme styling (832c7ec)
 
 ### Bug Fixes
 

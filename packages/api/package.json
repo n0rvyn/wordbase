@@ -1,6 +1,6 @@
 {
   "name": "api",
-  "version": "1.11.4",
+  "version": "1.11.5",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",

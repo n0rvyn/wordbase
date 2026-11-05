@@ -1,6 +1,6 @@
 {
   "name": "wordbase",
-  "version": "1.11.4",
+  "version": "1.11.5",
   "private": true,
   "packageManager": "pnpm@10.28.2",
   "scripts": {
