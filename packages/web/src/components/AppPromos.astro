@@ -18,10 +18,16 @@ const label = (index: number) => {
         {media.type === 'video' ? <video data-promo controls muted loop playsinline preload="none" poster={media.poster || undefined} width={media.width} height={media.height} aria-label={media.alt || `${title} ${label(index)}`}><source src={media.src} /></video>
           : media.type === 'animated-image' ? <PromotionalAnimation src={media.src} poster={media.poster!} alt={media.alt || `${title} ${label(index)}`} />
           : <img src={media.src} alt={media.alt || `${title} ${label(index)}`} width={media.width} height={media.height} loading="lazy" />}
+        {context === 'catalog' && <button class="promo-visual-open" type="button" data-promo-visual data-promo-expand data-promo-title={`${title} · ${label(index)}`} aria-label={en ? `View ${title} preview` : `查看 ${title} 演示`} />}
       </div>
       <figcaption class="promo-actions">
         {media.type !== 'image' && <button type="button" data-promo-toggle aria-pressed="false">{en ? 'Play' : '播放'}</button>}
-        <button type="button" data-promo-expand data-promo-title={`${title} · ${label(index)}`}>{en ? 'Expand' : '展开'} ↗</button>
+        <button type="button" data-promo-expand aria-label={`${en ? 'Expand' : '展开'} ${title} ${label(index)}`} data-promo-title={`${title} · ${label(index)}`}>{en ? 'Expand' : '展开'} ↗</button>
+        {context === 'catalog' && items.length > 1 && <label class="promo-picker">
+          <select data-promo-picker aria-label={`${title} ${en ? 'preview' : '演示'}`}>
+            {items.map((_, choice) => <option value={choice} selected={choice === index}>{label(choice)}</option>)}
+          </select>
+        </label>}
       </figcaption>
     </figure>)}
   </div>
@@ -34,15 +40,9 @@ const label = (index: number) => {
   </dialog>
 </div>
 <style is:global>
+  :root[data-public] .promo-picker,:root[data-public] .promo-visual-open { display:none; }
   :root[data-public] .promo-gallery { --promo-height:320px; width:100%; min-width:0; }
   :root[data-public] .promo-gallery[data-context="detail"] { --promo-height:min(520px,58svh); }
-  :root[data-public] .studio-card[data-promo-layout="wide"] { grid-template-columns:minmax(0,1fr); gap:20px; }
-  :root[data-public] .studio-card[data-promo-layout="wide"] .studio-copy { display:grid; grid-template-columns:52px minmax(0,1fr); column-gap:18px; align-items:start; }
-  :root[data-public] .studio-card[data-promo-layout="wide"] .studio-icon { grid-row:1 / 4; }
-  :root[data-public] .studio-card[data-promo-layout="wide"] :is(.studio-platform,h2,.studio-description) { grid-column:2; }
-  :root[data-public] .studio-card[data-promo-layout="wide"] .studio-description { margin:12px 0 0; }
-  :root[data-public] .studio-card[data-promo-layout="wide"] :is(.studio-actions,.studio-support) { grid-column:1 / -1; }
-  :root[data-public] .studio-card[data-promo-layout="wide"] .studio-actions { margin-top:0; padding-top:12px; }
   :root[data-public] .ad-piece[data-has-promos] { background:none; border:0; padding:0; min-height:0; }
   :root[data-public] .promo-stage { background:color-mix(in srgb,var(--ink) 4%,var(--surface)); border:1px solid var(--line); border-radius:16px; padding:16px; }
   :root[data-public] .promo-panel { margin:0; width:100%; min-width:0; }
@@ -64,6 +64,24 @@ const label = (index: number) => {
   :root[data-public] .promo-modal-bar { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:16px; }
   :root[data-public] .promo-modal-bar h2 { font:inherit; font-size:15px; margin:0; }
   :root[data-public] .promo-modal .promo-screen { height:min(70svh,850px); }
+  /* Catalog media shares the editorial two-column card instead of turning
+     landscape promos into full-width panels that stretch the entire row. */
+  :root[data-public] .studio-catalog .promo-gallery[data-context="catalog"] { --promo-height:250px; }
+  :root[data-public] .studio-catalog .promo-gallery[data-context="catalog"] > .promo-stage { padding:0; border:0; border-radius:0; background:none; }
+  :root[data-public] .studio-catalog .promo-gallery[data-context="catalog"] > .promo-stage > .promo-panel > .promo-actions { gap:6px; margin-top:8px; }
+  :root[data-public] .studio-catalog .promo-gallery[data-context="catalog"] :is(.promo-actions,.promo-selectors) > button { display:inline-flex; align-items:center; justify-content:center; min-height:44px; line-height:1; }
+  :root[data-public] .studio-catalog .promo-gallery[data-context="catalog"] > .promo-stage > .promo-panel > .promo-actions button { padding:0 8px; border-color:transparent; background:none; }
+  :root[data-public] .studio-catalog .promo-gallery[data-context="catalog"] > .promo-selectors { margin-top:8px; }
+  :root[data-public] .studio-catalog .promo-gallery[data-context="catalog"] > .promo-selectors button { padding:0 10px; }
+  :root[data-public] .studio-catalog .promo-selectors button span { line-height:1; }
+  /* Versions belong to the playback/expand strip at every catalog width. */
+  :root[data-public] .studio-catalog .promo-gallery[data-context="catalog"] > .promo-selectors { display:none; }
+  :root[data-public] .studio-catalog .promo-gallery[data-context="catalog"] .promo-actions { align-items:center; }
+  :root[data-public] .studio-catalog .promo-gallery[data-context="catalog"] .promo-picker { display:block; margin:0; max-width:110px; }
+  :root[data-public] .studio-catalog .promo-gallery[data-context="catalog"] .promo-picker select { width:auto; max-width:100%; min-width:0; min-height:44px; padding:0 6px; border:0; border-radius:0; background:transparent; color:var(--ink); font:inherit; font-size:12px; cursor:pointer; }
+  @media(min-width:601px) {
+    :root[data-public] .studio-catalog .studio-card[data-catalog-shape="wide"] { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+  }
   @media(max-width:560px) { :root[data-public] .studio-card[data-has-promos] { grid-template-columns:minmax(0,1fr); } :root[data-public] .promo-gallery { --promo-height:320px; } :root[data-public] .promo-gallery[data-context="detail"] { --promo-height:min(440px,58svh); } :root[data-public] .promo-stage { padding:12px; } }
 </style>
 <script>
@@ -72,11 +90,21 @@ const label = (index: number) => {
   document.querySelectorAll<HTMLElement>('[data-promo-gallery]').forEach(gallery => {
     const panels = Array.from(gallery.querySelectorAll<HTMLElement>('[data-promo-panel]'));
     const selectors = Array.from(gallery.querySelectorAll<HTMLButtonElement>('[data-promo-select]'));
-    selectors.forEach(button => button.addEventListener('click', () => {
-      const index = Number(button.dataset.promoSelect);
+    const pickers = Array.from(gallery.querySelectorAll<HTMLSelectElement>('[data-promo-picker]'));
+    const showPanel = (index: number) => {
+      if (!Number.isInteger(index) || !panels[index]) return;
       panels.forEach((panel, i) => { panel.hidden = i !== index; });
       selectors.forEach((selector, i) => selector.setAttribute('aria-pressed', String(i === index)));
+      pickers.forEach(picker => { picker.value = String(index); });
+      const card = gallery.closest<HTMLElement>('[data-app-card]');
+      if (card) card.dataset.catalogShape = panels[index].querySelector<HTMLElement>('.promo-screen')?.dataset.shape || 'portrait';
       playback.update();
+    };
+    selectors.forEach(button => button.addEventListener('click', () => showPanel(Number(button.dataset.promoSelect))));
+    pickers.forEach(picker => picker.addEventListener('change', () => {
+      const index = Number(picker.value);
+      showPanel(index);
+      pickers[index]?.focus();
     }));
     const dialog = gallery.querySelector<HTMLDialogElement>('.promo-modal')!;
     const content = dialog.querySelector<HTMLElement>('[data-promo-modal-content]')!;
@@ -85,6 +113,7 @@ const label = (index: number) => {
       opener = button;
       dialog.querySelector('[data-promo-modal-title]')!.textContent = button.dataset.promoTitle || '';
       const screen = button.closest('[data-promo-panel]')!.querySelector('.promo-screen')!.cloneNode(true) as HTMLElement;
+      screen.querySelector('[data-promo-visual]')?.remove();
       const expandedVideo = screen.querySelector('video');
       if (expandedVideo) { expandedVideo.setAttribute('data-promo-native-controls', ''); expandedVideo.controls = true; }
       const actions = document.createElement('div'); actions.className = 'promo-actions';

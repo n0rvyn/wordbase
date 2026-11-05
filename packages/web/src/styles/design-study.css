@@ -98,6 +98,7 @@
 :root[data-public][data-theme="dark"] .studio-card { background: color-mix(in srgb,var(--app-tint) 10%,var(--surface)); }
 :root[data-public] .studio-icon { width: 48px; height: 48px; }
 :root[data-public] .studio-card h2 { font-size: 26px; }
+:root[data-public] .studio-catalog .studio-support { border-top: 0; padding-top: 0; margin-top: 12px; }
 :root[data-public] .studio-description { font-size: 15px; }
 :root[data-public] .journal-hero { padding: 32px 0 22px; border-bottom-color: var(--ink); }
 :root[data-public] .journal-hero .universe-eyebrow { margin-bottom: 24px; }
@@ -149,9 +150,12 @@
   :root[data-public] .nav-r { gap: 8px; }
 }
 @media (max-width: 880px) {
-  :root[data-public] .nav-in { min-height: 126px; height: auto; flex-wrap: wrap; padding-top: 18px; padding-bottom: 15px; }
+  :root[data-public] .nav-in { min-height: 126px; height: auto; flex-wrap: wrap; padding-top: 18px; padding-bottom: 15px; row-gap: 16px; }
   :root[data-public] .nav-links { position: static; order: 3; width: 100%; min-width: 0; flex-direction: row; justify-content: center; padding: 0; gap: 4px; border: 0; border-radius: 0; box-shadow: none; background: none; opacity: 1; visibility: visible; transform: none; }
+  :root[data-public] .nav-links { padding-top: 12px; border-top: 1px solid var(--line); }
   :root[data-public] .nav-links a { padding: 6px 17px; font-size: 12px; border-radius: 28px; }
+  :root[data-public] .nav-r #searchLink { order: -2; width: 44px; min-height: 44px; justify-content: center; }
+  :root[data-public] .nav-r .lang-btn { width: 44px; height: 44px; }
   :root[data-public] .nav-burger, :root[data-public] .nav-links .nav-search-mobile { display: none; }
   :root[data-public] .nav-r { margin-left: auto; }
   :root[data-public] .home-latest { grid-template-columns: 1fr; }
@@ -209,7 +213,8 @@
 }
 @media (max-width: 350px) {
   :root[data-public] .nav-r { gap: 4px; }
-  :root[data-public] .nav-r .icon-btn { width: 30px; }
-  :root[data-public] .brand { font-size: 27px; }
+  :root[data-public] .nav-r .icon-btn { width: 44px; min-width: 44px; }
+  :root[data-public] .nav-in { column-gap: 4px; }
+  :root[data-public] .brand { font-size: 26px; }
   :root[data-public] .studio-card { grid-template-columns: 1fr; }
 }

@@ -2,6 +2,7 @@
 import { type App } from '../../lib/api';
 import { displayName, heroShot, parseJsonArray, storeHref, websiteHref, promotionalMediaList } from '../../lib/app';
 import AppPromos from '../AppPromos.astro';
+import '../../styles/apps-catalog-mobile.css';
 import { enHref, type Locale } from '../../lib/locale';
 import T from '../T.astro';
 import { publicProjects } from '../../lib/public-projects';
@@ -41,15 +42,30 @@ const catalog = apps.map((app, index) => ({
   </div>
   <p class="studio-count" id="appCount" aria-live="polite" data-count-zh="款应用" data-count-en="apps">{apps.length} <T zh="款应用" en="apps" /></p>
   <div class="studio-grid" id="appGrid">
-    {catalog.map(({ app, index, title, detail, store, website, links, shot, media, description }) => <article class="studio-card" style={`--app-tint:${/^#[0-9a-f]{6}$/i.test(app.accentColor || '') ? app.accentColor : '#a5b1a4'}`} data-app-card data-has-promos={media.length ? "" : undefined} data-promo-layout={media.some(item => item.width && item.height && item.width >= item.height) ? "wide" : undefined} data-platform={app.platform} data-search={`${app.name} ${app.tagline || ''} ${app.subtitle || ''} ${app.description || ''}`}>
+    {catalog.map(({ app, index, title, detail, store, website, links, shot, media, description }) => <article class="studio-card" style={`--app-tint:${/^#[0-9a-f]{6}$/i.test(app.accentColor || '') ? app.accentColor : '#a5b1a4'}`} data-app-card data-app-slug={app.slug} data-catalog-shape={media.length ? (media[0].width && media[0].height && media[0].width >= media[0].height ? "wide" : "portrait") : shot ? (shot.width && shot.height ? (shot.width >= shot.height ? "wide" : "portrait") : app.platform === "iOS" ? "portrait" : "wide") : "wide"} data-has-promos={media.length ? "" : undefined} data-promo-layout={media.some(item => item.width && item.height && item.width >= item.height) ? "wide" : undefined} data-platform={app.platform} data-search={`${app.name} ${app.tagline || ''} ${app.subtitle || ''} ${app.description || ''}`}>
         <div class="studio-copy">
+          <div class="studio-identity">
           <div class="studio-icon">{app.icon ? <img src={app.icon} alt="" width="52" height="52" loading="lazy" /> : <span>{title.charAt(0)}</span>}</div>
-          <p class="studio-platform">{String(index + 1).padStart(2, '0')} / {app.platform}</p>
+          <p class="studio-platform"><span class="studio-platform-desktop">{String(index + 1).padStart(2, '0')} / {app.platform}</span><span class="studio-platform-mobile">{app.platform}{store ? ' · App Store' : ''}</span></p>
           <h2><a href={detail}>{title}</a></h2>
+          </div>
+          <div class="studio-summary">
           {app.platform === 'Web' && app.subtitle && <p class="studio-access">{app.subtitle}</p>}
           {description && <p class="studio-description">{description}</p>}
-          <div class="studio-actions"><a href={detail}><T zh="了解应用" en="Explore app" /> ↗</a>{store && <a href={store} target="_blank" rel="noopener noreferrer">App Store ↗</a>}{!store && website && <a href={website} target="_blank" rel="noopener noreferrer"><T zh="打开网站" en="Open website" /> ↗</a>}{links.source && <a href={links.source} target="_blank" rel="noopener noreferrer"><T zh="源代码" en="Source code" /> ↗</a>}</div>
+          </div>
+          <div class="studio-card-links">
+          <div class="studio-phone-actions">
+            {store && <a class="studio-acquire" href={store} target="_blank" rel="noopener noreferrer" aria-label={en ? `Get ${title} from the App Store` : `在 App Store 获取 ${title}`}><T zh="获取应用" en="Get app" /> ↗</a>}
+            {!store && website && <a class="studio-acquire" href={website} target="_blank" rel="noopener noreferrer"><T zh={app.platform === 'Web' ? '打开应用' : '访问网站'} en={app.platform === 'Web' ? 'Open app' : 'Website'} /> ↗</a>}
+            <a class:list={['studio-detail-link', { 'studio-primary-fallback': !store && !website }]} href={detail}><T zh={store || website ? '详情' : '查看应用'} en={store || website ? 'Details' : 'View app'} /> →</a>
+          </div>
+          <div class="studio-actions"><a href={detail}><T zh="了解应用" en="Explore app" /> ↗</a>{store && <a href={store} target="_blank" rel="noopener noreferrer">App Store ↗</a>}{!store && website && <a href={website} target="_blank" rel="noopener noreferrer"><T zh="打开网站" en="Open website" /> ↗</a>}{links.source && <a class="studio-source-link" href={links.source} target="_blank" rel="noopener noreferrer"><T zh="源代码" en="Source code" /> ↗</a>}</div>
           {(links.support || links.privacy) && <div class="studio-support">{links.support && <a href={links.support}><T zh="支持" en="Support" /></a>}{links.privacy && <a href={links.privacy}><T zh="隐私" en="Privacy" /></a>}</div>}
+          {(links.support || links.privacy || links.source) && <details class="studio-mobile-utility">
+            <summary><T zh={links.source ? '帮助与资源' : '支持与隐私'} en={links.source ? 'Help & resources' : 'Support & privacy'} /><span aria-hidden="true">⌄</span></summary>
+            <div>{links.support && <a href={links.support}><T zh="支持" en="Support" /> →</a>}{links.privacy && <a href={links.privacy}><T zh="隐私" en="Privacy" /> →</a>}{links.source && <a href={links.source} target="_blank" rel="noopener noreferrer"><T zh="源代码" en="Source code" /> ↗</a>}</div>
+          </details>}
+          </div>
         </div>
         <div class="studio-media">
           {media.length ? <AppPromos items={media} title={title} galleryId={`catalog-${app.id}`} locale={locale} /> : shot ? <button class="studio-shot" type="button" data-expand-image={shot.url} data-title={title} aria-label={en ? `View ${title} screenshot` : `查看 ${title} 截图`}>
@@ -81,7 +97,7 @@ const catalog = apps.map((app, index) => ({
   <div class="project-grid">
     {publicProjects.map(project => <article class="project-card" data-project-card data-category={project.category} data-archived={String(project.archived)} data-fork={String(project.fork)} hidden={project.archived || project.fork} data-search={`${project.name} ${project.zh} ${project.en}`}>
       <span class="project-category"><T zh={project.categoryZh} en={project.categoryEn} />{project.archived && <span> · <T zh="归档" en="Archived" /></span>}{project.fork && <span> · Fork</span>}</span>
-      <h3><a href={project.url} target="_blank" rel="noopener noreferrer">{project.name} ↗</a></h3>
+      <h3><a href={project.url} target="_blank" rel="noopener noreferrer">{project.name} <span aria-hidden="true">↗</span></a></h3>
       <p><T zh={project.zh} en={project.en} /></p><span class="project-language">{project.language}</span>
       <a class="project-open" href={project.url} target="_blank" rel="noopener noreferrer"><T zh="查看仓库" en="View repository" /> ↗</a>
     </article>)}

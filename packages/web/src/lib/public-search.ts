@@ -87,6 +87,16 @@ export function setupPublicSearch() {
       event.preventDefault(); open(document.getElementById('searchLink')!);
     }
   });
+  // Native dialog backdrop events target the dialog itself. Bounds distinguish
+  // the backdrop from empty padding inside the search panel.
+  const outside = (event: PointerEvent | MouseEvent) => {
+    if (!dialog || event.target !== dialog) return false;
+    const bounds = dialog.getBoundingClientRect();
+    return event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom;
+  };
+  dialog?.addEventListener('click', event => {
+    if (outside(event)) dialog.close();
+  });
   dialog?.addEventListener('close', () => opener?.focus());
   if (standalone) standalone.dispatchEvent(new Event('search-open'));
 }
