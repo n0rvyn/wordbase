@@ -1,6 +1,11 @@
 # Changelog
 
-## v1.11.2 (2026-11-04)
+## v1.11.3 (2026-11-05)
+
+### Bug Fixes
+
+- fix(web): align responsive app catalog and integrate media controls (9e8079e)
+- fix(deploy): support scoped UI releases without checkpoints (f67dbf6)
 
 ### Bug Fixes
 
