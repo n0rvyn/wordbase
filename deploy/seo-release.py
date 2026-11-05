@@ -42,6 +42,16 @@ def git(root, *args):
  return subprocess.check_output(['git', '-C', str(root), *args], text=True).strip()
 
 
+def runtime_metadata_access(root):
+ """Git under umask 077 can replace public manifests with root-only files."""
+ for relative in ('package.json','packages/api/package.json','content/site-origin.json'):
+  path=root/relative
+  if path.is_symlink():raise ValueError('Unexpected runtime metadata symlink')
+  if path.is_file():
+   subprocess.run(['chown','caddy:caddy',str(path)],check=True)
+   subprocess.run(['runuser','-u','caddy','--','test','-r',str(path)],check=True)
+
+
 def exchange(left, right):
  """Linux atomic directory exchange: either both names change or neither does."""
  libc = ctypes.CDLL(None, use_errno=True)
@@ -165,6 +175,7 @@ def main(root, base, target, mode='seo'):
   # Release capability probe touches only two empty artifact directories.
   a,b=stage/'probe-a',stage/'probe-b';a.mkdir();b.mkdir();exchange(a,b);a.rmdir();b.rmdir()
   subprocess.run(['git','-C',str(root),'merge','--ff-only',target],check=True);updated=True
+  runtime_metadata_access(root)
   candidate=stage/'web-dist'
   origin_file=root/'content/site-origin.json'
   origin=json.loads(origin_file.read_text())['canonical'] if origin_file.is_file() else 'https://norvyn.com'
@@ -184,6 +195,7 @@ def main(root, base, target, mode='seo'):
    if snapshot(live)==previous:
     subprocess.run(['git','-C',str(root),'restore','--source='+base,'--staged','--worktree','--',*sorted(changed)],check=True)
     subprocess.run(['git','-C',str(root),'reset','--soft',base],check=True)
+    runtime_metadata_access(root)
    else: print('Static promotion may have completed; inspect health before any recovery.',file=sys.stderr)
   raise
  finally:

@@ -3,6 +3,7 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location('domain',ROOT/'deploy/domain-release.py')
@@ -70,6 +71,12 @@ class DomainRelease(unittest.TestCase):
   self.assertNotIn('deploy/wordbase-api.service',domain.ALLOWED)
   self.assertNotIn('.env',domain.ALLOWED)
   self.assertNotIn('packages/api/data/blog.db',domain.ALLOWED)
+ def test_preflight_uses_reviewed_helper_without_changing_old_checkout(self):
+  with patch.object(domain.subprocess,'check_output',return_value='def runtime_metadata_access(root): return "reviewed"\n') as read:
+   helper=domain.common(self.root,'target')
+  self.assertEqual(helper.runtime_metadata_access(self.root),'reviewed')
+  self.assertEqual(read.call_args.args[0][-1],'target:deploy/seo-release.py')
+  self.assertFalse((self.root/'deploy').exists())
 
 class MigrationValidation(unittest.TestCase):
  def setUp(self):

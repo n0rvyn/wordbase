@@ -101,6 +101,16 @@ class Release(unittest.TestCase):
   self.assertNotIn('deploy/wordbase',seo.FRONTEND_FILES)
   self.assertNotIn('deploy/wordbase-api.service',seo.FRONTEND_FILES)
   self.assertNotIn('pnpm-lock.yaml',seo.FRONTEND_FILES)
+ def test_runtime_readability_checks_only_public_metadata(self):
+  root=self.root/'project'
+  for name in ('package.json','packages/api/package.json','content/site-origin.json','.env'):
+   p=root/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text('{}');p.chmod(0o600)
+  with patch.object(seo.subprocess,'run') as run:
+   seo.runtime_metadata_access(root)
+  commands=[call.args[0] for call in run.call_args_list]
+  self.assertEqual(len(commands),6)
+  self.assertTrue(all(str(root/'.env') not in command for command in commands))
+  self.assertEqual(sum(command[:5]==['runuser','-u','caddy','--','test'] for command in commands),3)
  def test_changed_feed_id_blocks_promotion(self):
   fixture(self.candidate,guid='https://julian.cafe/posts/one')
   with self.assertRaisesRegex(ValueError,'feed IDs'):seo.validate(self.candidate,seo.snapshot(self.live))

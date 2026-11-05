@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from types import ModuleType
 from urllib.request import Request, urlopen
 from urllib.parse import urlsplit, parse_qsl, urlencode, urlunsplit
 
@@ -24,7 +25,12 @@ ALLOWED = {
  'package.json', 'packages/api/package.json', 'CHANGELOG.md', 'MCP-TOOLS.md',
 }
 
-def common(root):
+def common(root, revision=None):
+ if revision:
+  source=subprocess.check_output(['git','-C',str(root),'show',revision+':deploy/seo-release.py'],text=True)
+  module=ModuleType('wordbase_static_release');module.__file__=str(root/'deploy/seo-release.py')
+  exec(compile(source,module.__file__,'exec'),module.__dict__)
+  return module
  spec=importlib.util.spec_from_file_location('wordbase_static_release',root/'deploy/seo-release.py')
  module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
  return module
@@ -98,7 +104,7 @@ def activate(api_candidate, api_live, web_candidate, web_live, env_file, origin,
   raise
 
 def main(root,base,target):
- root=Path(root).resolve(strict=True);s=common(root);git=lambda *args:s.git(root,*args)
+ root=Path(root).resolve(strict=True);s=common(root,target);git=lambda *args:s.git(root,*args)
  if git('rev-parse','HEAD')!=base or git('symbolic-ref','--short','HEAD')!='main':raise ValueError('Unexpected base')
  if git('status','--porcelain','--untracked-files=no'):raise ValueError('Preserve tracked changes')
  if git('rev-parse','origin/main')!=target:raise ValueError('Unreviewed remote target')
@@ -112,6 +118,8 @@ def main(root,base,target):
  if shutil.disk_usage(root).free<800*1024*1024:raise ValueError('Insufficient release space')
  subprocess.run(['python3',str(root/'deploy/release_guard.py'),'inventory',str(root)],check=True,stdout=subprocess.DEVNULL)
  web=root/'packages/web/dist';api=root/'packages/api/dist';env_file=root/'.env'
+ s.runtime_metadata_access(root)
+ subprocess.run(['runuser','-u','caddy','--','node','--check',str(api/'index.js')],check=True)
  previous_raw=s.snapshot(web);previous=migration_snapshot(s,web)
  old_api_inode=api.stat().st_ino;old_web_inode=web.stat().st_ino
  locks=[];stage=None;updated=False;activated=False
@@ -124,6 +132,7 @@ def main(root,base,target):
   a,b=stage/'probe-a',stage/'probe-b';a.mkdir();b.mkdir();s.exchange(a,b);a.rmdir();b.rmdir()
   subprocess.run(['git','-C',str(root),'merge','--ff-only',target],check=True);updated=True
   s=common(root)
+  s.runtime_metadata_access(root)
   origin=json.loads((root/'content/site-origin.json').read_text())['canonical']
   if origin!='https://julian.cafe':raise ValueError('Unexpected cutover origin')
   candidate_api=stage/'api-dist';candidate_web=stage/'web-dist'
@@ -135,12 +144,15 @@ def main(root,base,target):
   for candidate,reference in ((candidate_api,api/'index.js'),(candidate_web,web/'index.html')):
    subprocess.run(['chown','-R','caddy:caddy',str(candidate)],check=True)
    subprocess.run(['chcon','-R','--reference='+str(reference),str(candidate)],check=True)
+  subprocess.run(['chown','caddy:caddy',str(stage)],check=True)
+  subprocess.run(['runuser','-u','caddy','--','node','--check',str(candidate_api/'index.js')],check=True)
   activate(candidate_api,api,candidate_web,web,env_file,origin,s.exchange);activated=True
   print(json.dumps({'deployed':target,'canonical':origin,**result,'apiRestarted':True,'sharedServicesTouched':False,'checkpointCreated':False,'podcastRuntimeOriginPreserved':True}))
  except BaseException:
   if updated and not activated and s.snapshot(web)==previous_raw:
    subprocess.run(['git','-C',str(root),'restore','--source='+base,'--staged','--worktree','--',*sorted(changed)],check=True)
    subprocess.run(['git','-C',str(root),'reset','--soft',base],check=True)
+   s.runtime_metadata_access(root)
   raise
  finally:
   # Never destroy the only old generated artifacts after uncertain recovery.
