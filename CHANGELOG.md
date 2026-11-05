@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.12.0 (2026-11-05)
+## v1.12.1 (2026-11-05)
+
+### Bug Fixes
+
+- fix(deploy): verify runtime metadata access before API restarts (f745d1f)
 
 ### Features
 
