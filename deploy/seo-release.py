@@ -26,6 +26,7 @@ SEO_FILES = {
  'package.json', 'packages/api/package.json', 'CHANGELOG.md', 'MCP-TOOLS.md',
 }
 FRONTEND_FILES = {
+ 'packages/web/src/layouts/BaseLayout.astro',
  'packages/web/src/components/AppPromos.astro',
  'packages/web/src/components/page-bodies/AppsIndexBody.astro',
  'packages/web/src/lib/public-search.ts',

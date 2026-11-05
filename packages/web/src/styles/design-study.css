@@ -33,8 +33,11 @@
 :root[data-public] .nav-links { gap: 8px; padding: 5px; }
 :root[data-public] .nav-links a { min-width: 0; font-size: 13px; padding: 8px 23px; min-height: 44px; display: grid; place-items: center; }
 :root[data-public] .nav-r { gap: 16px; }
-:root[data-public] .theme-control { order: -1; }
-:root[data-public] .theme-control select { min-width: 0; font-size: 12px; padding: 8px 28px 8px 14px; }
+:root[data-public] .nav-r :is(.theme-control,.lang-btn) { width: 44px; height: 44px; flex: 0 0 44px; }
+:root[data-public] .nav-r .theme-control { display: grid; place-items: center; }
+:root[data-public] .nav-r .theme-control select { position: absolute; inset: 0; width: 100%; height: 100%; min-width: 0; padding: 0; opacity: 0; cursor: pointer; }
+:root[data-public] .nav-r .theme-control svg { position: static; transform: none; }
+:root[data-public] .nav-r .theme-control:focus-within { outline: 2px solid var(--accent); outline-offset: 3px; }
 :root[data-public] #searchLink { display: flex; align-items: center; gap: 10px; width: auto; padding: 0; border: 0; background: none; }
 :root[data-public] .search-label { font-size: 13px; }
 :root[data-public] #searchLink kbd { border: 1px solid var(--line); padding: 0 5px; font-size: 12px; color: var(--ink-2); }
@@ -154,7 +157,7 @@
   :root[data-public] .nav-links { position: static; order: 3; width: 100%; min-width: 0; flex-direction: row; justify-content: center; padding: 0; gap: 4px; border: 0; border-radius: 0; box-shadow: none; background: none; opacity: 1; visibility: visible; transform: none; }
   :root[data-public] .nav-links { padding-top: 12px; border-top: 1px solid var(--line); }
   :root[data-public] .nav-links a { padding: 6px 17px; font-size: 12px; border-radius: 28px; }
-  :root[data-public] .nav-r #searchLink { order: -2; width: 44px; min-height: 44px; justify-content: center; }
+  :root[data-public] .nav-r #searchLink { width: 44px; min-height: 44px; justify-content: center; }
   :root[data-public] .nav-r .lang-btn { width: 44px; height: 44px; }
   :root[data-public] .nav-burger, :root[data-public] .nav-links .nav-search-mobile { display: none; }
   :root[data-public] .nav-r { margin-left: auto; }

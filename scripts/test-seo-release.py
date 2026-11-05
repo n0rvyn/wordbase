@@ -95,6 +95,8 @@ class Release(unittest.TestCase):
   fixture(self.candidate,guid='https://julian.cafe/posts/one')
   with self.assertRaisesRegex(ValueError,'feed IDs'):seo.validate(self.candidate,previous,seo.FRONTEND_BODY_PAGES)
  def test_frontend_allowlist_excludes_api_and_infrastructure(self):
+  self.assertIn('packages/web/src/layouts/BaseLayout.astro',seo.FRONTEND_FILES)
+  self.assertEqual(seo.FRONTEND_BODY_PAGES,{'apps.html','en/apps.html'})
   self.assertNotIn('packages/api/src/index.ts',seo.FRONTEND_FILES)
   self.assertNotIn('deploy/wordbase',seo.FRONTEND_FILES)
   self.assertNotIn('deploy/wordbase-api.service',seo.FRONTEND_FILES)
