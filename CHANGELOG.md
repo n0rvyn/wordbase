@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.12.1 (2026-11-05)
+## v1.12.2 (2026-11-05)
+
+### Bug Fixes
+
+- fix(header): apply Julian.Cafe stamp wordmark (5191aea)
 
 ### Bug Fixes
 
