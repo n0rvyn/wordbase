@@ -76,6 +76,29 @@ class Release(unittest.TestCase):
  def test_link_change_blocks_promotion(self):
   p=self.candidate/'index.html';p.write_text(p.read_text().replace('href="/apps"','href="/lost"'))
   with self.assertRaisesRegex(ValueError,'Public body'):seo.validate(self.candidate,seo.snapshot(self.live))
+ def test_frontend_mode_allows_only_catalog_body_changes(self):
+  for root,body in ((self.live,'Original catalog'),(self.candidate,'Reviewed catalog controls')):
+   (root/'apps.html').write_text((root/'index.html').read_text().replace('Keep published content',body))
+  previous=seo.snapshot(self.live)
+  seo.validate(self.candidate,previous,seo.FRONTEND_BODY_PAGES)
+  with self.assertRaisesRegex(ValueError,'Public body'):seo.validate(self.candidate,previous)
+  fixture(self.candidate,body='Unapproved homepage edit')
+  with self.assertRaisesRegex(ValueError,'Public body'):seo.validate(self.candidate,previous,seo.FRONTEND_BODY_PAGES)
+ def test_frontend_mode_preserves_protected_content_and_feed_ids(self):
+  for root in (self.live,self.candidate):
+   (root/'lucent-privacy.html').write_text((root/'index.html').read_text())
+  previous=seo.snapshot(self.live)
+  page=self.candidate/'lucent-privacy.html'
+  page.write_text(page.read_text().replace('Keep published content','Changed legal content'))
+  with self.assertRaisesRegex(ValueError,'Public body'):seo.validate(self.candidate,previous,seo.FRONTEND_BODY_PAGES)
+  page.write_text((self.live/'lucent-privacy.html').read_text())
+  fixture(self.candidate,guid='https://julian.cafe/posts/one')
+  with self.assertRaisesRegex(ValueError,'feed IDs'):seo.validate(self.candidate,previous,seo.FRONTEND_BODY_PAGES)
+ def test_frontend_allowlist_excludes_api_and_infrastructure(self):
+  self.assertNotIn('packages/api/src/index.ts',seo.FRONTEND_FILES)
+  self.assertNotIn('deploy/wordbase',seo.FRONTEND_FILES)
+  self.assertNotIn('deploy/wordbase-api.service',seo.FRONTEND_FILES)
+  self.assertNotIn('pnpm-lock.yaml',seo.FRONTEND_FILES)
  def test_changed_feed_id_blocks_promotion(self):
   fixture(self.candidate,guid='https://julian.cafe/posts/one')
   with self.assertRaisesRegex(ValueError,'feed IDs'):seo.validate(self.candidate,seo.snapshot(self.live))
