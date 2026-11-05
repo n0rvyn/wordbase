@@ -1,5 +1,5 @@
-/* Approved live study: preserve desktop composition and hide unused phone experiments. */
-:root[data-public] :is(.studio-card-links,.studio-identity,.studio-summary) { display: contents; }
+/* Approved study: preserve desktop composition and shared identity tokens. */
+:root[data-public] :is(.studio-identity,.studio-summary) { display: contents; }
 :root[data-public] :is(.studio-platform-mobile,.studio-phone-actions,.studio-mobile-utility) { display: none; }
 
 @media (max-width: 600px) {
@@ -19,8 +19,8 @@
   :root[data-public] section.studio-catalog .studio-icon { background: var(--study-icon-tint,var(--surface-3)); }
   /* Generic responsive chrome hid the sole eyebrow span, leaving an orphan dot. */
   :root[data-public] :is(.studio-hero,.studio-projects) .universe-eyebrow span { display: inline; }
-  /* Editorial exhibit panels: portrait beside copy, landscape below it.
-     All colors, typography, links, filters and corners inherit the live study. */
+  /* Shared phone foundations; the approved stacked flow is applied below.
+     Colors, typography, filters and corners inherit the live study. */
   :root[data-public] section.studio-catalog .studio-card { min-height: 0; padding: 24px; gap: 20px; grid-template-columns: minmax(0,1fr) minmax(88px,.6fr); }
   :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="wide"] { grid-template-columns: minmax(0,1fr); }
   :root[data-public] section.studio-catalog .studio-card h2 { font-size: 24px; line-height: 1.25; }
@@ -31,17 +31,6 @@
   :root[data-public] section.studio-catalog .studio-actions a { border: 0; min-height: 44px; padding: 0; display: inline-flex; align-items: center; }
   :root[data-public] section.studio-catalog .studio-support { border-top: 1px solid var(--line); margin-top: 0; padding-top: 4px; gap: 0 16px; }
   :root[data-public] section.studio-catalog .studio-support a { min-height: 44px; display: inline-flex; align-items: center; }
-  /* App actions form one group; occasional help links are revealed on demand. */
-  :root[data-public] section.studio-catalog .studio-card-links { display: block; width: 100%; margin-top: auto; }
-  :root[data-public] section.studio-catalog .studio-actions { font-size: 12px; }
-  :root[data-public] section.studio-catalog :is(.studio-support,.studio-source-link) { display: none; }
-  :root[data-public] section.studio-catalog .studio-actions .studio-source-link { display: none; }
-  :root[data-public] section.studio-catalog .studio-mobile-utility { display: block; color: var(--ink-2); font-size: 11px; }
-  :root[data-public] section.studio-catalog .studio-mobile-utility summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; cursor: pointer; list-style: none; }
-  :root[data-public] section.studio-catalog .studio-mobile-utility summary::-webkit-details-marker { display: none; }
-  :root[data-public] section.studio-catalog .studio-mobile-utility > div { display: flex; flex-wrap: wrap; gap: 0 16px; }
-  :root[data-public] section.studio-catalog .studio-mobile-utility a { display: inline-flex; align-items: center; min-height: 44px; }
-  :root[data-public] section.studio-catalog .studio-mobile-utility summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="wide"] .studio-identity { display: grid; grid-template-columns: 48px minmax(0,1fr); gap: 0 16px; align-items: center; }
   :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="wide"] .studio-icon { grid-column: 1; grid-row: 1 / 3; margin: 0; }
   :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="wide"] .studio-platform { grid-column: 2; grid-row: 1; margin: 0 0 6px; }
@@ -82,4 +71,20 @@
   :root[data-public] section.studio-catalog .studio-platform { grid-column: 2; grid-row: 1; margin: 0 0 6px; }
   :root[data-public] section.studio-catalog h2 { grid-column: 2; grid-row: 2; }
   :root[data-public] section.studio-catalog .studio-card h2 { font-size: 22px; }
+}
+
+/* Approved catalog links: one quiet row, with media before destinations on phone. */
+:root[data-public] section.studio-catalog .studio-card-links { display:block; width:100%; }
+:root[data-public] section.studio-catalog .studio-actions { display:flex; flex-wrap:wrap; align-items:center; gap:0 20px; }
+:root[data-public] section.studio-catalog .studio-actions a { display:inline-flex; align-items:center; min-height:44px; padding:0; border:0; white-space:nowrap; }
+@media(max-width:600px) {
+  :root[data-public] section.studio-catalog .studio-card { display:flex; flex-direction:column; align-items:stretch; gap:0; }
+  :root[data-public] section.studio-catalog .studio-copy { display:contents; }
+  :root[data-public] section.studio-catalog .studio-identity { display:grid; grid-template-columns:48px minmax(0,1fr); gap:0 16px; align-items:center; width:100%; }
+  :root[data-public] section.studio-catalog .studio-icon { grid-column:1; grid-row:1 / 3; margin:0; }
+  :root[data-public] section.studio-catalog .studio-platform { grid-column:2; grid-row:1; margin:0 0 6px; }
+  :root[data-public] section.studio-catalog h2 { grid-column:2; grid-row:2; }
+  :root[data-public] section.studio-catalog .studio-media { width:100%; }
+  :root[data-public] section.studio-catalog .studio-card-links { margin:8px 0 0; }
+  :root[data-public] section.studio-catalog .studio-actions { gap:0 16px; font-size:12px; }
 }
