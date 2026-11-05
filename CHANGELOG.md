@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.12.2 (2026-11-05)
+## v1.12.3 (2026-11-05)
+
+### Bug Fixes
+
+- fix(apps): place desktop portrait media controls beside preview (335e6e6)
 
 ### Bug Fixes
 
