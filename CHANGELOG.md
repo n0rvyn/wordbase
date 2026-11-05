@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.11.5 (2026-11-05)
+## v1.12.0 (2026-11-05)
+
+### Features
+
+- feat(site): migrate canonical origin to julian.cafe (8cd278d)
 
 ### Bug Fixes
 
