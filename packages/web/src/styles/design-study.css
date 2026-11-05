@@ -30,6 +30,18 @@
 :root[data-public] .brand { font-size: 34px; font-weight: 700; letter-spacing: -2px; }
 :root[data-public] .brand .dot { width: 14px; margin-top: -5px; }
 :root[data-public] .brand .dot::after { font-size: 14px; }
+:root[data-public] .nav .cafe-wordmark { min-height: 44px; display: inline-flex; align-items: baseline; gap: 0; font: 700 34px/1 var(--font-display); letter-spacing: -1.65px; white-space: nowrap; text-decoration: none; }
+:root[data-public] .cafe-wordmark > span { display: inline-flex; align-items: baseline; }
+:root[data-public] .cafe-period { color: var(--accent); margin-right: 5px; }
+:root[data-public] .cafe-stamp { position: relative; top: -3px; padding: 5px 10px 6px; border: 1px solid var(--accent); border-radius: var(--r-pill); font: 600 19px/1 var(--font-display); letter-spacing: -.6px; transform: rotate(-7deg); }
+@media (max-width: 600px) {
+  :root[data-public] .nav .cafe-wordmark { font-size: 26px; letter-spacing: -1.3px; }
+  :root[data-public] .cafe-stamp { font-size: 15px; padding: 4px 7px 5px; top: -2px; }
+}
+@media (max-width: 350px) {
+  :root[data-public] .nav .cafe-wordmark { font-size: 20px; letter-spacing: -1px; }
+  :root[data-public] .cafe-stamp { font-size: 12px; padding: 4px 6px; }
+}
 :root[data-public] .nav-links { gap: 8px; padding: 5px; }
 :root[data-public] .nav-links a { min-width: 0; font-size: 13px; padding: 8px 23px; min-height: 44px; display: grid; place-items: center; }
 :root[data-public] .nav-r { gap: 16px; }

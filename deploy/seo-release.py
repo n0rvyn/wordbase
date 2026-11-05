@@ -90,21 +90,28 @@ class Page(HTMLParser):
   return hashlib.sha256(json.dumps([' '.join(' '.join(self.text).split()), self.links],ensure_ascii=False).encode()).hexdigest()
 
 
-def snapshot(dist):
+def snapshot(dist, approved_wordmark=False):
  """Only in-memory hashes/IDs, never a content or output backup."""
  pages={}
  for f in dist.rglob('*.html'):
   rel=f.relative_to(dist).as_posix()
   if rel.startswith('admin'): continue
-  pages[rel]=Page(f.read_text()).signature()
+  raw=f.read_text()
+  if approved_wordmark:
+   # Reverse only the exact approved header stamp for the content comparison.
+   # Links, footer, metadata and every other text node remain protected.
+   for href,label in (('/', '首页'),('/en', 'Home')):
+    mark=f'<a class="brand cafe-wordmark" href="{href}" aria-label="Julian.Cafe — {label}"> <span aria-hidden="true"><span>Julian</span><span class="cafe-period">.</span><span class="cafe-stamp">Cafe</span></span> </a>'
+    raw=raw.replace(mark,f'<a class="brand" href="{href}"> <span>norvyn</span><span class="dot" aria-hidden="true"></span> </a>',1)
+  pages[rel]=Page(raw).signature()
  feed=ET.parse(dist/'rss.xml')
  ids=[(x.findtext('guid'),dict(x.find('guid').attrib)) for x in feed.findall('./channel/item')]
  urls=[x.text for x in ET.parse(dist/'sitemap.xml').findall('.//{*}loc')]
  return {'pages':pages,'ids':ids,'urls':urls}
 
 
-def validate(candidate, previous, allowed_body_pages=frozenset(), expected_origin='https://norvyn.com'):
- current=snapshot(candidate)
+def validate(candidate, previous, allowed_body_pages=frozenset(), expected_origin='https://norvyn.com', approved_wordmark=False):
+ current=snapshot(candidate,approved_wordmark)
  for rel, digest in previous['pages'].items():
   if rel not in current['pages']: raise ValueError('Public page removed: '+rel)
   if rel not in allowed_body_pages and current['pages'][rel]!=digest:
@@ -181,7 +188,7 @@ def main(root, base, target, mode='seo'):
   origin=json.loads(origin_file.read_text())['canonical'] if origin_file.is_file() else 'https://norvyn.com'
   env={**os.environ,'API_URL':'http://127.0.0.1:4100','PUBLIC_SITE_URL':origin,'ASTRO_TELEMETRY_DISABLED':'1'}
   subprocess.run(['pnpm','--filter','web','build','--outDir',str(candidate)],cwd=root,env=env,check=True)
-  result=validate(candidate,previous,FRONTEND_BODY_PAGES if mode=='frontend' else frozenset(),expected_origin=origin)
+  result=validate(candidate,previous,FRONTEND_BODY_PAGES if mode=='frontend' else frozenset(),expected_origin=origin,approved_wordmark=(mode=='frontend'))
   subprocess.run(['chown','-R','caddy:caddy',str(candidate)],check=True)
   # Apply the existing public-content label to generated output; no SELinux policy change.
   subprocess.run(['chcon','-R','--reference='+str(live/'index.html'),str(candidate)],check=True)

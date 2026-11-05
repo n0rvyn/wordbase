@@ -76,6 +76,18 @@ class Release(unittest.TestCase):
  def test_link_change_blocks_promotion(self):
   p=self.candidate/'index.html';p.write_text(p.read_text().replace('href="/apps"','href="/lost"'))
   with self.assertRaisesRegex(ValueError,'Public body'):seo.validate(self.candidate,seo.snapshot(self.live))
+ def test_exact_wordmark_change_preserves_other_content_guards(self):
+  old='<a class="brand" href="/"> <span>norvyn</span><span class="dot" aria-hidden="true"></span> </a>'
+  new='<a class="brand cafe-wordmark" href="/" aria-label="Julian.Cafe — 首页"> <span aria-hidden="true"><span>Julian</span><span class="cafe-period">.</span><span class="cafe-stamp">Cafe</span></span> </a>'
+  for root,mark in ((self.live,old),(self.candidate,new)):
+   p=root/'index.html';p.write_text(p.read_text().replace('<body>','<body>'+mark))
+  previous=seo.snapshot(self.live)
+  seo.validate(self.candidate,previous,approved_wordmark=True)
+  with self.assertRaisesRegex(ValueError,'Public body'):seo.validate(self.candidate,previous)
+  p=self.candidate/'index.html';raw=p.read_text()
+  for changed in (raw.replace('Keep published content','Changed content'),raw.replace('href="/"','href="/wrong"',1),raw.replace('Cafe</span>','Other</span>')):
+   p.write_text(changed)
+   with self.assertRaisesRegex(ValueError,'Public body'):seo.validate(self.candidate,previous,approved_wordmark=True)
  def test_frontend_mode_allows_only_catalog_body_changes(self):
   for root,body in ((self.live,'Original catalog'),(self.candidate,'Reviewed catalog controls')):
    (root/'apps.html').write_text((root/'index.html').read_text().replace('Keep published content',body))

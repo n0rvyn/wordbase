@@ -215,8 +215,8 @@ const ogLocaleAlt = en ? 'zh_CN' : 'en_US';
     <a class="skip-link" href="#main"><T zh="跳到内容" en="Skip to content" /></a>
     <nav class="nav" id="nav">
       <div class="wrap nav-in">
-        <a class="brand" href={en ? '/en' : '/'}>
-          <span>{siteTitle}</span><span class="dot" aria-hidden="true"></span>
+        <a class="brand cafe-wordmark" href={en ? '/en' : '/'} aria-label={en ? 'Julian.Cafe — Home' : 'Julian.Cafe — 首页'}>
+          <span aria-hidden="true"><span>Julian</span><span class="cafe-period">.</span><span class="cafe-stamp">Cafe</span></span>
         </a>
         <div class="nav-links" id="navLinks">
           {navItems.map(item => (
