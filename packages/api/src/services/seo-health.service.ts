@@ -5,6 +5,7 @@ import { db } from '../db/index.js';
 import { posts } from '../db/schema.js';
 import { REPO_ROOT } from '../paths.js';
 import { cachedSync } from '../lib/ttl-cache.js';
+import { canonicalOrigin } from '../lib/site-origin.js';
 
 // Short staleness budget for the Observability dashboard (see analytics.service.ts).
 const OBS_CACHE_TTL_MS = 60_000;
@@ -59,8 +60,9 @@ export function getSeoHealth() {
   const c = rows[0];
 
   const issues: string[] = [];
-  if (canonicalHost && canonicalHost !== 'norvyn.com') {
-    issues.push(`sitemap canonical host is ${canonicalHost}, expected norvyn.com`);
+  const expectedHost = new URL(canonicalOrigin).host;
+  if (canonicalHost && canonicalHost !== expectedHost) {
+    issues.push(`sitemap canonical host is ${canonicalHost}, expected ${expectedHost}`);
   }
   if (!exists(resolve(DIST, 'robots.txt'))) {
     issues.push('robots.txt missing in dist');

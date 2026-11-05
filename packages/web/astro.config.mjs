@@ -1,10 +1,11 @@
 import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs';
 import { defineConfig } from 'astro/config';
 import tailwind from '@astrojs/tailwind';
 import preact from '@astrojs/preact';
 
 export default defineConfig({
-  site: 'https://norvyn.com',
+  site: JSON.parse(readFileSync(new URL('../../content/site-origin.json', import.meta.url), 'utf8')).canonical,
   output: 'static',
   server: { port: 4321 },
   build: {

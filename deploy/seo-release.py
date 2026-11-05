@@ -93,7 +93,7 @@ def snapshot(dist):
  return {'pages':pages,'ids':ids,'urls':urls}
 
 
-def validate(candidate, previous, allowed_body_pages=frozenset()):
+def validate(candidate, previous, allowed_body_pages=frozenset(), expected_origin='https://norvyn.com'):
  current=snapshot(candidate)
  for rel, digest in previous['pages'].items():
   if rel not in current['pages']: raise ValueError('Public page removed: '+rel)
@@ -110,7 +110,7 @@ def validate(candidate, previous, allowed_body_pages=frozenset()):
   p=Page((candidate/rel).read_text())
   if len(p.canonical)!=1 or p.canonical!=p.og or len(p.description)!=1:
    raise ValueError('Invalid metadata: '+rel)
-  if urlparse(p.canonical[0]).netloc!='norvyn.com': raise ValueError('Canonical origin changed')
+  if urlparse(p.canonical[0]).netloc!=urlparse(expected_origin).netloc: raise ValueError('Canonical origin changed')
   if rel in ('404.html','en/404.html','search.html','en/search.html') and not any('noindex' in x for x in p.robots):
    raise ValueError('Utility page indexable: '+rel)
  return {'publicPages':len(current['pages']), 'feedItems':len(current['ids']), 'sitemapUrls':len(current['urls'])}
@@ -166,9 +166,11 @@ def main(root, base, target, mode='seo'):
   a,b=stage/'probe-a',stage/'probe-b';a.mkdir();b.mkdir();exchange(a,b);a.rmdir();b.rmdir()
   subprocess.run(['git','-C',str(root),'merge','--ff-only',target],check=True);updated=True
   candidate=stage/'web-dist'
-  env={**os.environ,'API_URL':'http://127.0.0.1:4100','PUBLIC_SITE_URL':'https://norvyn.com','ASTRO_TELEMETRY_DISABLED':'1'}
+  origin_file=root/'content/site-origin.json'
+  origin=json.loads(origin_file.read_text())['canonical'] if origin_file.is_file() else 'https://norvyn.com'
+  env={**os.environ,'API_URL':'http://127.0.0.1:4100','PUBLIC_SITE_URL':origin,'ASTRO_TELEMETRY_DISABLED':'1'}
   subprocess.run(['pnpm','--filter','web','build','--outDir',str(candidate)],cwd=root,env=env,check=True)
-  result=validate(candidate,previous,FRONTEND_BODY_PAGES if mode=='frontend' else frozenset())
+  result=validate(candidate,previous,FRONTEND_BODY_PAGES if mode=='frontend' else frozenset(),expected_origin=origin)
   subprocess.run(['chown','-R','caddy:caddy',str(candidate)],check=True)
   # Apply the existing public-content label to generated output; no SELinux policy change.
   subprocess.run(['chcon','-R','--reference='+str(live/'index.html'),str(candidate)],check=True)

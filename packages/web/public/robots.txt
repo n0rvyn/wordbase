@@ -14,4 +14,4 @@ Disallow: /admin/
 Disallow: /admin$
 Allow: /
 
-Sitemap: https://norvyn.com/sitemap.xml
+Sitemap: https://julian.cafe/sitemap.xml

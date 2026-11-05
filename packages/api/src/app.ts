@@ -21,6 +21,7 @@ import { redirectMiddleware } from './middleware/redirect.js';
 import { errorMiddleware } from './middleware/error.js';
 import { metricsMiddleware } from './middleware/metrics.js';
 import type { AppEnv } from './types.js';
+import { allowedSiteOrigin } from './lib/site-origin.js';
 
 export const app = new Hono<AppEnv>();
 
@@ -30,12 +31,7 @@ export const app = new Hono<AppEnv>();
 app.use(
   '*',
   cors({
-    origin: (origin) => {
-      if (!origin) return origin; // non-browser / same-origin requests
-      if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return origin;
-      if (process.env.SITE_URL && origin === process.env.SITE_URL) return origin;
-      return undefined; // not allowed
-    },
+    origin: (origin) => allowedSiteOrigin(origin),
     allowHeaders: ['Content-Type', 'Authorization'],
     exposeHeaders: ['X-Wordbase-Observation'],
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

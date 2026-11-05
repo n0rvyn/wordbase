@@ -2,6 +2,14 @@
 set -euo pipefail
 
 umask 077
+if [[ "${1:-}" = --domain-cutover ]]; then
+    [[ $# = 3 && "$2" =~ ^[0-9a-f]{40}$ && "$3" =~ ^[0-9a-f]{40}$ ]] || exit 2
+    export PATH=/opt/wordbase/bin:/opt/wordbase/runtime/node-v24.22.2-linux-x64/bin:$PATH
+    cd "${WORDBASE_RELEASE_ROOT:-/var/www/wordbase}"
+    git fetch origin main
+    [[ $(git rev-parse origin/main) = "$3" ]] || exit 1
+    exec python3 <(git show "$3:deploy/domain-release.py") "$PWD" "$2" "$3"
+fi
 # A pinned frontend-only release uses the reviewed helper from Git directly.
 # It creates only disposable build artifacts, never a checkout or checkpoint.
 if [[ "${1:-}" = --seo-only || "${1:-}" = --frontend-only ]]; then
