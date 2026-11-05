@@ -108,10 +108,24 @@ const catalog = apps.map((app, index) => ({
   const cards = Array.from(document.querySelectorAll<HTMLElement>('[data-app-card]'));
   // Keep keyboard order equal to the phone reading order, restoring desktop copy.
   const phoneLayout = window.matchMedia('(max-width: 600px)');
-  const arrangeCardLinks = () => cards.forEach(card => {
-    const copy = card.querySelector<HTMLElement>('.studio-copy');
-    const links = card.querySelector<HTMLElement>('.studio-card-links');
-    if (copy && links) (phoneLayout.matches ? card : copy).append(links);
+  const linkGroups = cards.map(card => ({
+    card,
+    copy: card.querySelector<HTMLElement>('.studio-copy'),
+    links: card.querySelector<HTMLElement>('.studio-card-links'),
+    media: card.querySelector<HTMLElement>('.studio-media'),
+    actions: card.querySelector<HTMLElement>('.studio-actions'),
+    original: Array.from(card.querySelectorAll<HTMLAnchorElement>('.studio-actions a')),
+  }));
+  const linkRank = (link: HTMLAnchorElement) => link.href.includes('apps.apple.com') ? 0 : link.href.includes('privacy') ? 1 : 2;
+  const arrangeCardLinks = () => linkGroups.forEach(({card,copy,links,media,actions,original}) => {
+    if (!copy || !links || !media || !actions) return;
+    if (phoneLayout.matches) {
+      card.insertBefore(links, media);
+      if (card.dataset.catalogShape === 'portrait') [...original].sort((a,b) => linkRank(a)-linkRank(b)).forEach(link => actions.append(link));
+    } else {
+      copy.append(links);
+      original.forEach(link => actions.append(link));
+    }
   });
   arrangeCardLinks();
   phoneLayout.addEventListener('change', arrangeCardLinks);

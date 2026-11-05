@@ -102,3 +102,35 @@
   :root[data-public] section.studio-catalog .studio-card-links { margin:8px 0 0; }
   :root[data-public] section.studio-catalog .studio-actions { gap:0 16px; font-size:12px; }
 }
+
+/* Reviewed phone composition: destinations belong to copy; controls to media.
+   Preserve intrinsic media ratios and leave all desktop rules unchanged. */
+@media(max-width:600px) {
+  :root[data-public] section.studio-catalog .studio-card {padding:24px;}
+  :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="portrait"] {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.95fr);grid-template-rows:auto min-content 1fr auto;gap:0 24px;min-height:0;align-items:start;}
+  :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="portrait"] :is(.studio-copy,.studio-summary,.studio-media,.promo-gallery[data-context="catalog"],.promo-gallery[data-context="catalog"] > .promo-stage,.promo-gallery[data-context="catalog"] > .promo-stage > .promo-panel:not([hidden])) {display:contents;}
+  :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="portrait"] .studio-identity {grid-column:1/-1;grid-row:1;margin-bottom:24px;}
+  :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="portrait"] .studio-description {grid-column:1;grid-row:2;margin:0;align-self:start;}
+  :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="portrait"] .studio-card-links {grid-column:1;grid-row:3;margin:0;align-self:end;}
+  :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="portrait"] .studio-actions {flex-direction:column;align-items:flex-start;gap:0;}
+  :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="portrait"] .studio-actions a {min-width:44px;}
+  :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="portrait"] .promo-screen[data-shape="portrait"] {grid-column:2;grid-row:2/4;width:100%;height:auto;aspect-ratio:var(--promo-ratio,9/16);max-height:260px;align-self:start;}
+  :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="portrait"] .promo-actions {grid-column:2;grid-row:4;margin:8px 0 0;justify-content:center;}
+  :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="portrait"] .studio-shot {display:grid;grid-template-rows:subgrid;grid-column:2;grid-row:2/5;align-self:stretch;padding:0;}
+  :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="portrait"] .studio-shot img {grid-column:1;grid-row:1/3;width:100%;height:auto;max-height:none;align-self:start;}
+  :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="portrait"] .studio-shot > span {grid-column:1;grid-row:3;margin:8px 0 0;min-height:44px;display:flex;align-items:center;justify-content:center;}
+  :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="wide"] .studio-description {margin-bottom:0;}
+  :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="wide"] .studio-card-links {margin:4px 0 16px;}
+  :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="wide"] .studio-actions {justify-content:flex-start;gap:0 16px;}
+  :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="wide"] .studio-actions a[href*="apps.apple.com"] {margin-right:0;}
+  :root[data-public] section.studio-catalog .studio-actions a {color:color-mix(in srgb,var(--ink-2) 92%,var(--ink) 8%);font-weight:400;}
+  :root[data-public] section.studio-catalog .studio-actions a:hover {color:var(--ink);text-decoration:underline;text-underline-offset:3px;}
+}
+@media(max-width:374px) {
+  :root[data-public] section.studio-catalog .studio-card {padding:20px;}
+  :root[data-public] section.studio-catalog .studio-card[data-catalog-shape="portrait"] {column-gap:16px;}
+}
+@media(max-width:350px) {
+  /* Full Delphi copy plus three 44px destinations needs a taller intrinsic frame. */
+  :root[data-public] section.studio-catalog .studio-card[data-app-slug^="delphi-"][data-catalog-shape="portrait"] {grid-template-columns:minmax(0,1fr) 120px;column-gap:8px;}
+}
