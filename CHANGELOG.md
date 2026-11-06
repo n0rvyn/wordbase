@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.12.4 (2026-11-05)
+## v1.12.5 (2026-11-06)
+
+### Bug Fixes
+
+- fix(comments): replace refresh request waterfall (cf09b2d)
 
 ### Bug Fixes
 
