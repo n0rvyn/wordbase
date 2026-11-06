@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.12.3 (2026-11-05)
+## v1.12.4 (2026-11-05)
+
+### Bug Fixes
+
+- fix(apps): publish reviewed phone media and link grouping (0e905c7)
 
 ### Bug Fixes
 
