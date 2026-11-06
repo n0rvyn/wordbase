@@ -1,33 +1,35 @@
-import { useState, useEffect } from 'preact/hooks';
+import { useState, useEffect, useRef } from 'preact/hooks';
 import { adminFetch } from '../../lib/admin-api';
+import { loadAdminComments, type AdminComment } from '../../lib/admin-comments';
 
 export default function CommentModeration() {
-  const [comments, setComments] = useState<any[]>([]);
+  const [comments, setComments] = useState<AdminComment[]>([]);
   const [statusFilter, setStatusFilter] = useState('pending');
   const [loading, setLoading] = useState(true);
-  const [posts, setPosts] = useState<Map<string, string>>(new Map());
+  const [error, setError] = useState<string | null>(null);
+  const activeRequest = useRef<AbortController | null>(null);
+  const currentStatus = useRef(statusFilter);
+  currentStatus.current = statusFilter;
 
-  useEffect(() => { loadComments(); }, [statusFilter]);
+  useEffect(() => {
+    loadComments();
+    return () => activeRequest.current?.abort();
+  }, [statusFilter]);
 
   async function loadComments() {
+    activeRequest.current?.abort();
+    const controller = new AbortController();
+    activeRequest.current = controller;
     setLoading(true);
+    setError(null);
     try {
-      // Get all posts to map postId → title
-      const postsRes = await adminFetch<any>('/api/posts?limit=1000');
-      const postMap = new Map<string, string>();
-      postsRes.data.forEach((p: any) => postMap.set(p.id, p.title));
-      setPosts(postMap);
-
-      // Get comments for each post
-      const allComments: any[] = [];
-      for (const post of postsRes.data) {
-        try {
-          const res = await adminFetch<any>(`/api/posts/${post.id}/comments?status=${statusFilter}`);
-          allComments.push(...res.data.map((c: any) => ({ ...c, postTitle: post.title })));
-        } catch {}
-      }
-      setComments(allComments);
-    } catch {} finally { setLoading(false); }
+      const result = await loadAdminComments(currentStatus.current, controller.signal);
+      if (!controller.signal.aborted) setComments(result);
+    } catch (error) {
+      if (!controller.signal.aborted) setError(error instanceof Error ? error.message : 'Unable to load comments');
+    } finally {
+      if (!controller.signal.aborted) setLoading(false);
+    }
   }
 
   async function moderate(id: string, action: string) {
@@ -55,10 +57,11 @@ export default function CommentModeration() {
       </div>
 
       {loading ? <p class="text-ink-3">Loading...</p> :
+       error ? <p class="text-ink-3" role="alert">{error}</p> :
        comments.length === 0 ? <p class="text-ink-3">No {statusFilter} comments.</p> :
         <div class="space-y-4">
-          {comments.map((c: any) => (
-            <div class="bg-surface border rounded-lg p-4">
+          {comments.map(c => (
+            <div key={c.id} class="bg-surface border rounded-lg p-4">
               <div class="flex items-start justify-between">
                 <div>
                   <p class="font-medium">{c.authorName}</p>

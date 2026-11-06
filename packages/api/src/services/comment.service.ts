@@ -9,6 +9,36 @@ interface ListCommentsOptions {
   limit?: number;
 }
 
+export interface ListAdminCommentsOptions {
+  status: 'pending' | 'approved' | 'spam' | 'trash';
+  page: number;
+  limit: number;
+}
+
+/** One global moderation page, including titles without fetching post bodies. */
+export async function listAdminComments({ status, page, limit }: ListAdminCommentsOptions) {
+  const where = eq(comments.status, status);
+  const [{ total }] = await db.select({ total: sql<number>`count(*)` })
+    .from(comments).innerJoin(posts, eq(comments.postId, posts.id)).where(where);
+  const data = await db.select({
+    id: comments.id,
+    postId: comments.postId,
+    parentId: comments.parentId,
+    authorName: comments.authorName,
+    authorEmail: comments.authorEmail,
+    authorUrl: comments.authorUrl,
+    content: comments.content,
+    status: comments.status,
+    createdAt: comments.createdAt,
+    postTitle: posts.title,
+  }).from(comments).innerJoin(posts, eq(comments.postId, posts.id))
+    .where(where)
+    .orderBy(desc(comments.createdAt), desc(comments.id))
+    .limit(limit).offset((page - 1) * limit);
+
+  return { data, total, page, limit };
+}
+
 export async function listComments(postId: string, options: ListCommentsOptions = {}) {
   const { status = 'approved', page = 1, limit = 20 } = options;
   const offset = (page - 1) * limit;

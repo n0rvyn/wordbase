@@ -1,10 +1,29 @@
 import { observation } from '../services/observation.service.js';
 import { Hono } from 'hono';
+import { z } from 'zod';
 import { authMiddleware, validateBearerToken, requireScope, hasScope } from '../middleware/index.js';
 import * as commentService from '../services/comment.service.js';
 import type { AppEnv } from '../types.js';
 
 export const commentsRouter = new Hono<AppEnv>();
+
+const adminCommentsQuery = z.object({
+  status: z.enum(['pending', 'approved', 'spam', 'trash']).default('pending'),
+  page: z.coerce.number().int().min(1).max(Number.MAX_SAFE_INTEGER).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+}).refine(({ page, limit }) => Number.isSafeInteger((page - 1) * limit), {
+  message: 'Pagination offset is too large',
+});
+
+// Global moderation queue. Even approved comments require comments:read here;
+// the existing public per-post endpoint below keeps its original behavior.
+commentsRouter.get('/comments', authMiddleware, requireScope('comments:read'), async (c) => {
+  const query = adminCommentsQuery.safeParse(c.req.query());
+  if (!query.success) {
+    return c.json({ error: { code: 'BAD_REQUEST', message: 'Invalid comment status or pagination' } }, 400);
+  }
+  return c.json(await commentService.listAdminComments(query.data));
+});
 
 // GET /posts/:postId/comments - List comments
 // Public (no status or status=approved): approved only

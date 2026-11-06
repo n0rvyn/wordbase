@@ -146,6 +146,7 @@ All endpoints at `/api/*`. Auth via `Authorization: Bearer <api-key>`.
 | `/api/media` | GET/POST/DELETE | Yes | Media upload + library |
 | `/api/posts/:id/comments` | GET | No | List approved comments |
 | `/api/posts/:id/comments` | POST | No | Submit comment (pending) |
+| `/api/comments` | GET | Yes | Global moderation queue with post titles (`comments:read`; status defaults to pending; page ≥ 1; limit 1–100, default 50) |
 | `/api/comments/:id/approve` | POST | Yes | Approve comment |
 | `/api/comments/:id/spam` | POST | Yes | Mark spam |
 | `/api/analytics/pageview` | POST | No | Record page view (auto geo-tags visitor country via GeoLite2) |
