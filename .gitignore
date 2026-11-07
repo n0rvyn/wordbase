@@ -60,6 +60,10 @@ docs/11-crystals/
 # Generated session reports (not for the public repo)
 docs/reports/
 
+# Local publication receipts and internal domain migration planning
+docs/content-updates/
+docs/design/seo-audit-and-domain-plan.md
+
 # Owner-supplied promo originals; inventory/associations are tracked separately.
 app_promos/
 
